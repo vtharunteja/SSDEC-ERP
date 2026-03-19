@@ -1,23 +1,23 @@
-// ═══════════════════════════════════════════════════════
-// app.js — EIPD ERP Main Logic
+// ---
+// app.js - EIPD ERP Main Logic
 // Supabase Auth + Realtime + All 13 Modules
-// ═══════════════════════════════════════════════════════
+// ---
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-// ── SUPABASE CLIENT ──────────────────────────────────────
+// --- SUPABASE CLIENT ---
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 let CU   = null;   // current user profile
 let SUBS = [];     // realtime subscriptions
 
-// ── DATA CACHE ───────────────────────────────────────────
+// --- DATA CACHE ---
 const DB = {
   profiles:[], products:[], machines:[], inventory:[],
   work_orders:[], qc_records:[], purchase_orders:[],
   vendors:[], sales_orders:[], dispatches:[], invoices:[]
 };
 
-// ── TABLE MAP (camelCase id → snake_case table) ──────────
+// --- TABLE MAP (camelCase id - snake_case table) ---
 const TBL = {
   production:'work_orders', quality:'qc_records',
   inventory:'inventory', purchase:'purchase_orders',
@@ -27,7 +27,7 @@ const TBL = {
   users:'profiles'
 };
 
-// ── ROLES ────────────────────────────────────────────────
+// --- ROLES ---
 const ROLES = {
   admin:      {label:'Plant Admin',      color:'var(--rd)',bg:'rgba(239,68,68,.15)'},
   manager:    {label:'Plant Manager',    color:'var(--ac)',bg:'rgba(249,115,22,.15)'},
@@ -65,31 +65,31 @@ const STATUSES = {
 };
 const NAVDEF = [
   {s:'Overview'},
-  {id:'dashboard',   ic:'📊', lb:'Dashboard'},
+  {id:'dashboard',   ic:'DB', lb:'Dashboard'},
   {s:'Production'},
-  {id:'production',  ic:'⚙️', lb:'Work Orders',    bwo:1},
-  {id:'machines',    ic:'🔧', lb:'Machines'},
-  {id:'quality',     ic:'✅', lb:'Quality Control'},
+  {id:'production',  ic:'WO', lb:'Work Orders',    bwo:1},
+  {id:'machines',    ic:'MH', lb:'Machines'},
+  {id:'quality',     ic:'QC', lb:'Quality Control'},
   {s:'Materials'},
-  {id:'inventory',   ic:'📦', lb:'Inventory',      binv:1},
-  {id:'purchase',    ic:'🛒', lb:'Purchase Orders'},
+  {id:'inventory',   ic:'IV', lb:'Inventory',      binv:1},
+  {id:'purchase',    ic:'PO', lb:'Purchase Orders'},
   {s:'Commercial'},
-  {id:'sales',       ic:'📋', lb:'Sales Orders'},
-  {id:'dispatch',    ic:'🚛', lb:'Dispatch'},
+  {id:'sales',       ic:'SO', lb:'Sales Orders'},
+  {id:'dispatch',    ic:'DC', lb:'Dispatch'},
   {s:'Finance'},
-  {id:'invoices',    ic:'📄', lb:'Invoices',       binv2:1},
-  {id:'vendors',     ic:'🏭', lb:'Vendors'},
+  {id:'invoices',    ic:'IN', lb:'Invoices',       binv2:1},
+  {id:'vendors',     ic:'VN', lb:'Vendors'},
   {s:'Master Data'},
-  {id:'products',    ic:'🏷️', lb:'Product Master'},
+  {id:'products',    ic:'PM', lb:'Product Master'},
   {s:'Reports'},
-  {id:'reports',     ic:'📈', lb:'Analytics'},
+  {id:'reports',     ic:'AN', lb:'Analytics'},
   {s:'Admin'},
-  {id:'users',       ic:'👥', lb:'User Management'}
+  {id:'users',       ic:'UM', lb:'User Management'}
 ];
 
-// ═══════════════════════════════════════════════════════
+// ---
 // HELPERS
-// ═══════════════════════════════════════════════════════
+// ---
 const V   = id => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
 const SV  = (id,v) => { const e = document.getElementById(id); if(e) e.value = v != null ? String(v) : ''; };
 const ini = n => (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -109,7 +109,7 @@ function pill(s) {
   return `<span class="pill ${m[s]||'pgr'}">${s}</span>`;
 }
 
-const ron = () => '<div class="al ali" style="margin-bottom:14px"><span class="al-i">ℹ️</span>Read-only access for your role. Contact Plant Admin for edit permissions.</div>';
+const ron = () => '<div class="al ali" style="margin-bottom:14px"><span class="al-i">i</span>Read-only access for your role. Contact Plant Admin for edit permissions.</div>';
 
 function showLoader(t='Loading...') {
   document.getElementById('loader').style.display = 'flex';
@@ -121,10 +121,10 @@ window.openMo  = id => document.getElementById(id).classList.add('open');
 window.closeMo = id => document.getElementById(id).classList.remove('open');
 
 function toast(msg, t='s') {
-  const icons = {s:'✅', e:'❌', i:'ℹ️', w:'⚠️'};
+  const icons = {s:'QC', e:'', i:'i', w:'!'};
   const el = document.createElement('div');
   el.className = `toast ${t}`;
-  el.innerHTML = `<span class="toast-ic">${icons[t]||'✅'}</span><span>${msg}</span>`;
+  el.innerHTML = `<span class="toast-ic">${icons[t]||'QC'}</span><span>${msg}</span>`;
   document.getElementById('toast-wrap').appendChild(el);
   setTimeout(() => el.remove(), 3800);
 }
@@ -146,14 +146,14 @@ function fillProdDDs() {
     const e = document.getElementById(id);
     if (!e) return;
     const cur = e.value;
-    e.innerHTML = opts || '<option>No products — add in Product Master</option>';
+    e.innerHTML = opts || '<option>No products  add in Product Master</option>';
     if (cur) e.value = cur;
   });
 }
 
-// ═══════════════════════════════════════════════════════
+// ---
 // AUTH
-// ═══════════════════════════════════════════════════════
+// ---
 window.doLogin = async () => {
   const email = V('lemail'), pass = V('lpass');
   const btn  = document.getElementById('lbtn');
@@ -213,7 +213,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
   // Ignore everything except INITIAL_SESSION and SIGNED_IN
   if (!shouldInit) return;
-  // Already initialized — never run twice
+  // Already initialized - never run twice
   if (isInitialized) return;
 
   if (session?.user) {
@@ -233,7 +233,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
         CU = np;
       }
     } catch(err) {
-      // Fallback — use basic profile on any DB error
+      // Fallback - use basic profile on any DB error
       CU = { id: session.user.id, email: session.user.email,
              name: session.user.email, role: 'admin', dept: 'Management' };
     }
@@ -242,14 +242,14 @@ sb.auth.onAuthStateChange(async (event, session) => {
     hideLoader();
     initERP();
   } else {
-    // No session — show login
+    // No session - show login
     document.getElementById('loader').style.display = 'none';
     document.getElementById('login').classList.add('show');
   }
 });
-// ═══════════════════════════════════════════════════════
+// ---
 // LOAD ALL DATA + REALTIME
-// ═══════════════════════════════════════════════════════
+// ---
 async function loadAllData() {
   showLoader('Loading ERP data...');
   const tables = Object.keys(DB);
@@ -279,9 +279,9 @@ async function loadAllData() {
   });
 }
 
-// ═══════════════════════════════════════════════════════
+// ---
 // SUPABASE CRUD
-// ═══════════════════════════════════════════════════════
+// ---
 async function dbInsert(tbl, data) {
   setSyncB('saving');
   data.created_by = CU?.id;
@@ -306,9 +306,9 @@ async function dbDelete(tbl, id) {
   return true;
 }
 
-// ═══════════════════════════════════════════════════════
+// ---
 // ERP INIT
-// ═══════════════════════════════════════════════════════
+// ---
 function initERP() {
   const r = ROLES[CU.role] || ROLES.viewer;
   const av = document.getElementById('hav');
@@ -334,9 +334,9 @@ function tick() {
   if (e) e.textContent = new Date().toLocaleString('en-IN', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', second:'2-digit'});
 }
 
-// ═══════════════════════════════════════════════════════
+// ---
 // SIDEBAR
-// ═══════════════════════════════════════════════════════
+// ---
 function buildSB() {
   const allowed = NAV_ACCESS[CU?.role||'viewer'] || [];
   const sb = document.getElementById('sb');
@@ -351,7 +351,7 @@ function buildSB() {
     if (n.bwo)   { const c=DB.work_orders.filter(w=>w.status!=='Completed').length; if(c) badge=`<span class="nbg">${c}</span>`; }
     if (n.binv)  { const c=DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.reorder)).length; if(c) badge=`<span class="nbg r">${c}</span>`; }
     if (n.binv2) { const c=DB.invoices.filter(i=>i.status==='Unpaid'||i.status==='Overdue').length; if(c) badge=`<span class="nbg r">${c}</span>`; }
-    d.innerHTML = `<span class="ni-ic">${n.ic}</span><span class="ni-lb">${n.lb}</span>${badge}${ok?'':`<span style="margin-left:auto;opacity:.25;font-size:12px">🔒</span>`}`;
+    d.innerHTML = `<span class="ni-ic">${n.ic}</span><span class="ni-lb">${n.lb}</span>${badge}${ok?'':`<span style="margin-left:auto;opacity:.25;font-size:12px">X</span>`}`;
     if (ok) d.onclick = () => goTab(n.id);
     sb.appendChild(d);
   });
@@ -379,7 +379,7 @@ function renderMod(id) {
 
 window.refreshAll = () => { renderDash(); toast('Dashboard refreshed', 'i'); };
 
-// ── MOBILE ─────────────────────────────────────────────
+// --- MOBILE ---
 window.toggleSB = () => {
   document.getElementById('sb').classList.toggle('open');
   document.getElementById('sb-overlay').classList.toggle('open');
@@ -391,9 +391,9 @@ window.closeSB = () => {
 document.addEventListener('click', e => { if (e.target.closest('.ni') && window.innerWidth <= 768) setTimeout(closeSB, 150); });
 window.addEventListener('resize', () => { if (window.innerWidth > 768) closeSB(); });
 
-// ═══════════════════════════════════════════════════════
+// ---
 // DASHBOARD
-// ═══════════════════════════════════════════════════════
+// ---
 function renderDash() {
   const aw  = DB.work_orders.filter(w => w.status !== 'Completed').length;
   const li  = DB.inventory.filter(i => parseFloat(i.stock) <= parseFloat(i.reorder)).length;
@@ -407,9 +407,9 @@ function renderDash() {
     `<div class="kc b"><div class="kc-stripe"></div><div class="kl">Low Stock Items</div><div class="kv" style="color:var(--bl)">${li}</div><div class="ks">below reorder level</div></div>` +
     `<div class="kc p"><div class="kc-stripe"></div><div class="kl">QC Pass Rate</div><div class="kv" style="color:var(--pu)">${qcT>0?((qcP/qcT)*100).toFixed(1)+'%':'--'}</div><div class="ks">IEC 61952 / IS 14772</div></div>`;
   let alerts = '';
-  DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<div class="al ald"><span class="al-i">🚨</span><strong>CRITICAL:</strong> ${i.name} — only ${i.stock} ${i.unit} remaining. Raise PO now.</div>`);
-  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<div class="al alw"><span class="al-i">⚠️</span><strong>Low stock:</strong> ${i.name} at ${i.stock}/${i.reorder} ${i.unit}.</div>`);
-  DB.work_orders.filter(w=>w.status==='Delayed').forEach(w => alerts+=`<div class="al ali"><span class="al-i">📋</span>Work Order <strong>${w.wono}</strong> (${w.product}) is delayed.</div>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<div class="al ald"><span class="al-i">!!</span><strong>CRITICAL:</strong> ${i.name}  only ${i.stock} ${i.unit} remaining. Raise PO now.</div>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<div class="al alw"><span class="al-i">!</span><strong>Low stock:</strong> ${i.name} at ${i.stock}/${i.reorder} ${i.unit}.</div>`);
+  DB.work_orders.filter(w=>w.status==='Delayed').forEach(w => alerts+=`<div class="al ali"><span class="al-i">SO</span>Work Order <strong>${w.wono}</strong> (${w.product}) is delayed.</div>`);
   const aEl = document.getElementById('d-alerts'); if(aEl) aEl.innerHTML = alerts;
   const woEl = document.getElementById('d-wo');
   if(woEl) woEl.innerHTML = DB.work_orders.filter(w=>w.status!=='Completed').slice(0,4).map(w => {
@@ -432,9 +432,9 @@ function renderDash() {
   if(dcEl) dcEl.innerHTML = DB.dispatches.slice(0,4).map(d => `<tr><td class="mn" style="color:var(--ac)">${d.dcno||d.id.slice(-8)}</td><td>${d.customer}</td><td>${d.qty} pcs</td><td>${pill(d.status)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty" style="padding:20px"><div class="empty-tt">No dispatches</div></div></td></tr>';
 }
 
-// ═══════════════════════════════════════════════════════
+// ---
 // WORK ORDERS
-// ═══════════════════════════════════════════════════════
+// ---
 function renderWO() {
   const ed = canEdit('production');
   const roEl = document.getElementById('wo-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
@@ -447,7 +447,7 @@ function renderWO() {
     .map(w => {
       const acts = ed ? `<button class="btn bO sm" onclick="editWO('${w.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('work_orders','${w.id}','wo')">Update</button><button class="btn bD sm" onclick="delRec('work_orders','${w.id}')">Del</button>` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${w.product}</td><td class="mn">${w.qty}</td><td class="mn">${w.produced||0}</td><td>${fmtD(w.start_date)}</td><td>${fmtD(w.end_date)}</td><td>${pill(w.priority||'Normal')}</td><td>${pill(w.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">⚙️</div><div class="empty-tt">No Work Orders</div><div class="empty-st">Create one above</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">WO</div><div class="empty-tt">No Work Orders</div><div class="empty-st">Create one above</div></div></td></tr>';
 }
 window.saveWO = async () => {
   const eid = V('wo-eid'), qty = parseInt(V('wo-qty')), start = V('wo-start'), end = V('wo-end');
@@ -473,9 +473,9 @@ window.editWO = id => {
   document.getElementById('wo-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // MACHINES
-// ═══════════════════════════════════════════════════════
+// ---
 function renderMach() {
   const ed = canEdit('machines');
   const roEl = document.getElementById('mach-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
@@ -487,8 +487,8 @@ function renderMach() {
     const oee = parseFloat(m.oee||0);
     const col = oee>=80?'var(--gn)':oee>=60?'var(--ac)':'var(--rd)';
     const acts = ed ? `<div class="mca"><button class="btn bO sm" style="flex:1" onclick="editMach('${m.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('machines','${m.id}','mach')">Status</button><button class="btn bD sm" onclick="delRec('machines','${m.id}')">Del</button></div>` : '';
-    return `<div class="mc ${mc[m.status]||''}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div class="mcn">${m.name}</div><div class="mci">${m.eqid} · ${m.model}</div></div><span class="pill ${pc[m.status]||'pgr'}"><span class="pulse ${pc[m.status]||''}"></span>${m.status}</span></div>${m.param?`<div class="mcr"><span>Parameter</span><span class="mn">${m.param}</span></div>`:''}<div class="mcr"><span>OEE</span><span class="mn" style="color:${col};font-weight:600">${m.oee}%</span></div>${m.notes?`<div style="font-size:11px;color:var(--rd);margin-top:8px">${m.notes}</div>`:''}<div class="pbar" style="margin-top:10px"><div class="pfill" style="width:${m.oee}%;background:${col}"></div></div>${acts}</div>`;
-  }).join('') || '<div style="padding:40px;text-align:center;color:var(--mu);grid-column:1/-1"><div class="empty-ic">🔧</div><div class="empty-tt">No machines added</div></div>';
+    return `<div class="mc ${mc[m.status]||''}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div class="mcn">${m.name}</div><div class="mci">${m.eqid}  ${m.model}</div></div><span class="pill ${pc[m.status]||'pgr'}"><span class="pulse ${pc[m.status]||''}"></span>${m.status}</span></div>${m.param?`<div class="mcr"><span>Parameter</span><span class="mn">${m.param}</span></div>`:''}<div class="mcr"><span>OEE</span><span class="mn" style="color:${col};font-weight:600">${m.oee}%</span></div>${m.notes?`<div style="font-size:11px;color:var(--rd);margin-top:8px">${m.notes}</div>`:''}<div class="pbar" style="margin-top:10px"><div class="pfill" style="width:${m.oee}%;background:${col}"></div></div>${acts}</div>`;
+  }).join('') || '<div style="padding:40px;text-align:center;color:var(--mu);grid-column:1/-1"><div class="empty-ic">MH</div><div class="empty-tt">No machines added</div></div>';
 }
 window.saveMach = async () => {
   const eid = V('mach-eid'), name = V('mach-name'), eqid = V('mach-eqid');
@@ -502,20 +502,20 @@ window.editMach = id => {
   const m = DB.machines.find(x=>x.id===id); if(!m) return;
   SV('mach-eid',id); SV('mach-name',m.name); SV('mach-eqid',m.eqid); SV('mach-model',m.model);
   SV('mach-stat',m.status); SV('mach-oee',m.oee); SV('mach-param',m.param); SV('mach-notes',m.notes);
-  document.getElementById('mach-ft').textContent = 'Edit — ' + m.name;
+  document.getElementById('mach-ft').textContent = 'Edit  ' + m.name;
   document.getElementById('mach-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // QUALITY CONTROL
-// ═══════════════════════════════════════════════════════
+// ---
 function renderQC() {
   const ed = canEdit('quality');
   const roEl = document.getElementById('qc-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('qc-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   fillProdDDs();
   const sel = document.getElementById('qc-wo');
-  if(sel) sel.innerHTML = DB.work_orders.map(w => `<option value="${w.wono}">${w.wono} — ${w.product}</option>`).join('');
+  if(sel) sel.innerHTML = DB.work_orders.map(w => `<option value="${w.wono}">${w.wono}  ${w.product}</option>`).join('');
   const qcT = DB.qc_records.reduce((a,q) => a+parseFloat(q.sample||0), 0);
   const qcP = DB.qc_records.reduce((a,q) => a+parseFloat(q.pass||0), 0);
   const rEl  = document.getElementById('qc-rate'); if(rEl) rEl.textContent = qcT>0?((qcP/qcT)*100).toFixed(1)+'%':'--';
@@ -531,7 +531,7 @@ function renderQC() {
       const res  = pct>=95?'Passed':pct>=80?'Conditional':'Failed';
       const acts = ed ? `<button class="btn bO sm" onclick="editQC('${q.id}')">Edit</button><button class="btn bD sm" onclick="delRec('qc_records','${q.id}')">Del</button>` : '';
       return `<tr><td class="mn" style="color:var(--ac)">${q.batchid||q.id.slice(-8)}</td><td>${q.product}</td><td class="mn">${q.wo||'--'}</td><td>${q.sample}</td><td style="color:var(--gn)">${q.pass}</td><td style="color:var(--rd)">${fail}</td><td class="mn">${pct}%</td><td>${q.test}</td><td>${q.inspector||'--'}</td><td>${pill(res)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="11"><div class="empty"><div class="empty-ic">✅</div><div class="empty-tt">No QC Records</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="11"><div class="empty"><div class="empty-ic">QC</div><div class="empty-tt">No QC Records</div></div></td></tr>';
 }
 window.saveQC = async () => {
   const eid = V('qc-eid'), sample = parseFloat(V('qc-sample')), pass = parseFloat(V('qc-pass'));
@@ -547,20 +547,20 @@ window.editQC = id => {
   const q = DB.qc_records.find(x=>x.id===id); if(!q) return;
   SV('qc-eid',id); SV('qc-wo',q.wo); SV('qc-prod',q.product); SV('qc-sample',q.sample);
   SV('qc-pass',q.pass); SV('qc-test',q.test); SV('qc-insp',q.inspector); SV('qc-notes',q.notes);
-  document.getElementById('qc-ft').textContent = 'Edit — ' + (q.batchid||q.id);
+  document.getElementById('qc-ft').textContent = 'Edit  ' + (q.batchid||q.id);
   document.getElementById('qc-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // INVENTORY
-// ═══════════════════════════════════════════════════════
+// ---
 function renderInv() {
   const ed = canEdit('inventory');
   const roEl = document.getElementById('inv-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('inv-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   let alerts = '';
-  DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<div class="al ald"><span class="al-i">🚨</span><strong>CRITICAL:</strong> ${i.name} — ${i.stock} ${i.unit} left</div>`);
-  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<div class="al alw"><span class="al-i">⚠️</span><strong>Low:</strong> ${i.name} below reorder level</div>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<div class="al ald"><span class="al-i">!!</span><strong>CRITICAL:</strong> ${i.name}  ${i.stock} ${i.unit} left</div>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<div class="al alw"><span class="al-i">!</span><strong>Low:</strong> ${i.name} below reorder level</div>`);
   const aEl = document.getElementById('inv-alerts'); if(aEl) aEl.innerHTML = alerts;
   const psel = document.getElementById('po-mat');
   if(psel) psel.innerHTML = DB.inventory.map(i=>`<option value="${i.name}">${i.name}</option>`).join('');
@@ -573,7 +573,7 @@ function renderInv() {
       const col = parseFloat(i.stock)<=parseFloat(i.min)?'var(--rd)':parseFloat(i.stock)<=parseFloat(i.reorder)?'var(--ac)':'inherit';
       const acts = ed ? `<button class="btn bO sm" onclick="editInv('${i.id}')">Edit</button><button class="btn bD sm" onclick="delRec('inventory','${i.id}')">Del</button>` : '';
       return `<tr><td style="font-weight:500">${i.name}</td><td class="mn">${i.code}</td><td>${i.unit}</td><td class="mn" style="color:${col}">${i.stock}</td><td class="mn">${i.reorder}</td><td class="mn">${i.min}</td><td class="mn">${fmtM(i.cost)}</td><td class="mn">${fmtM(parseFloat(i.stock||0)*parseFloat(i.cost||0))}</td><td>${pill(st)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">📦</div><div class="empty-tt">No Inventory</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">IV</div><div class="empty-tt">No Inventory</div></div></td></tr>';
 }
 window.saveInv = async () => {
   const eid = V('inv-eid'), name = V('inv-name'), code = V('inv-code');
@@ -587,13 +587,13 @@ window.editInv = id => {
   const i = DB.inventory.find(x=>x.id===id); if(!i) return;
   SV('inv-eid',id); SV('inv-name',i.name); SV('inv-code',i.code); SV('inv-unit',i.unit);
   SV('inv-stock',i.stock); SV('inv-reorder',i.reorder); SV('inv-min',i.min); SV('inv-cost',i.cost); SV('inv-sup',i.supplier);
-  document.getElementById('inv-ft').textContent = 'Edit — ' + i.code;
+  document.getElementById('inv-ft').textContent = 'Edit  ' + i.code;
   document.getElementById('inv-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // PURCHASE ORDERS
-// ═══════════════════════════════════════════════════════
+// ---
 function renderPO() {
   const ed = canEdit('purchase');
   const roEl = document.getElementById('po-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
@@ -605,7 +605,7 @@ function renderPO() {
     .map(p => {
       const acts = ed ? `<button class="btn bO sm" onclick="editPO('${p.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('purchase_orders','${p.id}','po')">Status</button><button class="btn bD sm" onclick="delRec('purchase_orders','${p.id}')">Del</button>` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${p.pono||p.id.slice(-8)}</td><td>${p.material}</td><td>${p.supplier}</td><td class="mn">${p.qty}</td><td class="mn">${fmtM(parseFloat(p.qty||0)*parseFloat(p.price||0))}</td><td>${fmtD(p.date)}</td><td>${pill(p.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">🛒</div><div class="empty-tt">No Purchase Orders</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">PO</div><div class="empty-tt">No Purchase Orders</div></div></td></tr>';
 }
 window.savePO = async () => {
   const eid = V('po-eid'), mat = V('po-mat'), qty = parseFloat(V('po-qty')), price = parseFloat(V('po-price'));
@@ -627,17 +627,17 @@ window.editPO = id => {
   document.getElementById('po-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // SALES ORDERS
-// ═══════════════════════════════════════════════════════
+// ---
 function renderSO() {
   const ed = canEdit('sales');
   const roEl = document.getElementById('so-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('so-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   fillProdDDs();
   const wsel = document.getElementById('so-wo'); if(wsel) wsel.innerHTML = '<option value="">-- None --</option>'+DB.work_orders.map(w=>`<option value="${w.wono}">${w.wono}</option>`).join('');
-  const dsel = document.getElementById('dc-so'); if(dsel) dsel.innerHTML = DB.sales_orders.filter(s=>s.status!=='Delivered').map(s=>`<option value="${s.sono}">${s.sono} — ${s.customer}</option>`).join('');
-  const i2sel = document.getElementById('inv2-so'); if(i2sel) i2sel.innerHTML = '<option value="">-- None --</option>'+DB.sales_orders.map(s=>`<option value="${s.sono}">${s.sono} — ${s.customer}</option>`).join('');
+  const dsel = document.getElementById('dc-so'); if(dsel) dsel.innerHTML = DB.sales_orders.filter(s=>s.status!=='Delivered').map(s=>`<option value="${s.sono}">${s.sono}  ${s.customer}</option>`).join('');
+  const i2sel = document.getElementById('inv2-so'); if(i2sel) i2sel.innerHTML = '<option value="">-- None --</option>'+DB.sales_orders.map(s=>`<option value="${s.sono}">${s.sono}  ${s.customer}</option>`).join('');
   const srch = (V('so-srch')||'').toLowerCase(), flt = V('so-flt');
   const tbl  = document.getElementById('so-tbl'); if(!tbl) return;
   tbl.innerHTML = DB.sales_orders
@@ -645,7 +645,7 @@ function renderSO() {
     .map(s => {
       const acts = ed ? `<button class="btn bO sm" onclick="editSO('${s.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('sales_orders','${s.id}','so')">Status</button><button class="btn bD sm" onclick="delRec('sales_orders','${s.id}')">Del</button>` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${s.sono||s.id.slice(-8)}</td><td>${s.customer}</td><td>${s.product}</td><td class="mn">${s.qty}</td><td class="mn">${fmtM(parseFloat(s.qty||0)*parseFloat(s.price||0))}</td><td>${fmtD(s.deadline)}</td><td class="mn" style="color:var(--mu)">${s.wo||'--'}</td><td>${pill(s.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">📋</div><div class="empty-tt">No Sales Orders</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">SO</div><div class="empty-tt">No Sales Orders</div></div></td></tr>';
 }
 window.saveSO = async () => {
   const eid = V('so-eid'), cust = V('so-cust'), qty = parseFloat(V('so-qty')), price = parseFloat(V('so-price'));
@@ -667,9 +667,9 @@ window.editSO = id => {
   document.getElementById('so-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // DISPATCH
-// ═══════════════════════════════════════════════════════
+// ---
 function renderDC() {
   const ed = canEdit('dispatch');
   const roEl = document.getElementById('dc-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
@@ -681,7 +681,7 @@ function renderDC() {
     .map(d => {
       const acts = ed ? `<button class="btn bO sm" onclick="editDC('${d.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('dispatches','${d.id}','dc')">Status</button><button class="btn bD sm" onclick="delRec('dispatches','${d.id}')">Del</button>` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${d.dcno||d.id.slice(-8)}</td><td class="mn">${d.soref||'--'}</td><td>${d.customer}</td><td>${d.product}</td><td class="mn">${d.qty}</td><td class="mn">${d.vehicle||'--'}</td><td>${fmtD(d.date)}</td><td class="mn">${d.lr||'--'}</td><td>${pill(d.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">🚛</div><div class="empty-tt">No Dispatches</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">DC</div><div class="empty-tt">No Dispatches</div></div></td></tr>';
 }
 window.saveDC = async () => {
   const eid = V('dc-eid'), soref = V('dc-so'), qty = parseFloat(V('dc-qty'));
@@ -704,15 +704,15 @@ window.editDC = id => {
   document.getElementById('dc-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // INVOICES
-// ═══════════════════════════════════════════════════════
+// ---
 function renderInv2() {
   const ed = canEdit('invoices');
   const roEl = document.getElementById('inv2-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('inv2-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   let alerts = '';
-  DB.invoices.filter(i=>i.status==='Overdue').forEach(i=>alerts+=`<div class="al ald"><span class="al-i">🚨</span>Overdue: <strong>${i.invno||'Invoice'}</strong> — ${i.party} — ${fmtM(i.total)}</div>`);
+  DB.invoices.filter(i=>i.status==='Overdue').forEach(i=>alerts+=`<div class="al ald"><span class="al-i">!!</span>Overdue: <strong>${i.invno||'Invoice'}</strong>  ${i.party}  ${fmtM(i.total)}</div>`);
   const a2El = document.getElementById('inv2-alerts'); if(a2El) a2El.innerHTML = alerts;
   const tot  = DB.invoices.reduce((a,i)=>a+parseFloat(i.total||0),0);
   const unpd = DB.invoices.filter(i=>i.status==='Unpaid'||i.status==='Overdue').reduce((a,i)=>a+parseFloat(i.total||0),0);
@@ -728,7 +728,7 @@ function renderInv2() {
       const total = parseFloat(i.amt||0)*(1+parseFloat(i.gst||0)/100);
       const acts  = ed ? `<button class="btn bO sm" onclick="editInv2('${i.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('invoices','${i.id}','inv2')">Status</button><button class="btn bD sm" onclick="delRec('invoices','${i.id}')">Del</button>` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${i.invno||i.id.slice(-8)}</td><td>${fmtD(i.date)}</td><td>${i.party||''}</td><td class="mn" style="color:var(--mu)">${i.soref||'--'}</td><td class="mn">${fmtM(i.amt)}</td><td class="mn">${i.gst||0}%</td><td class="mn" style="font-weight:700">${fmtM(total)}</td><td>${fmtD(i.due)}</td><td>${pill(i.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">📄</div><div class="empty-tt">No Invoices</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">IN</div><div class="empty-tt">No Invoices</div></div></td></tr>';
 }
 window.saveInv2 = async () => {
   const eid = V('inv2-eid'), party = V('inv2-party'), amt = parseFloat(V('inv2-amt'));
@@ -751,9 +751,9 @@ window.editInv2 = id => {
   document.getElementById('inv2-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // VENDORS
-// ═══════════════════════════════════════════════════════
+// ---
 function renderVnd() {
   const ed = canEdit('vendors');
   const roEl = document.getElementById('vnd-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
@@ -764,10 +764,10 @@ function renderVnd() {
     .filter(v => !srch || (v.name+v.code).toLowerCase().includes(srch))
     .map(v => {
       const sc   = {Active:'pg',Inactive:'pgr',Blacklisted:'pr'}[v.status]||'pgr';
-      const stars = '★'.repeat(parseInt(v.rating||3));
+      const stars = '*'.repeat(parseInt(v.rating||3));
       const acts  = ed ? `<button class="btn bO sm" onclick="editVnd('${v.id}')">Edit</button><button class="btn bD sm" onclick="delRec('vendors','${v.id}')">Del</button>` : '';
       return `<tr><td style="font-weight:600">${v.name}</td><td class="mn">${v.code}</td><td><span class="pill pb">${v.category}</span></td><td>${v.contact||'--'}</td><td class="mn">${v.phone||'--'}</td><td class="mn" style="font-size:11px">${v.gst||'--'}</td><td>${v.terms}</td><td style="color:var(--a2)">${stars}</td><td>${pill(v.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">🏭</div><div class="empty-tt">No Vendors</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">VN</div><div class="empty-tt">No Vendors</div></div></td></tr>';
 }
 window.saveVnd = async () => {
   const eid = V('vnd-eid'), name = V('vnd-name');
@@ -783,13 +783,13 @@ window.editVnd = id => {
   SV('vnd-eid',id); SV('vnd-name',v.name); SV('vnd-code',v.code); SV('vnd-cat',v.category);
   SV('vnd-contact',v.contact); SV('vnd-phone',v.phone); SV('vnd-email',v.email);
   SV('vnd-gst',v.gst); SV('vnd-terms',v.terms); SV('vnd-rating',v.rating); SV('vnd-status',v.status); SV('vnd-materials',v.materials);
-  document.getElementById('vnd-ft').textContent = 'Edit — ' + v.name;
+  document.getElementById('vnd-ft').textContent = 'Edit  ' + v.name;
   document.getElementById('vnd-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // PRODUCT MASTER
-// ═══════════════════════════════════════════════════════
+// ---
 function renderProducts() {
   const ed = canEdit('products');
   const roEl = document.getElementById('prod-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
@@ -801,7 +801,7 @@ function renderProducts() {
     .map(p => {
       const acts = ed ? `<button class="btn bO sm" onclick="editProd('${p.id}')">Edit</button><button class="btn bD sm" onclick="delRec('products','${p.id}')">Del</button>` : '';
       return `<tr><td style="font-weight:600">${p.name}</td><td class="mn" style="color:var(--ac)">${p.code}</td><td><span class="pill pb">${p.category||'--'}</span></td><td>${p.unit}</td><td class="mn">${fmtM(p.price||0)}</td><td class="mn">${p.hsn||'--'}</td><td class="mn">${p.gst||0}%</td><td>${pill(p.active?'Active':'Inactive')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">🏷️</div><div class="empty-tt">No Products</div><div class="empty-st">Add products to enable dropdowns</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">PM</div><div class="empty-tt">No Products</div><div class="empty-st">Add products to enable dropdowns</div></div></td></tr>';
 }
 window.saveProd = async () => {
   const eid = V('prod-eid'), name = V('prod-name');
@@ -817,14 +817,14 @@ window.editProd = id => {
   SV('prod-eid',id); SV('prod-name',p.name); SV('prod-code',p.code); SV('prod-desc',p.description);
   SV('prod-unit',p.unit); SV('prod-price',p.price); SV('prod-cat',p.category);
   SV('prod-hsn',p.hsn); SV('prod-gst',p.gst); SV('prod-active',String(p.active)); SV('prod-notes',p.notes);
-  document.getElementById('prod-ft').textContent = 'Edit — ' + p.name;
+  document.getElementById('prod-ft').textContent = 'Edit  ' + p.name;
   document.getElementById('prod-sb').textContent = 'Update Product';
   document.getElementById('prod-fc').scrollIntoView({behavior:'smooth'});
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // ANALYTICS
-// ═══════════════════════════════════════════════════════
+// ---
 function renderRep() {
   const totP = DB.work_orders.reduce((a,w)=>a+parseFloat(w.produced||0),0);
   const totR = DB.sales_orders.reduce((a,s)=>a+(parseFloat(s.qty||0)*parseFloat(s.price||0)),0);
@@ -858,9 +858,9 @@ function renderRep() {
   if(rsEl) rsEl.innerHTML = Object.entries(custG).map(([c,v]) => `<tr><td>${c}</td><td class="mn">${v.c}</td><td class="mn">${fmtM(v.v)}</td></tr>`).join('');
 }
 
-// ═══════════════════════════════════════════════════════
+// ---
 // USER MANAGEMENT
-// ═══════════════════════════════════════════════════════
+// ---
 function renderUsers() {
   const rg = document.getElementById('roles-grid');
   if(rg) rg.innerHTML = Object.entries(ROLES).map(([k,r]) => {
@@ -872,8 +872,8 @@ function renderUsers() {
   ul.innerHTML = DB.profiles.map(u => {
     const r    = ROLES[u.role]||ROLES.viewer;
     const isMe = u.id === CU?.id;
-    return `<div class="ur"><div class="uavb" style="background:${r.bg};color:${r.color}">${ini(u.name||u.email||'?')}</div><div class="uinf"><div class="unl">${u.name||u.email}${isMe?' <span style="color:var(--mu);font-size:10px">(you)</span>':''}</div><div class="uel">${u.email||''}${u.dept?' · '+u.dept:''}</div></div><span class="pill ${u.active!==false?'pg':'pgr'}">${u.active!==false?'Active':'Inactive'}</span><span class="pill" style="background:${r.bg};color:${r.color};border:1px solid ${r.color}20">${r.label}</span></div>`;
-  }).join('') || '<div class="empty"><div class="empty-ic">👥</div><div class="empty-tt">No users found</div></div>';
+    return `<div class="ur"><div class="uavb" style="background:${r.bg};color:${r.color}">${ini(u.name||u.email||'?')}</div><div class="uinf"><div class="unl">${u.name||u.email}${isMe?' <span style="color:var(--mu);font-size:10px">(you)</span>':''}</div><div class="uel">${u.email||''}${u.dept?'  '+u.dept:''}</div></div><span class="pill ${u.active!==false?'pg':'pgr'}">${u.active!==false?'Active':'Inactive'}</span><span class="pill" style="background:${r.bg};color:${r.color};border:1px solid ${r.color}20">${r.label}</span></div>`;
+  }).join('') || '<div class="empty"><div class="empty-ic">UM</div><div class="empty-tt">No users found</div></div>';
 }
 
 window.addUser = async () => {
@@ -910,9 +910,9 @@ window.addUser = async () => {
     errEl.style.display = 'block';
   }
 };
-// ═══════════════════════════════════════════════════════
+// ---
 // PROFILE MODAL
-// ═══════════════════════════════════════════════════════
+// ---
 function openProf() {
   if (!CU) return;
   const r  = ROLES[CU.role]||ROLES.viewer;
@@ -941,9 +941,9 @@ window.saveProf = async () => {
   setTimeout(() => closeMo('mo-prof'), 1200);
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // STATUS UPDATE MODAL
-// ═══════════════════════════════════════════════════════
+// ---
 window.openUpd = (tbl, id, type) => {
   const rec = DB[tbl]?.find(x=>x.id===id); if(!rec) return;
   document.getElementById('upd-col').value = tbl;
@@ -952,7 +952,7 @@ window.openUpd = (tbl, id, type) => {
   sel.innerHTML = (STATUSES[tbl]||[]).map(s=>`<option${rec.status===s?' selected':''}>${s}</option>`).join('');
   const pw = document.getElementById('upd-prod-wrap');
   if (type==='wo') { pw.style.display='block'; document.getElementById('upd-prod').value=rec.produced||0; } else pw.style.display='none';
-  document.getElementById('mo-upd-t').textContent = 'Update — '+(rec.wono||rec.pono||rec.sono||rec.dcno||rec.name||'Record');
+  document.getElementById('mo-upd-t').textContent = 'Update  '+(rec.wono||rec.pono||rec.sono||rec.dcno||rec.name||'Record');
   document.getElementById('upd-info').textContent = 'Current status: ' + rec.status;
   document.getElementById('upd-note').value = '';
   openMo('mo-upd');
@@ -974,18 +974,18 @@ window.saveUpd = async () => {
   if (await dbUpdate(tbl, id, updates)) { closeMo('mo-upd'); toast('Status updated'); }
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // GENERIC DELETE
-// ═══════════════════════════════════════════════════════
+// ---
 window.delRec = async (tbl, id) => {
   const names = { work_orders:'work order', qc_records:'QC record', inventory:'material', purchase_orders:'purchase order', sales_orders:'sales order', dispatches:'dispatch', machines:'machine', invoices:'invoice', vendors:'vendor', products:'product' };
   if (!confirm('Delete this '+(names[tbl]||'record')+'? This cannot be undone.')) return;
   if (await dbDelete(tbl, id)) toast('Record deleted');
 };
 
-// ═══════════════════════════════════════════════════════
+// ---
 // CLEAR FORMS
-// ═══════════════════════════════════════════════════════
+// ---
 const FORM_FIELDS = {
   wo:   ['wo-eid','wo-qty','wo-start','wo-end','wo-rem'],
   mach: ['mach-eid','mach-name','mach-eqid','mach-model','mach-oee','mach-param','mach-notes'],
