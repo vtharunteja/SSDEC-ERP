@@ -286,31 +286,55 @@ function stopIdleDetection() {
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
-  // Only INITIAL_SESSION (page load) and SIGNED_IN (fresh login) trigger ERP init
-  // TOKEN_REFRESHED fires every hour — we ignore it completely
-  // USER_UPDATED, MFA_CHALLENGE_VERIFIED etc — also ignored
   const shouldInit = event === 'INITIAL_SESSION' || event === 'SIGNED_IN';
   if (!shouldInit) return;
-  if (isInitialized)  return; // already running — never run twice
+  if (isInitialized) return;
 
   if (session?.user) {
-    isInitialized = true; // set immediately to block any race condition
+    isInitialized = true;
     showLoader('Loading your profile...');
     try {
-      const { data: profile } = await sb
+      // Try to get existing profile
+      const { data: profile, error } = await sb
         .from('profiles').select('*').eq('id', session.user.id).single();
-      CU = profile || {
-        id: session.user.id, email: session.user.email,
-        name: session.user.email, role: 'admin', dept: 'Management'
+
+      if (profile) {
+        // Profile exists — use it
+        CU = profile;
+      } else {
+        // Profile missing — create it now
+        const newProfile = {
+          id:         session.user.id,
+          email:      session.user.email,
+          name:       session.user.email,
+          role:       'admin',
+          dept:       'Management',
+          phone:      '',
+          empid:      'EIPD-001',
+          active:     true
+        };
+        await sb.from('profiles').upsert(newProfile);
+        CU = newProfile;
+      }
+
+      document.getElementById('login').classList.remove('show');
+      document.getElementById('erp').style.display = 'flex';
+      hideLoader();
+      initERP();
+
+    } catch(err) {
+      // On any error — still let user in with basic profile
+      CU = {
+        id:    session.user.id,
+        email: session.user.email,
+        name:  session.user.email,
+        role:  'admin',
+        dept:  'Management'
       };
       document.getElementById('login').classList.remove('show');
       document.getElementById('erp').style.display = 'flex';
       hideLoader();
       initERP();
-    } catch(err) {
-      isInitialized = false;
-      hideLoader();
-      toast('Profile error: ' + err.message, 'e');
     }
   } else {
     isInitialized = false;
@@ -320,8 +344,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     const btn = document.getElementById('lbtn');
     if (btn) { btn.disabled = false; btn.textContent = 'SIGN IN'; }
   }
-});
-// ═══════════════════════════════════════════════════════
+});// ═══════════════════════════════════════════════════════
 // LOAD ALL DATA + REALTIME
 // ═══════════════════════════════════════════════════════
 async function loadAllData() {
