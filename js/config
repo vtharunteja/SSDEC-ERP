@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════
 
 const SUPABASE_URL  = 'https://vmfkqywiifpuuxrcekif.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtZmtxeXdpaWZwdXV4cmNla2lmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzQwNDgsImV4cCI6MjA4OTQxMDA0OH0.fXt4VVUQGnwpijVAkwM9M8E_NpOjVzLVtqcf0jZTCYE';
+const SUPABASE_ANON = 'sb_publishable__ysz7n8MR8zC7gXhAv2sQg_f6Gv7jmF';
 
 // ── APP SETTINGS ────────────────────────────────────────
 const APP = {
