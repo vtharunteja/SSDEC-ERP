@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EIPD ERP — Polymer Insulator Manufacturing</title>
+<meta name="description" content="EIPD ERP — Production, Quality, Inventory, Sales and Finance management for polymer pin insulator manufacturing."/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/layout.css"/>
+<link rel="stylesheet" href="css/components.css"/>
+<link rel="stylesheet" href="css/modules.css"/>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">⚡ EIPD ERP</div>
+  <div class="loader-sub">// POLYMER INSULATOR MANUFACTURING</div>
+  <div class="spin"></div>
+  <div class="loader-msg" id="loader-msg">Initializing...</div>
+</div>
+
+<!-- TOASTS -->
+<div id="toast-wrap"></div>
+
+<!-- ══════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════ -->
+<div id="login" class="screen show">
+  <div class="login-dots"></div>
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-name">EIPD ERP</div>
+        <div class="brand-sub">Polymer Insulator Manufacturing</div>
+      </div>
+    </div>
+    <div class="login-secure">
+      <div class="login-dot"></div>
+      Secured by Supabase — Encrypted Login
+    </div>
+    <div class="login-err" id="lerr"></div>
+    <div class="login-info" id="linfo"></div>
+    <label class="lbl">Email Address</label>
+    <input class="linp" id="lemail" type="email" placeholder="you@eipd.in" autocomplete="email"/>
+    <label class="lbl">Password</label>
+    <input class="linp" id="lpass" type="password" placeholder="Your password" autocomplete="current-password"/>
+    <button class="login-btn" id="lbtn" onclick="doLogin()">SIGN IN</button>
+    <div class="login-foot">
+      <button onclick="showForgot()">Forgot password? Reset via email</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     ERP SHELL
+══════════════════════════════════════════════ -->
+<div id="erp">
+  <div class="offline-bar" id="offline-bar">No internet — working offline. Changes sync when reconnected.</div>
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="h-left">
+      <button class="hburger" id="hburger" onclick="toggleSB()">☰</button>
+      <div class="hlogo">
+        <div class="hlogo-icon">⚡</div>
+        <div>
+          <span class="hlogo-name">EIPD ERP</span>
+          <span class="hlogo-mod" id="hmod">// Dashboard</span>
+        </div>
+      </div>
+    </div>
+    <div class="h-right">
+      <span class="hclock" id="hclock"></span>
+      <span class="hsync idle" id="hsync">Synced</span>
+      <div class="huser" id="huser">
+        <div class="hav" id="hav"></div>
+        <span class="hnm" id="hnm"></span>
+        <span class="hrb" id="hrb"></span>
+      </div>
+      <button class="hlogout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+    <div class="sb-overlay" id="sb-overlay" onclick="closeSB()"></div>
+    <nav class="sb" id="sb"></nav>
+
+    <main class="main" id="main">
+
+      <!-- DASHBOARD -->
+      <div class="tc" id="tab-dashboard">
+        <div class="ph">
+          <div><div class="pt">Dashboard</div><div class="pst">// live operations overview</div></div>
+          <div class="ph-r"><button class="btn bO sm" onclick="refreshAll()">↻ Refresh</button></div>
+        </div>
+        <div class="g4" id="d-kpi"></div>
+        <div id="d-alerts"></div>
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div class="ct">Active Work Orders</div></div>
+            <div class="tbl-wrap"><table><thead><tr><th>WO No.</th><th>Product</th><th>Progress</th><th>Status</th></tr></thead><tbody id="d-wo"></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">Inventory Status</div></div>
+            <div id="d-inv"></div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div class="ct">Recent QC Results</div></div>
+            <div class="tbl-wrap"><table><thead><tr><th>Batch</th><th>Product</th><th>Pass %</th><th>Result</th></tr></thead><tbody id="d-qc"></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">Recent Dispatches</div></div>
+            <div class="tbl-wrap"><table><thead><tr><th>DC No.</th><th>Customer</th><th>Qty</th><th>Status</th></tr></thead><tbody id="d-dc"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WORK ORDERS -->
+      <div class="tc" id="tab-production">
+        <div class="ph"><div><div class="pt">Work Orders</div><div class="pst">// production planning & batch tracking</div></div></div>
+        <div id="wo-ro"></div>
+        <div class="card" id="wo-fc">
+          <div class="ch"><div class="ct" id="wo-ft">New Work Order</div></div>
+          <div class="fg">
+            <input type="hidden" id="wo-eid"/>
+            <div class="fr"><label>Product</label><select id="wo-prod"></select></div>
+            <div class="fr"><label>Planned Qty</label><input type="number" id="wo-qty" min="1" placeholder="e.g. 500"/></div>
+            <div class="fr"><label>Start Date</label><input type="date" id="wo-start"/></div>
+            <div class="fr"><label>Target Date</label><input type="date" id="wo-end"/></div>
+            <div class="fr"><label>Priority</label><select id="wo-pri"><option>Normal</option><option>High</option><option>Urgent</option></select></div>
+            <div class="fr"><label>Shift</label><select id="wo-shift"><option>Shift A (6AM-2PM)</option><option>Shift B (2PM-10PM)</option><option>Shift C (10PM-6AM)</option></select></div>
+            <div class="fr full"><label>Remarks</label><textarea id="wo-rem" rows="2" placeholder="Customer ref, special instructions..."></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('wo')">Clear</button><button class="btn bP" id="wo-sb" onclick="saveWO()">Create Work Order</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">All Work Orders</div><div class="ch-r">
+            <input type="text" id="wo-srch" placeholder="Search..." oninput="renderWO()"/>
+            <select id="wo-flt" onchange="renderWO()"><option value="">All Status</option><option>On Track</option><option>Delayed</option><option>In Progress</option><option>Queued</option><option>Completed</option></select>
+          </div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>WO No.</th><th>Product</th><th>Qty</th><th>Produced</th><th>Start</th><th>Target</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead><tbody id="wo-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- MACHINES -->
+      <div class="tc" id="tab-machines">
+        <div class="ph"><div><div class="pt">Machines</div><div class="pst">// equipment status & OEE tracking</div></div></div>
+        <div id="mach-ro"></div>
+        <div class="card" id="mach-fc">
+          <div class="ch"><div class="ct" id="mach-ft">Add Equipment</div></div>
+          <div class="fg">
+            <input type="hidden" id="mach-eid"/>
+            <div class="fr"><label>Machine Name</label><input type="text" id="mach-name" placeholder="FRP Pultrusion Line"/></div>
+            <div class="fr"><label>Equipment ID</label><input type="text" id="mach-eqid" placeholder="EQ-001"/></div>
+            <div class="fr"><label>Model / Supplier</label><input type="text" id="mach-model"/></div>
+            <div class="fr"><label>Status</label><select id="mach-stat"><option>Running</option><option>Idle</option><option>Maintenance</option></select></div>
+            <div class="fr"><label>OEE %</label><input type="number" id="mach-oee" min="0" max="100"/></div>
+            <div class="fr"><label>Key Parameter</label><input type="text" id="mach-param" placeholder="Speed, pressure, capacity..."/></div>
+            <div class="fr full"><label>Notes / Issue</label><textarea id="mach-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('mach')">Clear</button><button class="btn bP" id="mach-sb" onclick="saveMach()">Save Equipment</button></div>
+        </div>
+        <div class="card"><div class="ch"><div class="ct">Plant Equipment</div></div><div class="mg" id="mach-grid"></div></div>
+      </div>
+
+      <!-- QUALITY -->
+      <div class="tc" id="tab-quality">
+        <div class="ph"><div><div class="pt">Quality Control</div><div class="pst">// IEC 61952 / IS 14772 — batch inspection</div></div></div>
+        <div class="g3" style="margin-bottom:18px">
+          <div class="card"><div class="qbig"><div class="qnum" id="qc-rate" style="color:var(--gn)">--</div><div class="qlbl">Overall Pass Rate</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="qc-rej" style="color:var(--rd)">--</div><div class="qlbl">Total Rejections</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="qc-cnt" style="color:var(--ac)">--</div><div class="qlbl">Batches Inspected</div></div></div>
+        </div>
+        <div id="qc-ro"></div>
+        <div class="card" id="qc-fc">
+          <div class="ch"><div class="ct" id="qc-ft">New QC Entry</div></div>
+          <div class="fg">
+            <input type="hidden" id="qc-eid"/>
+            <div class="fr"><label>Work Order</label><select id="qc-wo"></select></div>
+            <div class="fr"><label>Product</label><select id="qc-prod"></select></div>
+            <div class="fr"><label>Sample Size</label><input type="number" id="qc-sample" min="1"/></div>
+            <div class="fr"><label>Pieces Passed</label><input type="number" id="qc-pass" min="0"/></div>
+            <div class="fr"><label>Test Type</label><select id="qc-test"><option>Visual Inspection</option><option>Dimensional Check</option><option>Creepage Verification</option><option>HV Puncture Test</option><option>Thermal Cycling</option><option>Mechanical Load Test</option></select></div>
+            <div class="fr"><label>Inspector</label><input type="text" id="qc-insp"/></div>
+            <div class="fr full"><label>Observations / Failure Notes</label><textarea id="qc-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('qc')">Clear</button><button class="btn bP" id="qc-sb" onclick="saveQC()">Submit QC Entry</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Inspection Log</div><div class="ch-r"><input type="text" id="qc-srch" placeholder="Search batch..." oninput="renderQC()"/></div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Batch ID</th><th>Product</th><th>WO</th><th>Sample</th><th>Pass</th><th>Fail</th><th>Pass %</th><th>Test Type</th><th>Inspector</th><th>Result</th><th>Actions</th></tr></thead><tbody id="qc-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- INVENTORY -->
+      <div class="tc" id="tab-inventory">
+        <div class="ph"><div><div class="pt">Inventory</div><div class="pst">// raw material stock register</div></div></div>
+        <div id="inv-alerts"></div>
+        <div id="inv-ro"></div>
+        <div class="card" id="inv-fc">
+          <div class="ch"><div class="ct" id="inv-ft">Add / Stock In Material</div></div>
+          <div class="fg">
+            <input type="hidden" id="inv-eid"/>
+            <div class="fr"><label>Material Name</label><input type="text" id="inv-name" placeholder="HTV Silicone Rubber"/></div>
+            <div class="fr"><label>Code</label><input type="text" id="inv-code" placeholder="RM-010"/></div>
+            <div class="fr"><label>Unit</label><select id="inv-unit"><option>kg</option><option>pcs</option><option>L</option><option>sets</option><option>m</option></select></div>
+            <div class="fr"><label>Current Stock</label><input type="number" id="inv-stock" min="0"/></div>
+            <div class="fr"><label>Reorder Level</label><input type="number" id="inv-reorder" min="0"/></div>
+            <div class="fr"><label>Min Stock</label><input type="number" id="inv-min" min="0"/></div>
+            <div class="fr"><label>Unit Cost (Rs)</label><input type="number" id="inv-cost" min="0"/></div>
+            <div class="fr"><label>Supplier</label><input type="text" id="inv-sup"/></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('inv')">Clear</button><button class="btn bP" id="inv-sb" onclick="saveInv()">Save Material</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Stock Register</div><div class="ch-r"><input type="text" id="inv-srch" placeholder="Search..." oninput="renderInv()"/></div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Code</th><th>Unit</th><th>Stock</th><th>Reorder</th><th>Min</th><th>Unit Cost</th><th>Stock Value</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- PURCHASE ORDERS -->
+      <div class="tc" id="tab-purchase">
+        <div class="ph"><div><div class="pt">Purchase Orders</div><div class="pst">// supplier procurement & delivery tracking</div></div></div>
+        <div id="po-ro"></div>
+        <div class="card" id="po-fc">
+          <div class="ch"><div class="ct" id="po-ft">Raise Purchase Order</div></div>
+          <div class="fg">
+            <input type="hidden" id="po-eid"/>
+            <div class="fr"><label>Material</label><select id="po-mat"></select></div>
+            <div class="fr"><label>Supplier</label><select id="po-sup"><option>Mittwoch Technologies</option><option>Wacker Chemie India</option><option>Aditya Birla Chemicals</option><option>Local Metal Forge</option><option>Others</option></select></div>
+            <div class="fr"><label>Quantity</label><input type="number" id="po-qty" min="1"/></div>
+            <div class="fr"><label>Unit Price (Rs)</label><input type="number" id="po-price" min="0"/></div>
+            <div class="fr"><label>Required By</label><input type="date" id="po-date"/></div>
+            <div class="fr"><label>Delivery Address</label><input type="text" id="po-addr" value="EIPD Plant, Unit 2"/></div>
+            <div class="fr full"><label>Notes</label><textarea id="po-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('po')">Clear</button><button class="btn bP" id="po-sb" onclick="savePO()">Raise PO</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Purchase Register</div><div class="ch-r"><select id="po-flt" onchange="renderPO()"><option value="">All Status</option><option>Raised</option><option>In Transit</option><option>Delivered</option><option>Cancelled</option></select></div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>PO No.</th><th>Material</th><th>Supplier</th><th>Qty</th><th>Value (Rs)</th><th>Required By</th><th>Status</th><th>Actions</th></tr></thead><tbody id="po-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- SALES ORDERS -->
+      <div class="tc" id="tab-sales">
+        <div class="ph"><div><div class="pt">Sales Orders</div><div class="pst">// customer orders & DISCOM accounts</div></div></div>
+        <div id="so-ro"></div>
+        <div class="card" id="so-fc">
+          <div class="ch"><div class="ct" id="so-ft">New Sales Order</div></div>
+          <div class="fg">
+            <input type="hidden" id="so-eid"/>
+            <div class="fr"><label>Customer</label><input type="text" id="so-cust" placeholder="TSSPDCL, APTRANSCO..."/></div>
+            <div class="fr"><label>Product</label><select id="so-prod"></select></div>
+            <div class="fr"><label>Qty (pcs)</label><input type="number" id="so-qty" min="1"/></div>
+            <div class="fr"><label>Unit Price (Rs)</label><input type="number" id="so-price" min="0"/></div>
+            <div class="fr"><label>Order Date</label><input type="date" id="so-date"/></div>
+            <div class="fr"><label>Delivery Deadline</label><input type="date" id="so-dl"/></div>
+            <div class="fr"><label>Link Work Order</label><select id="so-wo"><option value="">-- None --</option></select></div>
+            <div class="fr"><label>Customer PO Ref</label><input type="text" id="so-ref"/></div>
+            <div class="fr full"><label>Delivery Address</label><textarea id="so-addr" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('so')">Clear</button><button class="btn bP" id="so-sb" onclick="saveSO()">Create Sales Order</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Sales Register</div><div class="ch-r">
+            <input type="text" id="so-srch" placeholder="Search..." oninput="renderSO()"/>
+            <select id="so-flt" onchange="renderSO()"><option value="">All Status</option><option>Pending</option><option>In Production</option><option>Ready</option><option>Dispatched</option><option>Delivered</option></select>
+          </div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>SO No.</th><th>Customer</th><th>Product</th><th>Qty</th><th>Value</th><th>Deadline</th><th>WO</th><th>Status</th><th>Actions</th></tr></thead><tbody id="so-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- DISPATCH -->
+      <div class="tc" id="tab-dispatch">
+        <div class="ph"><div><div class="pt">Dispatch</div><div class="pst">// delivery challans & outward movement</div></div></div>
+        <div id="dc-ro"></div>
+        <div class="card" id="dc-fc">
+          <div class="ch"><div class="ct" id="dc-ft">Generate Delivery Challan</div></div>
+          <div class="fg">
+            <input type="hidden" id="dc-eid"/>
+            <div class="fr"><label>Sales Order</label><select id="dc-so"></select></div>
+            <div class="fr"><label>Dispatch Qty</label><input type="number" id="dc-qty" min="1"/></div>
+            <div class="fr"><label>Dispatch Date</label><input type="date" id="dc-date"/></div>
+            <div class="fr"><label>Vehicle No.</label><input type="text" id="dc-veh" placeholder="TS09AB1234"/></div>
+            <div class="fr"><label>Transporter</label><input type="text" id="dc-trans"/></div>
+            <div class="fr"><label>LR / Docket No.</label><input type="text" id="dc-lr"/></div>
+            <div class="fr full"><label>Remarks</label><textarea id="dc-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('dc')">Clear</button><button class="btn bP" id="dc-sb" onclick="saveDC()">Generate Challan</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Dispatch Register</div><div class="ch-r"><select id="dc-flt" onchange="renderDC()"><option value="">All Status</option><option>In Transit</option><option>Delivered</option></select></div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>DC No.</th><th>SO Ref</th><th>Customer</th><th>Product</th><th>Qty</th><th>Vehicle</th><th>Date</th><th>LR</th><th>Status</th><th>Actions</th></tr></thead><tbody id="dc-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- INVOICES -->
+      <div class="tc" id="tab-invoices">
+        <div class="ph"><div><div class="pt">Invoices</div><div class="pst">// GST billing & payment tracking</div></div></div>
+        <div id="inv2-alerts"></div>
+        <div id="inv2-ro"></div>
+        <div class="card" id="inv2-fc">
+          <div class="ch"><div class="ct" id="inv2-ft">Create Invoice</div></div>
+          <div class="fg">
+            <input type="hidden" id="inv2-eid"/>
+            <div class="fr"><label>Invoice No.</label><input type="text" id="inv2-no" placeholder="INV-2026-001"/></div>
+            <div class="fr"><label>Invoice Date</label><input type="date" id="inv2-date"/></div>
+            <div class="fr"><label>Customer / Party</label><input type="text" id="inv2-party"/></div>
+            <div class="fr"><label>Link Sales Order</label><select id="inv2-so"><option value="">-- None --</option></select></div>
+            <div class="fr"><label>Amount (Rs)</label><input type="number" id="inv2-amt" min="0"/></div>
+            <div class="fr"><label>GST %</label><select id="inv2-gst"><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option><option value="28">28%</option></select></div>
+            <div class="fr"><label>Due Date</label><input type="date" id="inv2-due"/></div>
+            <div class="fr"><label>Payment Terms</label><select id="inv2-terms"><option>Net 30</option><option>Net 45</option><option>Net 60</option><option>Immediate</option></select></div>
+            <div class="fr"><label>Payment Ref</label><input type="text" id="inv2-ref" placeholder="NEFT/UPI reference"/></div>
+            <div class="fr"><label>Status</label><select id="inv2-status"><option>Unpaid</option><option>Partially Paid</option><option>Paid</option><option>Overdue</option><option>Cancelled</option></select></div>
+            <div class="fr full"><label>Notes</label><textarea id="inv2-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('inv2')">Clear</button><button class="btn bP" id="inv2-sb" onclick="saveInv2()">Create Invoice</button></div>
+        </div>
+        <div class="g3" style="margin-bottom:18px">
+          <div class="card"><div class="qbig"><div class="qnum" id="inv2-tot" style="color:var(--gn);font-size:24px">--</div><div class="qlbl">Total Invoiced</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="inv2-upd" style="color:var(--rd);font-size:24px">--</div><div class="qlbl">Unpaid / Overdue</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="inv2-pad" style="color:var(--gn);font-size:24px">--</div><div class="qlbl">Total Collected</div></div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Invoice Register</div><div class="ch-r">
+            <input type="text" id="inv2-srch" placeholder="Search..." oninput="renderInv2()"/>
+            <select id="inv2-flt" onchange="renderInv2()"><option value="">All Status</option><option>Unpaid</option><option>Partially Paid</option><option>Paid</option><option>Overdue</option></select>
+          </div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Invoice No.</th><th>Date</th><th>Customer</th><th>SO</th><th>Amount</th><th>GST %</th><th>Total</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv2-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- VENDORS -->
+      <div class="tc" id="tab-vendors">
+        <div class="ph"><div><div class="pt">Vendors</div><div class="pst">// supplier directory & GST register</div></div></div>
+        <div id="vnd-ro"></div>
+        <div class="card" id="vnd-fc">
+          <div class="ch"><div class="ct" id="vnd-ft">Add Vendor</div></div>
+          <div class="fg">
+            <input type="hidden" id="vnd-eid"/>
+            <div class="fr"><label>Vendor Name</label><input type="text" id="vnd-name"/></div>
+            <div class="fr"><label>Code</label><input type="text" id="vnd-code" placeholder="VND-001"/></div>
+            <div class="fr"><label>Category</label><select id="vnd-cat"><option>Raw Material</option><option>Machinery</option><option>Consumables</option><option>Logistics</option><option>Services</option></select></div>
+            <div class="fr"><label>Contact Person</label><input type="text" id="vnd-contact"/></div>
+            <div class="fr"><label>Phone</label><input type="text" id="vnd-phone"/></div>
+            <div class="fr"><label>Email</label><input type="email" id="vnd-email"/></div>
+            <div class="fr"><label>GST Number</label><input type="text" id="vnd-gst" placeholder="36AABCX1234Y1ZX"/></div>
+            <div class="fr"><label>Payment Terms</label><select id="vnd-terms"><option>Advance</option><option>Net 30</option><option>Net 45</option><option>Net 60</option><option>On Delivery</option></select></div>
+            <div class="fr"><label>Rating</label><select id="vnd-rating"><option value="5">5 — Excellent</option><option value="4">4 — Good</option><option value="3">3 — Average</option><option value="2">2 — Below Avg</option><option value="1">1 — Poor</option></select></div>
+            <div class="fr"><label>Status</label><select id="vnd-status"><option>Active</option><option>Inactive</option><option>Blacklisted</option></select></div>
+            <div class="fr full"><label>Materials / Services Supplied</label><textarea id="vnd-materials" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('vnd')">Clear</button><button class="btn bP" id="vnd-sb" onclick="saveVnd()">Save Vendor</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Vendor Directory</div><div class="ch-r"><input type="text" id="vnd-srch" placeholder="Search..." oninput="renderVnd()"/></div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Vendor Name</th><th>Code</th><th>Category</th><th>Contact</th><th>Phone</th><th>GST No.</th><th>Terms</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead><tbody id="vnd-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- PRODUCT MASTER -->
+      <div class="tc" id="tab-products">
+        <div class="ph"><div><div class="pt">Product Master</div><div class="pst">// manage products & SKUs</div></div></div>
+        <div id="prod-ro"></div>
+        <div class="card" id="prod-fc">
+          <div class="ch"><div class="ct" id="prod-ft">Add New Product</div></div>
+          <div class="fg">
+            <input type="hidden" id="prod-eid"/>
+            <div class="fr"><label>Product Name</label><input type="text" id="prod-name" placeholder="PPI-66kV"/></div>
+            <div class="fr"><label>Product Code</label><input type="text" id="prod-code" placeholder="PROD-004"/></div>
+            <div class="fr"><label>Description</label><input type="text" id="prod-desc" placeholder="66kV Polymer Pin Insulator"/></div>
+            <div class="fr"><label>Unit</label><select id="prod-unit"><option>pcs</option><option>sets</option><option>kg</option><option>m</option></select></div>
+            <div class="fr"><label>Default Price (Rs)</label><input type="number" id="prod-price" min="0"/></div>
+            <div class="fr"><label>Category</label><select id="prod-cat"><option>Pin Insulator</option><option>Disc Insulator</option><option>Post Insulator</option><option>Composite Insulator</option><option>Others</option></select></div>
+            <div class="fr"><label>HSN Code</label><input type="text" id="prod-hsn" placeholder="8546"/></div>
+            <div class="fr"><label>GST %</label><select id="prod-gst"><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option><option value="28">28%</option></select></div>
+            <div class="fr"><label>Status</label><select id="prod-active"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+            <div class="fr full"><label>Specifications / Notes</label><textarea id="prod-notes" rows="2" placeholder="Voltage class, creepage, standards..."></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('prod')">Clear</button><button class="btn bP" id="prod-sb" onclick="saveProd()">Add Product</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Product Catalogue</div><div class="ch-r">
+            <input type="text" id="prod-srch" placeholder="Search..." oninput="renderProducts()"/>
+            <select id="prod-sflt" onchange="renderProducts()"><option value="">All</option><option value="true">Active</option><option value="false">Inactive</option></select>
+          </div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Code</th><th>Category</th><th>Unit</th><th>Price</th><th>HSN</th><th>GST %</th><th>Status</th><th>Actions</th></tr></thead><tbody id="prod-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div class="tc" id="tab-reports">
+        <div class="ph"><div><div class="pt">Analytics</div><div class="pst">// live business intelligence</div></div><div class="ph-r"><button class="btn bO sm" onclick="refreshAll()">↻ Refresh</button></div></div>
+        <div class="g4" id="rep-kpi"></div>
+        <div class="g2">
+          <div class="card"><div class="ch"><div class="ct">Production by Variant</div></div><div style="padding:18px" id="rep-prod"></div></div>
+          <div class="card"><div class="ch"><div class="ct">Inventory by Value</div></div><div style="padding:18px" id="rep-inv"></div></div>
+        </div>
+        <div class="g2">
+          <div class="card"><div class="ch"><div class="ct">Work Order Summary</div></div><div class="tbl-wrap"><table><thead><tr><th>Status</th><th>Count</th><th>Total Qty</th></tr></thead><tbody id="rep-wo"></tbody></table></div></div>
+          <div class="card"><div class="ch"><div class="ct">Revenue by Customer</div></div><div class="tbl-wrap"><table><thead><tr><th>Customer</th><th>Orders</th><th>Value (Rs)</th></tr></thead><tbody id="rep-so"></tbody></table></div></div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="tc" id="tab-users">
+        <div class="ph"><div><div class="pt">User Management</div><div class="pst">// Supabase Auth — encrypted login</div></div></div>
+        <div class="card" style="margin-bottom:18px">
+          <div class="ch"><div class="ct">Access Roles</div><button class="btn bP sm" onclick="openMo('mo-add')">+ Add User</button></div>
+          <div class="roles-grid" id="roles-grid"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">All Users</div><span class="ucnt" id="ucnt"></span></div>
+          <div id="ulist"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MODALS
+═══════════════════════════════════════ -->
+
+<!-- Update Status -->
+<div class="mo" id="mo-upd">
+  <div class="modal sm-mo">
+    <div class="mh"><div class="mt" id="mo-upd-t">Update Status</div><button class="mx" onclick="closeMo('mo-upd')">✕</button></div>
+    <div class="mb">
+      <input type="hidden" id="upd-col"/><input type="hidden" id="upd-id"/>
+      <div class="info-row" id="upd-info"></div>
+      <div class="fr" style="margin-bottom:13px"><label>New Status</label><select id="upd-stat"></select></div>
+      <div class="fr" id="upd-prod-wrap" style="display:none;margin-bottom:13px"><label>Qty Produced</label><input type="number" id="upd-prod" min="0"/></div>
+      <div class="fr"><label>Note / Reason</label><textarea id="upd-note" rows="2" placeholder="Optional note about this status change"></textarea></div>
+    </div>
+    <div class="mf"><button class="btn bO" onclick="closeMo('mo-upd')">Cancel</button><button class="btn bP" onclick="saveUpd()">Update Status</button></div>
+  </div>
+</div>
+
+<!-- Add User -->
+<div class="mo" id="mo-add">
+  <div class="modal">
+    <div class="mh"><div class="mt">Add New User</div><button class="mx" onclick="closeMo('mo-add')">✕</button></div>
+    <div class="mb">
+      <div class="ibox green" style="margin-bottom:16px">
+        <div class="ibox-t">Supabase Authentication</div>
+        User is created securely in Supabase. Passwords are never stored in any file.
+      </div>
+      <div class="form-2col">
+        <div class="fr"><label>Full Name</label><input id="au-name" type="text"/></div>
+        <div class="fr"><label>Email Address</label><input id="au-email" type="email" placeholder="user@eipd.in"/></div>
+        <div class="fr"><label>Password</label><input id="au-pass" type="password" placeholder="Min 6 characters"/></div>
+        <div class="fr"><label>Role</label>
+          <select id="au-role">
+            <option value="admin">Plant Admin</option>
+            <option value="manager">Plant Manager</option>
+            <option value="production">Production Supvr</option>
+            <option value="storekeeper">Store Keeper</option>
+            <option value="qc">QC Inspector</option>
+            <option value="dispatch">Dispatch Officer</option>
+            <option value="viewer">Read-Only</option>
+          </select>
+        </div>
+        <div class="fr"><label>Department</label><input id="au-dept" type="text"/></div>
+        <div class="fr"><label>Phone</label><input id="au-phone" type="text"/></div>
+        <div class="fr"><label>Employee ID</label><input id="au-empid" type="text" placeholder="EIPD-007"/></div>
+      </div>
+      <div class="ferr" id="au-err"></div>
+      <div class="al alw" style="margin-top:12px">
+        <span class="al-i">ℹ️</span>
+        If user creation fails, the user can sign up using the login page with the email and password you provide them.
+      </div>
+    </div>
+    <div class="mf"><button class="btn bO" onclick="closeMo('mo-add')">Cancel</button><button class="btn bP" onclick="addUser()">Create User</button></div>
+  </div>
+</div>
+
+<!-- Profile -->
+<div class="mo" id="mo-prof">
+  <div class="modal">
+    <div class="mh"><div class="mt">My Profile</div><button class="mx" onclick="closeMo('mo-prof')">✕</button></div>
+    <div class="mb">
+      <div class="prof-header" id="prof-header"></div>
+      <div class="form-2col" style="margin-bottom:16px">
+        <div class="fr"><label>Full Name</label><input id="mp-n" type="text"/></div>
+        <div class="fr"><label>Email</label><input id="mp-e" type="email" disabled style="opacity:.4;cursor:not-allowed"/></div>
+        <div class="fr"><label>Department</label><input id="mp-d" type="text"/></div>
+        <div class="fr"><label>Phone</label><input id="mp-ph" type="text"/></div>
+      </div>
+      <div class="pw-wrap">
+        <div class="pw-title">Change Password (leave blank to keep current)</div>
+        <div class="form-2col">
+          <div class="fr"><label>New Password</label><input id="mp-np" type="password" placeholder="Min 6 characters"/></div>
+          <div class="fr"><label>Confirm Password</label><input id="mp-conf" type="password"/></div>
+        </div>
+      </div>
+      <div id="mp-msg" style="display:none;margin-top:12px"></div>
+    </div>
+    <div class="mf"><button class="btn bO" onclick="closeMo('mo-prof')">Cancel</button><button class="btn bP" onclick="saveProf()">Save Profile</button></div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="js/config.js"></script>
+<script type="module" src="js/app.js"></script>
+
+</body>
+</html>
