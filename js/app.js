@@ -307,11 +307,25 @@ function stopIdleDetection() {
 
 sb.auth.onAuthStateChange(async (event, session) => {
   console.log('[EIPD AUTH] Event:', event, '| Session:', session?.user?.email || 'none');
-  console.log('[EIPD AUTH] isInitialized:', isInitialized);
 
+  // Only these events should trigger ERP init or logout
   const shouldInit = event === 'INITIAL_SESSION' || event === 'SIGNED_IN';
-  if (!shouldInit) { console.log('[EIPD AUTH] Ignoring event:', event); return; }
-  if (isInitialized) { console.log('[EIPD AUTH] Already initialized — skipping'); return; }
+  const shouldLogout = event === 'SIGNED_OUT';
+
+  if (shouldLogout && isInitialized) {
+    // Actual logout — reset everything
+    isInitialized = false;
+    CU = null;
+    stopIdleDetection();
+    document.getElementById('erp').style.display = 'none';
+    document.getElementById('login').classList.add('show');
+    const btn = document.getElementById('lbtn');
+    if (btn) { btn.disabled = false; btn.textContent = 'SIGN IN'; }
+    return;
+  }
+
+  if (!shouldInit) return; // ignore everything else
+  if (isInitialized) return; // already running — skip
 
   if (session?.user) {
     isInitialized = true;
@@ -355,13 +369,11 @@ sb.auth.onAuthStateChange(async (event, session) => {
     initERP();
 
   } else {
-    console.log('[EIPD AUTH] No session — showing login');
-    isInitialized = false;
-    CU = null;
-    document.getElementById('erp').style.display = 'none';
-    document.getElementById('login').classList.add('show');
-    const btn = document.getElementById('lbtn');
-    if (btn) { btn.disabled = false; btn.textContent = 'SIGN IN'; }
+    // No session on INITIAL_SESSION means not logged in — show login
+    if (!isInitialized) {
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('login').classList.add('show');
+    }
   }
 });══════════════════════════════════════════════════════
 // app.js — EIPD ERP Main Logic
@@ -1366,27 +1378,56 @@ function renderUsers() {
 }
 
 window.addUser = async () => {
+  // Only admin can create users
+  if (!CU || CU.role !== 'admin') {
+    toast('Only Plant Admin can create users', 'e');
+    return;
+  }
   const name  = document.getElementById('au-name').value.trim();
   const email = document.getElementById('au-email').value.trim();
   const pass  = document.getElementById('au-pass').value.trim();
   const role  = document.getElementById('au-role').value;
+  const dept  = document.getElementById('au-dept').value.trim();
+  const phone = document.getElementById('au-phone').value.trim();
+  const empid = document.getElementById('au-empid').value.trim();
   const errEl = document.getElementById('au-err');
   errEl.style.display = 'none';
   if (!name||!email||!pass) { errEl.textContent='Name, Email and Password required.'; errEl.style.display='block'; return; }
   if (pass.length < 6) { errEl.textContent='Password must be at least 6 characters.'; errEl.style.display='block'; return; }
   showLoader('Creating user...');
-  const { data, error } = await sb.auth.admin.createUser({ email, password:pass, email_confirm:true });
-  if (error) {
+
+  // Use signUp to create user — works on free Supabase plan
+  // We use a temporary client so current session is not affected
+  try {
+    const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON);
+    const { data, error } = await tempClient.auth.signUp({ email, password: pass });
+
+    if (error) {
+      hideLoader();
+      errEl.textContent = error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Save profile with the correct role
+    const userId = data.user?.id;
+    if (userId) {
+      await sb.from('profiles').upsert({
+        id: userId, name, email, role, dept, phone, empid, active: true
+      });
+    }
+
     hideLoader();
-    errEl.textContent = error.message; errEl.style.display = 'block';
-    // Fallback: insert profile directly if admin API not available
-    toast('Note: User must sign up themselves at the login page. Profile will be created on first login.', 'w');
+    closeMo('mo-add');
+    toast(name + ' created! They can now log in with their email and password.');
+    ['au-name','au-email','au-pass','au-dept','au-phone','au-empid'].forEach(id=>{
+      const e=document.getElementById(id); if(e) e.value='';
+    });
+  } catch(e) {
     hideLoader();
-    return;
+    errEl.textContent = 'Error: ' + e.message;
+    errEl.style.display = 'block';
   }
-  await sb.from('profiles').upsert({ id:data.user.id, name, email, role, dept:document.getElementById('au-dept').value.trim(), phone:document.getElementById('au-phone').value.trim(), empid:document.getElementById('au-empid').value.trim(), active:true });
-  hideLoader(); closeMo('mo-add'); toast(name+' created successfully');
-  ['au-name','au-email','au-pass','au-dept','au-phone','au-empid'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
 };
 
 // ═══════════════════════════════════════════════════════
