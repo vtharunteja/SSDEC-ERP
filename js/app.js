@@ -6,7 +6,392 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ── SUPABASE CLIENT ──────────────────────────────────────
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
+
+// ── STARTUP CHECK ─────────────────────────────────────────
+// Check if we have a valid session on page load
+// If no session — show login immediately without waiting
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  console.log('[EIPD STARTUP] Session check:', session?.user?.email || 'no session');
+  if (!session) {
+    // No session — show login right away
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('login').classList.add('show');
+    console.log('[EIPD STARTUP] No session — showing login');
+  }
+})();
+let CU   = null;   // current user profile
+let SUBS = [];     // realtime subscriptions
+
+// ── DATA CACHE ───────────────────────────────────────────
+const DB = {
+  profiles:[], products:[], machines:[], inventory:[],
+  work_orders:[], qc_records:[], purchase_orders:[],
+  vendors:[], sales_orders:[], dispatches:[], invoices:[]
+};
+
+// ── TABLE MAP (camelCase id → snake_case table) ──────────
+const TBL = {
+  production:'work_orders', quality:'qc_records',
+  inventory:'inventory', purchase:'purchase_orders',
+  sales:'sales_orders', dispatch:'dispatches',
+  invoices:'invoices', vendors:'vendors',
+  machines:'machines', products:'products',
+  users:'profiles'
+};
+
+// ── ROLES ────────────────────────────────────────────────
+const ROLES = {
+  admin:      {label:'Plant Admin',      color:'var(--rd)',bg:'rgba(239,68,68,.15)'},
+  manager:    {label:'Plant Manager',    color:'var(--ac)',bg:'rgba(249,115,22,.15)'},
+  production: {label:'Production Supvr', color:'var(--bl)',bg:'rgba(59,130,246,.15)'},
+  storekeeper:{label:'Store Keeper',     color:'var(--gn)',bg:'rgba(34,197,94,.15)'},
+  qc:         {label:'QC Inspector',     color:'var(--pu)',bg:'rgba(168,85,247,.15)'},
+  dispatch:   {label:'Dispatch Officer', color:'var(--cy)',bg:'rgba(6,182,212,.15)'},
+  viewer:     {label:'Read-Only',        color:'var(--mu)',bg:'rgba(74,85,104,.12)'}
+};
+const NAV_ACCESS = {
+  admin:      ['dashboard','production','machines','quality','inventory','purchase','sales','dispatch','invoices','vendors','products','reports','users'],
+  manager:    ['dashboard','production','machines','quality','inventory','purchase','sales','dispatch','invoices','vendors','products','reports'],
+  production: ['dashboard','production','machines','quality'],
+  storekeeper:['dashboard','inventory','purchase','vendors'],
+  qc:         ['dashboard','quality'],
+  dispatch:   ['dashboard','sales','dispatch','invoices'],
+  viewer:     ['dashboard','reports']
+};
+const CAN_EDIT = {
+  admin:      ['production','machines','quality','inventory','purchase','sales','dispatch','invoices','vendors','products','users'],
+  manager:    ['production','machines','quality','inventory','purchase','sales','dispatch','invoices','vendors','products'],
+  production: ['production','machines','quality'],
+  storekeeper:['inventory','purchase','vendors'],
+  qc:         ['quality'],
+  dispatch:   ['dispatch','invoices'],
+  viewer:     []
+};
+const STATUSES = {
+  work_orders:    ['Queued','In Progress','On Track','Delayed','Completed'],
+  purchase_orders:['Raised','In Transit','Delivered','Cancelled'],
+  sales_orders:   ['Pending','In Production','Ready','Dispatched','Delivered'],
+  dispatches:     ['In Transit','Delivered'],
+  machines:       ['Running','Idle','Maintenance'],
+  invoices:       ['Unpaid','Partially Paid','Paid','Overdue','Cancelled']
+};
+const NAVDEF = [
+  {s:'Overview'},
+  {id:'dashboard',   ic:'📊', lb:'Dashboard'},
+  {s:'Production'},
+  {id:'production',  ic:'⚙', lb:'Work Orders',    bwo:1},
+  {id:'machines',    ic:'🔧', lb:'Machines'},
+  {id:'quality',     ic:'✅', lb:'Quality Control'},
+  {s:'Materials'},
+  {id:'inventory',   ic:'📦', lb:'Inventory',      binv:1},
+  {id:'purchase',    ic:'🛒', lb:'Purchase Orders'},
+  {s:'Commercial'},
+  {id:'sales',       ic:'📋', lb:'Sales Orders'},
+  {id:'dispatch',    ic:'🚛', lb:'Dispatch'},
+  {s:'Finance'},
+  {id:'invoices',    ic:'📄', lb:'Invoices',       binv2:1},
+  {id:'vendors',     ic:'🏭', lb:'Vendors'},
+  {s:'Master Data'},
+  {id:'products',    ic:'🏷', lb:'Product Master'},
+  {s:'Reports'},
+  {id:'reports',     ic:'📈', lb:'Analytics'},
+  {s:'Admin'},
+  {id:'users',       ic:'👥', lb:'User Management'}
+];
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+const V   = id => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+const SV  = (id,v) => { const e = document.getElementById(id); if(e) e.value = v != null ? String(v) : ''; };
+const ini = n => (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const canEdit = m => (CAN_EDIT[CU?.role||'viewer']||[]).includes(m);
+const fmtD = d => { if(!d) return '--'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return d; } };
+const fmtM = n => 'Rs ' + (parseFloat(n)||0).toLocaleString('en-IN',{maximumFractionDigits:0});
+
+function pill(s) {
+  const m = {
+    'On Track':'pg','Completed':'pg','Delivered':'pg','Running':'pg','Passed':'pg','OK':'pg','Active':'pg','Paid':'pg',
+    'In Progress':'pb','In Transit':'pb','Raised':'pb','In Production':'pb',
+    'Delayed':'po','Idle':'po','Conditional':'po','Pending':'po','Ready':'po','Unpaid':'po',
+    'Queued':'pp','Partially Paid':'pp',
+    'Maintenance':'pr','Reorder Now':'pr','Failed':'pr','Cancelled':'pr','Overdue':'pr','Blacklisted':'pr',
+    'Inactive':'pgr','Low':'po'
+  };
+  return `<span class="pill ${m[s]||'pgr'}">${s}</span>`;
+}
+
+const ron = () => '<div class="al ali" style="margin-bottom:14px"><span class="al-i">ℹ</span>Read-only access for your role. Contact Plant Admin for edit permissions.</div>';
+
+function showLoader(t='Loading...') {
+  document.getElementById('loader').style.display = 'flex';
+  document.getElementById('loader-msg').textContent = t;
+}
+function hideLoader() { document.getElementById('loader').style.display = 'none'; }
+
+window.openMo  = id => document.getElementById(id).classList.add('open');
+window.closeMo = id => document.getElementById(id).classList.remove('open');
+
+function toast(msg, t='s') {
+  const icons = {s:'✅', e:'❌', i:'ℹ', w:'⚠'};
+  const el = document.createElement('div');
+  el.className = `toast ${t}`;
+  el.innerHTML = `<span class="toast-ic">${icons[t]||'✅'}</span><span>${msg}</span>`;
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(() => el.remove(), 3800);
+}
+window.showToast = toast;
+
+function setSyncB(s) {
+  const b = document.getElementById('hsync');
+  if (!b) return;
+  b.className = 'hsync ' + s;
+  b.textContent = s==='saving' ? 'Saving...' : s==='err' ? 'Offline' : 'Synced';
+}
+
+function fillProdDDs() {
+  const opts = DB.products
+    .filter(p => p.active === true)
+    .map(p => `<option value="${p.name}">${p.name}</option>`)
+    .join('');
+  ['wo-prod','qc-prod','so-prod'].forEach(id => {
+    const e = document.getElementById(id);
+    if (!e) return;
+    const cur = e.value;
+    e.innerHTML = opts || '<option>No products — add in Product Master</option>';
+    if (cur) e.value = cur;
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+window.doLogin = async () => {
+  const email = V('lemail'), pass = V('lpass');
+  const btn  = document.getElementById('lbtn');
+  const err  = document.getElementById('lerr');
+  const inf  = document.getElementById('linfo');
+  err.style.display = 'none';
+  inf.style.display = 'block';
+  inf.textContent   = 'Signing in...';
+  btn.disabled      = true;
+  btn.textContent   = 'Signing in...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    inf.style.display = 'none';
+    btn.disabled      = false;
+    btn.textContent   = 'SIGN IN';
+    const msgs = {
+      'Invalid login credentials': 'Invalid email or password.',
+      'Email not confirmed':       'Please confirm your email first.'
+    };
+    err.textContent   = msgs[error.message] || error.message;
+    err.style.display = 'block';
+  }
+};
+document.getElementById('lpass').addEventListener('keydown', e => { if (e.key === 'Enter') window.doLogin(); });
+
+window.showForgot = async () => {
+  const email = V('lemail');
+  if (!email) { toast('Enter your email address first', 'e'); return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+  if (error) toast('Error: ' + error.message, 'e');
+  else toast('Password reset email sent to ' + email);
+};
+
+window.doLogout = async () => {
+  stopIdleDetection();
+  isInitialized = false;    // reset so re-login works
+  CU = null;
+  SUBS.forEach(s => { try { s.unsubscribe(); } catch(e) {} });
+  SUBS = [];
+  await sb.auth.signOut();
+  // Clear ERP state
+  document.getElementById('erp').style.display = 'none';
+  document.getElementById('login').classList.add('show');
+  const btn = document.getElementById('lbtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'SIGN IN'; }
+};
+
+// Auth state listener
+// isInitialized flag prevents re-running initERP on token refresh
+let isInitialized = false;
+
+// ── AUTO LOGOUT ──────────────────────────────────────────
+// Logs out after 15 minutes of no activity
+// Activity = any mouse move, click, keypress, scroll or touch
+const IDLE_MINUTES = 15;
+let idleTimer    = null;
+let warnTimer    = null;
+let warnShown    = false;
+let warnEl       = null;
+
+function resetIdleTimer() {
+  clearTimeout(idleTimer);
+  clearTimeout(warnTimer);
+  // Hide warning if shown
+  if (warnEl && warnShown) { warnEl.style.display = 'none'; warnShown = false; }
+  if (!isInitialized) return;
+  // Warn at 13 minutes
+  warnTimer = setTimeout(() => {
+    if (!isInitialized) return;
+    warnShown = true;
+    if (!warnEl) {
+      warnEl = document.createElement('div');
+      warnEl.id = 'idle-warn';
+      warnEl.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;padding:13px 22px;border-radius:8px;font-size:13px;z-index:9998;box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px;';
+      // Build warning content safely without nested quotes
+      var wIcon = document.createElement('span'); wIcon.textContent = '⚠';
+      var wMsg  = document.createElement('span'); wMsg.textContent = 'No activity detected. Auto-logout in ';
+      var wCd   = document.createElement('strong'); wCd.id = 'idle-countdown'; wCd.textContent = '2 minutes';
+      wMsg.appendChild(wCd);
+      var wDot  = document.createTextNode('.');
+      wMsg.appendChild(wDot);
+      var wBtn  = document.createElement('button');
+      wBtn.textContent = 'Stay Logged In';
+      wBtn.style.cssText = 'background:#ef4444;border:none;color:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;margin-left:8px;';
+      wBtn.onclick = function() { resetIdleTimer(); };
+      warnEl.appendChild(wIcon);
+      warnEl.appendChild(wMsg);
+      warnEl.appendChild(wBtn);
+      document.body.appendChild(warnEl);
+    } else {
+      warnEl.style.display = 'flex';
+    }
+    // Countdown display
+    let secs = 120;
+    const cdEl = document.getElementById('idle-countdown');
+    const cdInt = setInterval(() => {
+      secs--;
+      if (cdEl) cdEl.textContent = secs > 60 ? Math.ceil(secs/60)+' minutes' : secs+' seconds';
+      if (secs <= 0) clearInterval(cdInt);
+    }, 1000);
+  }, (IDLE_MINUTES - 2) * 60 * 1000);
+  // Logout at 15 minutes
+  idleTimer = setTimeout(async () => {
+    if (!isInitialized) return;
+    if (warnEl) warnEl.style.display = 'none';
+    // Show logout notification
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;';
+    el.innerHTML = '<div style="font-size:32px">🔒</div><div style="color:#f0f4f8;font-size:18px;font-weight:700">Session Expired</div><div style="color:#94a3b8;font-size:13px">Logged out due to inactivity (' + IDLE_MINUTES + ' min)</div>';
+    document.body.appendChild(el);
+    isInitialized = false;
+    SUBS.forEach(s => { try { s.unsubscribe(); } catch(e) {} });
+    SUBS = [];
+    await sb.auth.signOut();
+    setTimeout(() => el.remove(), 2000);
+  }, IDLE_MINUTES * 60 * 1000);
+}
+
+function startIdleDetection() {
+  ['mousemove','mousedown','keypress','scroll','touchstart','click'].forEach(evt => {
+    document.addEventListener(evt, resetIdleTimer, { passive: true });
+  });
+  resetIdleTimer();
+}
+
+function stopIdleDetection() {
+  clearTimeout(idleTimer);
+  clearTimeout(warnTimer);
+  if (warnEl) warnEl.style.display = 'none';
+}
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  console.log('[EIPD AUTH] Event:', event, '| Session:', session?.user?.email || 'none');
+  console.log('[EIPD AUTH] isInitialized:', isInitialized);
+
+  const shouldInit = event === 'INITIAL_SESSION' || event === 'SIGNED_IN';
+  if (!shouldInit) { console.log('[EIPD AUTH] Ignoring event:', event); return; }
+  if (isInitialized) { console.log('[EIPD AUTH] Already initialized — skipping'); return; }
+
+  if (session?.user) {
+    isInitialized = true;
+    showLoader('Loading your profile...');
+
+    // Try to get profile — with timeout fallback
+    let CUdata = null;
+    try {
+      console.log('[EIPD AUTH] Fetching profile for:', session.user.id);
+      const { data, error } = await sb
+        .from('profiles').select('*').eq('id', session.user.id).single();
+      console.log('[EIPD AUTH] Profile result:', data, '| Error:', error?.message);
+      CUdata = data;
+    } catch(e) {
+      console.log('[EIPD AUTH] Profile fetch exception:', e.message);
+    }
+
+    // If no profile — create one
+    if (!CUdata) {
+      console.log('[EIPD AUTH] No profile found — creating one');
+      try {
+        const np = { id:session.user.id, email:session.user.email,
+                     name:session.user.email, role:'admin',
+                     dept:'Management', phone:'', empid:'EIPD-001', active:true };
+        const { error: upsertErr } = await sb.from('profiles').upsert(np);
+        console.log('[EIPD AUTH] Upsert error:', upsertErr?.message || 'none');
+        CUdata = np;
+      } catch(e) {
+        console.log('[EIPD AUTH] Upsert exception:', e.message);
+        CUdata = { id:session.user.id, email:session.user.email,
+                   name:session.user.email, role:'admin', dept:'Management' };
+      }
+    }
+
+    CU = CUdata;
+    console.log('[EIPD AUTH] CU set to:', CU?.email, '| role:', CU?.role);
+    document.getElementById('login').classList.remove('show');
+    document.getElementById('erp').style.display = 'flex';
+    hideLoader();
+    console.log('[EIPD AUTH] Calling initERP()');
+    initERP();
+
+  } else {
+    console.log('[EIPD AUTH] No session — showing login');
+    isInitialized = false;
+    CU = null;
+    document.getElementById('erp').style.display = 'none';
+    document.getElementById('login').classList.add('show');
+    const btn = document.getElementById('lbtn');
+    if (btn) { btn.disabled = false; btn.textContent = 'SIGN IN'; }
+  }
+});══════════════════════════════════════════════════════
+// app.js — EIPD ERP Main Logic
+// Supabase Auth + Realtime + All 13 Modules
+// ═══════════════════════════════════════════════════════
+
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+// ── SUPABASE CLIENT ──────────────────────────────────────
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
+
+// ── STARTUP CHECK ─────────────────────────────────────────
+// Check if we have a valid session on page load
+// If no session — show login immediately without waiting
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  console.log('[EIPD STARTUP] Session check:', session?.user?.email || 'no session');
+  if (!session) {
+    // No session — show login right away
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('login').classList.add('show');
+    console.log('[EIPD STARTUP] No session — showing login');
+  }
+})();
 let CU   = null;   // current user profile
 let SUBS = [];     // realtime subscriptions
 
