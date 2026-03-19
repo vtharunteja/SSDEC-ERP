@@ -67,7 +67,7 @@ const NAVDEF = [
   {s:'Overview'},
   {id:'dashboard',   ic:'📊', lb:'Dashboard'},
   {s:'Production'},
-  {id:'production',  ic:'⚙️', lb:'Work Orders',    bwo:1},
+  {id:'production',  ic:'⚙', lb:'Work Orders',    bwo:1},
   {id:'machines',    ic:'🔧', lb:'Machines'},
   {id:'quality',     ic:'✅', lb:'Quality Control'},
   {s:'Materials'},
@@ -80,7 +80,7 @@ const NAVDEF = [
   {id:'invoices',    ic:'📄', lb:'Invoices',       binv2:1},
   {id:'vendors',     ic:'🏭', lb:'Vendors'},
   {s:'Master Data'},
-  {id:'products',    ic:'🏷️', lb:'Product Master'},
+  {id:'products',    ic:'🏷', lb:'Product Master'},
   {s:'Reports'},
   {id:'reports',     ic:'📈', lb:'Analytics'},
   {s:'Admin'},
@@ -109,7 +109,7 @@ function pill(s) {
   return `<span class="pill ${m[s]||'pgr'}">${s}</span>`;
 }
 
-const ron = () => '<div class="al ali" style="margin-bottom:14px"><span class="al-i">ℹ️</span>Read-only access for your role. Contact Plant Admin for edit permissions.</div>';
+const ron = () => '<div class="al ali" style="margin-bottom:14px"><span class="al-i">ℹ</span>Read-only access for your role. Contact Plant Admin for edit permissions.</div>';
 
 function showLoader(t='Loading...') {
   document.getElementById('loader').style.display = 'flex';
@@ -121,7 +121,7 @@ window.openMo  = id => document.getElementById(id).classList.add('open');
 window.closeMo = id => document.getElementById(id).classList.remove('open');
 
 function toast(msg, t='s') {
-  const icons = {s:'✅', e:'❌', i:'ℹ️', w:'⚠️'};
+  const icons = {s:'✅', e:'❌', i:'ℹ', w:'⚠'};
   const el = document.createElement('div');
   el.className = `toast ${t}`;
   el.innerHTML = `<span class="toast-ic">${icons[t]||'✅'}</span><span>${msg}</span>`;
@@ -189,10 +189,16 @@ window.showForgot = async () => {
 
 window.doLogout = async () => {
   stopIdleDetection();
-  isInitialized = false;
+  isInitialized = false;    // reset so re-login works
+  CU = null;
   SUBS.forEach(s => { try { s.unsubscribe(); } catch(e) {} });
   SUBS = [];
   await sb.auth.signOut();
+  // Clear ERP state
+  document.getElementById('erp').style.display = 'none';
+  document.getElementById('login').classList.add('show');
+  const btn = document.getElementById('lbtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'SIGN IN'; }
 };
 
 // Auth state listener
@@ -221,8 +227,21 @@ function resetIdleTimer() {
     if (!warnEl) {
       warnEl = document.createElement('div');
       warnEl.id = 'idle-warn';
-      warnEl.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#7f1d1d;border:1px solid var(--rd);color:#fca5a5;padding:13px 22px;border-radius:8px;font-size:13px;z-index:9998;box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px;font-family:var(--fm)';
-      warnEl.innerHTML = '<span>⚠️</span><span>No activity detected. Auto-logout in <strong id="idle-countdown">2 minutes</strong>.</span><button onclick="resetIdleTimer()" style="background:var(--rd);border:none;color:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;margin-left:8px">Stay Logged In</button>';
+      warnEl.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;padding:13px 22px;border-radius:8px;font-size:13px;z-index:9998;box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px;';
+      // Build warning content safely without nested quotes
+      var wIcon = document.createElement('span'); wIcon.textContent = '⚠';
+      var wMsg  = document.createElement('span'); wMsg.textContent = 'No activity detected. Auto-logout in ';
+      var wCd   = document.createElement('strong'); wCd.id = 'idle-countdown'; wCd.textContent = '2 minutes';
+      wMsg.appendChild(wCd);
+      var wDot  = document.createTextNode('.');
+      wMsg.appendChild(wDot);
+      var wBtn  = document.createElement('button');
+      wBtn.textContent = 'Stay Logged In';
+      wBtn.style.cssText = 'background:#ef4444;border:none;color:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;margin-left:8px;';
+      wBtn.onclick = function() { resetIdleTimer(); };
+      warnEl.appendChild(wIcon);
+      warnEl.appendChild(wMsg);
+      warnEl.appendChild(wBtn);
       document.body.appendChild(warnEl);
     } else {
       warnEl.style.display = 'flex';
@@ -243,7 +262,7 @@ function resetIdleTimer() {
     // Show logout notification
     const el = document.createElement('div');
     el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;';
-    el.innerHTML = '<div style="font-size:32px">🔒</div><div style="color:#f0f4f8;font-size:18px;font-weight:700">Session Expired</div><div style="color:#94a3b8;font-family:var(--fm);font-size:13px">Logged out due to inactivity ('+IDLE_MINUTES+' min)</div>';
+    el.innerHTML = '<div style="font-size:32px">🔒</div><div style="color:#f0f4f8;font-size:18px;font-weight:700">Session Expired</div><div style="color:#94a3b8;font-size:13px">Logged out due to inactivity (' + IDLE_MINUTES + ' min)</div>';
     document.body.appendChild(el);
     isInitialized = false;
     SUBS.forEach(s => { try { s.unsubscribe(); } catch(e) {} });
@@ -267,23 +286,33 @@ function stopIdleDetection() {
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
-  // TOKEN_REFRESHED fires every hour — ignore it if already logged in
-  if (event === 'TOKEN_REFRESHED' && isInitialized) return;
-  // SIGNED_IN fires on every page load if session exists — only init once
-  if (event === 'SIGNED_IN' && isInitialized) return;
+  // Only INITIAL_SESSION (page load) and SIGNED_IN (fresh login) trigger ERP init
+  // TOKEN_REFRESHED fires every hour — we ignore it completely
+  // USER_UPDATED, MFA_CHALLENGE_VERIFIED etc — also ignored
+  const shouldInit = event === 'INITIAL_SESSION' || event === 'SIGNED_IN';
+  if (!shouldInit) return;
+  if (isInitialized)  return; // already running — never run twice
 
   if (session?.user) {
-    if (isInitialized) return; // already running — skip
+    isInitialized = true; // set immediately to block any race condition
     showLoader('Loading your profile...');
-    const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
-    CU = profile || { id: session.user.id, email: session.user.email, name: session.user.email, role: 'admin', dept: 'Management' };
-    document.getElementById('login').classList.remove('show');
-    document.getElementById('erp').style.display = 'flex';
-    hideLoader();
-    isInitialized = true;
-    initERP();
+    try {
+      const { data: profile } = await sb
+        .from('profiles').select('*').eq('id', session.user.id).single();
+      CU = profile || {
+        id: session.user.id, email: session.user.email,
+        name: session.user.email, role: 'admin', dept: 'Management'
+      };
+      document.getElementById('login').classList.remove('show');
+      document.getElementById('erp').style.display = 'flex';
+      hideLoader();
+      initERP();
+    } catch(err) {
+      isInitialized = false;
+      hideLoader();
+      toast('Profile error: ' + err.message, 'e');
+    }
   } else {
-    // Signed out
     isInitialized = false;
     CU = null;
     document.getElementById('erp').style.display = 'none';
@@ -292,7 +321,6 @@ sb.auth.onAuthStateChange(async (event, session) => {
     if (btn) { btn.disabled = false; btn.textContent = 'SIGN IN'; }
   }
 });
-
 // ═══════════════════════════════════════════════════════
 // LOAD ALL DATA + REALTIME
 // ═══════════════════════════════════════════════════════
@@ -461,7 +489,7 @@ function renderDash() {
     `<div class="kc p"><div class="kc-stripe"></div><div class="kl">QC Pass Rate</div><div class="kv" style="color:var(--pu)">${qcT>0?((qcP/qcT)*100).toFixed(1)+'%':'--'}</div><div class="ks">IEC 61952 / IS 14772</div></div>`;
   let alerts = '';
   DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<div class="al ald"><span class="al-i">🚨</span><strong>CRITICAL:</strong> ${i.name} — only ${i.stock} ${i.unit} remaining. Raise PO now.</div>`);
-  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<div class="al alw"><span class="al-i">⚠️</span><strong>Low stock:</strong> ${i.name} at ${i.stock}/${i.reorder} ${i.unit}.</div>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<div class="al alw"><span class="al-i">⚠</span><strong>Low stock:</strong> ${i.name} at ${i.stock}/${i.reorder} ${i.unit}.</div>`);
   DB.work_orders.filter(w=>w.status==='Delayed').forEach(w => alerts+=`<div class="al ali"><span class="al-i">📋</span>Work Order <strong>${w.wono}</strong> (${w.product}) is delayed.</div>`);
   const aEl = document.getElementById('d-alerts'); if(aEl) aEl.innerHTML = alerts;
   const woEl = document.getElementById('d-wo');
@@ -500,7 +528,7 @@ function renderWO() {
     .map(w => {
       const acts = ed ? `<button class="btn bO sm" onclick="editWO('${w.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('work_orders','${w.id}','wo')">Update</button><button class="btn bD sm" onclick="delRec('work_orders','${w.id}')">Del</button>` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${w.product}</td><td class="mn">${w.qty}</td><td class="mn">${w.produced||0}</td><td>${fmtD(w.start_date)}</td><td>${fmtD(w.end_date)}</td><td>${pill(w.priority||'Normal')}</td><td>${pill(w.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">⚙️</div><div class="empty-tt">No Work Orders</div><div class="empty-st">Create one above</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">⚙</div><div class="empty-tt">No Work Orders</div><div class="empty-st">Create one above</div></div></td></tr>';
 }
 window.saveWO = async () => {
   const eid = V('wo-eid'), qty = parseInt(V('wo-qty')), start = V('wo-start'), end = V('wo-end');
@@ -613,7 +641,7 @@ function renderInv() {
   const fcEl = document.getElementById('inv-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   let alerts = '';
   DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<div class="al ald"><span class="al-i">🚨</span><strong>CRITICAL:</strong> ${i.name} — ${i.stock} ${i.unit} left</div>`);
-  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<div class="al alw"><span class="al-i">⚠️</span><strong>Low:</strong> ${i.name} below reorder level</div>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<div class="al alw"><span class="al-i">⚠</span><strong>Low:</strong> ${i.name} below reorder level</div>`);
   const aEl = document.getElementById('inv-alerts'); if(aEl) aEl.innerHTML = alerts;
   const psel = document.getElementById('po-mat');
   if(psel) psel.innerHTML = DB.inventory.map(i=>`<option value="${i.name}">${i.name}</option>`).join('');
@@ -854,7 +882,7 @@ function renderProducts() {
     .map(p => {
       const acts = ed ? `<button class="btn bO sm" onclick="editProd('${p.id}')">Edit</button><button class="btn bD sm" onclick="delRec('products','${p.id}')">Del</button>` : '';
       return `<tr><td style="font-weight:600">${p.name}</td><td class="mn" style="color:var(--ac)">${p.code}</td><td><span class="pill pb">${p.category||'--'}</span></td><td>${p.unit}</td><td class="mn">${fmtM(p.price||0)}</td><td class="mn">${p.hsn||'--'}</td><td class="mn">${p.gst||0}%</td><td>${pill(p.active?'Active':'Inactive')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">🏷️</div><div class="empty-tt">No Products</div><div class="empty-st">Add products to enable dropdowns</div></div></td></tr>';
+    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">🏷</div><div class="empty-tt">No Products</div><div class="empty-st">Add products to enable dropdowns</div></div></td></tr>';
 }
 window.saveProd = async () => {
   const eid = V('prod-eid'), name = V('prod-name');
