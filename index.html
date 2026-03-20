@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>EIPD ERP — Polymer Insulator Manufacturing</title>
-<meta name="description" content="EIPD ERP — Production, Quality, Inventory, Sales and Finance management for polymer pin insulator manufacturing."/>
+<title>EIPD ERP</title>
+<meta name="description" content="EIPD ERP - Polymer Insulator Manufacturing"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/layout.css"/>
 <link rel="stylesheet" href="css/components.css"/>
@@ -14,7 +14,7 @@
 
 <!-- LOADER -->
 <div id="loader" style="display:none!important">
-  <div class="loader-logo">⚡ EIPD ERP</div>
+  <div class="loader-logo">EIPD ERP</div>
   <div class="loader-sub">// POLYMER INSULATOR MANUFACTURING</div>
   <div class="spin"></div>
   <div class="loader-msg" id="loader-msg">Initializing...</div>
@@ -23,14 +23,12 @@
 <!-- TOASTS -->
 <div id="toast-wrap"></div>
 
-<!-- ══════════════════════════════════════════════
-     LOGIN SCREEN
-══════════════════════════════════════════════ -->
+<!-- LOGIN -->
 <div id="login" class="screen show">
   <div class="login-dots"></div>
   <div class="login-card">
     <div class="login-brand">
-      <div class="brand-icon">⚡</div>
+      <div class="brand-icon">E</div>
       <div>
         <div class="brand-name">EIPD ERP</div>
         <div class="brand-sub">Polymer Insulator Manufacturing</div>
@@ -38,7 +36,7 @@
     </div>
     <div class="login-secure">
       <div class="login-dot"></div>
-      Secured by Supabase — Encrypted Login
+      Secured by Supabase
     </div>
     <div class="login-err" id="lerr"></div>
     <div class="login-info" id="linfo"></div>
@@ -53,18 +51,14 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     ERP SHELL
-══════════════════════════════════════════════ -->
+<!-- ERP SHELL -->
 <div id="erp" style="display:none">
-  <div class="offline-bar" id="offline-bar">No internet — working offline. Changes sync when reconnected.</div>
-
-  <!-- HEADER -->
+  <div class="offline-bar" id="offline-bar">No internet. Working offline. Changes sync when reconnected.</div>
   <header class="hdr">
     <div class="h-left">
-      <button class="hburger" id="hburger" onclick="toggleSB()">☰</button>
+      <button class="hburger" onclick="toggleSB()">&#9776;</button>
       <div class="hlogo">
-        <div class="hlogo-icon">⚡</div>
+        <div class="hlogo-icon">E</div>
         <div>
           <span class="hlogo-name">EIPD ERP</span>
           <span class="hlogo-mod" id="hmod">// Dashboard</span>
@@ -83,40 +77,29 @@
     </div>
   </header>
 
-  <!-- LAYOUT -->
   <div class="layout">
     <div class="sb-overlay" id="sb-overlay" onclick="closeSB()"></div>
     <nav class="sb" id="sb"></nav>
-
-    <main class="main" id="main">
+    <main class="main">
 
       <!-- DASHBOARD -->
       <div class="tc" id="tab-dashboard">
         <div class="ph">
           <div><div class="pt">Dashboard</div><div class="pst">// live operations overview</div></div>
-          <div class="ph-r"><button class="btn bO sm" onclick="refreshAll()">↻ Refresh</button></div>
+          <div class="ph-r"><button class="btn bO sm" onclick="refreshAll()">Refresh</button></div>
         </div>
         <div class="g4" id="d-kpi"></div>
         <div id="d-alerts"></div>
         <div class="g2">
-          <div class="card">
-            <div class="ch"><div class="ct">Active Work Orders</div></div>
-            <div class="tbl-wrap"><table><thead><tr><th>WO No.</th><th>Product</th><th>Progress</th><th>Status</th></tr></thead><tbody id="d-wo"></tbody></table></div>
-          </div>
-          <div class="card">
-            <div class="ch"><div class="ct">Inventory Status</div></div>
-            <div id="d-inv"></div>
-          </div>
+          <div class="card"><div class="ch"><div class="ct">Active Work Orders</div></div>
+            <div class="tbl-wrap"><table><thead><tr><th>WO No.</th><th>Product</th><th>Progress</th><th>Status</th></tr></thead><tbody id="d-wo"></tbody></table></div></div>
+          <div class="card"><div class="ch"><div class="ct">Inventory Status</div></div><div id="d-inv"></div></div>
         </div>
         <div class="g2">
-          <div class="card">
-            <div class="ch"><div class="ct">Recent QC Results</div></div>
-            <div class="tbl-wrap"><table><thead><tr><th>Batch</th><th>Product</th><th>Pass %</th><th>Result</th></tr></thead><tbody id="d-qc"></tbody></table></div>
-          </div>
-          <div class="card">
-            <div class="ch"><div class="ct">Recent Dispatches</div></div>
-            <div class="tbl-wrap"><table><thead><tr><th>DC No.</th><th>Customer</th><th>Qty</th><th>Status</th></tr></thead><tbody id="d-dc"></tbody></table></div>
-          </div>
+          <div class="card"><div class="ch"><div class="ct">Recent QC Results</div></div>
+            <div class="tbl-wrap"><table><thead><tr><th>Batch</th><th>Product</th><th>Pass %</th><th>Result</th></tr></thead><tbody id="d-qc"></tbody></table></div></div>
+          <div class="card"><div class="ch"><div class="ct">Recent Dispatches</div></div>
+            <div class="tbl-wrap"><table><thead><tr><th>DC No.</th><th>Customer</th><th>Qty</th><th>Status</th></tr></thead><tbody id="d-dc"></tbody></table></div></div>
         </div>
       </div>
 
@@ -141,7 +124,7 @@
         <div class="card">
           <div class="ch"><div class="ct">All Work Orders</div><div class="ch-r">
             <input type="text" id="wo-srch" placeholder="Search..." oninput="renderWO()"/>
-            <select id="wo-flt" onchange="renderWO()"><option value="">All Status</option><option>On Track</option><option>Delayed</option><option>In Progress</option><option>Queued</option><option>Completed</option></select>
+            <select id="wo-flt" onchange="renderWO()"><option value="">All Status</option><option>Pending Approval</option><option>Queued</option><option>In Progress</option><option>On Track</option><option>Delayed</option><option>Completed</option></select>
           </div></div>
           <div class="tbl-wrap"><table><thead><tr><th>WO No.</th><th>Product</th><th>Qty</th><th>Produced</th><th>Start</th><th>Target</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead><tbody id="wo-tbl"></tbody></table></div>
         </div>
@@ -168,13 +151,13 @@
         <div class="card"><div class="ch"><div class="ct">Plant Equipment</div></div><div class="mg" id="mach-grid"></div></div>
       </div>
 
-      <!-- QUALITY -->
+      <!-- QUALITY CONTROL -->
       <div class="tc" id="tab-quality">
-        <div class="ph"><div><div class="pt">Quality Control</div><div class="pst">// IEC 61952 / IS 14772 — batch inspection</div></div></div>
+        <div class="ph"><div><div class="pt">Quality Control</div><div class="pst">// IEC 61952 / IS 14772 batch inspection</div></div></div>
         <div class="g3" style="margin-bottom:18px">
           <div class="card"><div class="qbig"><div class="qnum" id="qc-rate" style="color:var(--gn)">--</div><div class="qlbl">Overall Pass Rate</div></div></div>
-          <div class="card"><div class="qbig"><div class="qnum" id="qc-rej" style="color:var(--rd)">--</div><div class="qlbl">Total Rejections</div></div></div>
-          <div class="card"><div class="qbig"><div class="qnum" id="qc-cnt" style="color:var(--ac)">--</div><div class="qlbl">Batches Inspected</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="qc-rej"  style="color:var(--rd)">--</div><div class="qlbl">Total Rejections</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="qc-cnt"  style="color:var(--ac)">--</div><div class="qlbl">Batches Inspected</div></div></div>
         </div>
         <div id="qc-ro"></div>
         <div class="card" id="qc-fc">
@@ -187,13 +170,46 @@
             <div class="fr"><label>Pieces Passed</label><input type="number" id="qc-pass" min="0"/></div>
             <div class="fr"><label>Test Type</label><select id="qc-test"><option>Visual Inspection</option><option>Dimensional Check</option><option>Creepage Verification</option><option>HV Puncture Test</option><option>Thermal Cycling</option><option>Mechanical Load Test</option></select></div>
             <div class="fr"><label>Inspector</label><input type="text" id="qc-insp"/></div>
-            <div class="fr full"><label>Observations / Failure Notes</label><textarea id="qc-notes" rows="2"></textarea></div>
+            <div class="fr full"><label>Observations</label><textarea id="qc-notes" rows="2"></textarea></div>
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('qc')">Clear</button><button class="btn bP" id="qc-sb" onclick="saveQC()">Submit QC Entry</button></div>
         </div>
         <div class="card">
           <div class="ch"><div class="ct">Inspection Log</div><div class="ch-r"><input type="text" id="qc-srch" placeholder="Search batch..." oninput="renderQC()"/></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Batch ID</th><th>Product</th><th>WO</th><th>Sample</th><th>Pass</th><th>Fail</th><th>Pass %</th><th>Test Type</th><th>Inspector</th><th>Result</th><th>Actions</th></tr></thead><tbody id="qc-tbl"></tbody></table></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Batch ID</th><th>Product</th><th>WO</th><th>Sample</th><th>Pass</th><th>Fail</th><th>Pass %</th><th>Test</th><th>Inspector</th><th>Result</th><th>Actions</th></tr></thead><tbody id="qc-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- FINISHED GOODS -->
+      <div class="tc" id="tab-fg">
+        <div class="ph"><div><div class="pt">Finished Goods</div><div class="pst">// completed production ready for dispatch</div></div></div>
+        <div class="g3" style="margin-bottom:18px">
+          <div class="card"><div class="qbig"><div class="qnum" id="fg-stat-total" style="color:var(--gn);font-size:28px">--</div><div class="qlbl">Total Stock</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="fg-stat-avail" style="color:var(--bl);font-size:28px">--</div><div class="qlbl">Available</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="fg-stat-val"   style="color:var(--ac);font-size:22px">--</div><div class="qlbl">Stock Value</div></div></div>
+        </div>
+        <div id="fg-ro"></div>
+        <div class="card" id="fg-fc">
+          <div class="ch"><div class="ct" id="fg-ft">Add Finished Goods</div></div>
+          <div class="fg">
+            <input type="hidden" id="fg-eid"/>
+            <div class="fr"><label>Product</label><select id="fg-prod"></select></div>
+            <div class="fr"><label>Quantity</label><input type="number" id="fg-qty" min="1"/></div>
+            <div class="fr"><label>Unit</label><select id="fg-unit"><option>pcs</option><option>sets</option><option>kg</option></select></div>
+            <div class="fr"><label>Unit Cost (Rs)</label><input type="number" id="fg-cost" min="0"/></div>
+            <div class="fr"><label>Storage Location</label><input type="text" id="fg-loc" value="Main Warehouse"/></div>
+            <div class="fr"><label>Link Work Order</label><select id="fg-wo"><option value="">-- None --</option></select></div>
+            <div class="fr"><label>QC Batch Ref</label><input type="text" id="fg-qcbatch" placeholder="QC-260318-01"/></div>
+            <div class="fr full"><label>Notes</label><textarea id="fg-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('fg')">Clear</button><button class="btn bP" id="fg-sb" onclick="saveFG()">Add to Finished Goods</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Finished Goods Register</div><div class="ch-r">
+            <input type="text" id="fg-srch" placeholder="Search..." oninput="renderFG()"/>
+            <select id="fg-flt" onchange="renderFG()"><option value="">All Status</option><option>Available</option><option>Reserved</option><option>Dispatched</option></select>
+          </div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Batch</th><th>Qty</th><th>Value</th><th>Location</th><th>Work Order</th><th>QC Batch</th><th>Status</th><th>Actions</th></tr></thead><tbody id="fg-tbl"></tbody></table></div>
         </div>
       </div>
 
@@ -232,7 +248,7 @@
           <div class="fg">
             <input type="hidden" id="po-eid"/>
             <div class="fr"><label>Material</label><select id="po-mat"></select></div>
-            <div class="fr"><label>Supplier</label><select id="po-sup"><option>Mittwoch Technologies</option><option>Wacker Chemie India</option><option>Aditya Birla Chemicals</option><option>Local Metal Forge</option><option>Others</option></select></div>
+            <div class="fr"><label>Supplier</label><select id="po-sup"><option>Mittwoch Technologies Pvt Ltd</option><option>Wacker Chemie India Pvt Ltd</option><option>Aditya Birla Chemicals</option><option>Local Metal Forge &amp; Fab</option><option>Sigma Polymers Ltd</option><option>Local Fabricator Hyd</option><option>Others</option></select></div>
             <div class="fr"><label>Quantity</label><input type="number" id="po-qty" min="1"/></div>
             <div class="fr"><label>Unit Price (Rs)</label><input type="number" id="po-price" min="0"/></div>
             <div class="fr"><label>Required By</label><input type="date" id="po-date"/></div>
@@ -242,7 +258,9 @@
           <div class="ff"><button class="btn bO" onclick="clrForm('po')">Clear</button><button class="btn bP" id="po-sb" onclick="savePO()">Raise PO</button></div>
         </div>
         <div class="card">
-          <div class="ch"><div class="ct">Purchase Register</div><div class="ch-r"><select id="po-flt" onchange="renderPO()"><option value="">All Status</option><option>Raised</option><option>In Transit</option><option>Delivered</option><option>Cancelled</option></select></div></div>
+          <div class="ch"><div class="ct">Purchase Register</div><div class="ch-r">
+            <select id="po-flt" onchange="renderPO()"><option value="">All Status</option><option>Pending Approval</option><option>Raised</option><option>In Transit</option><option>Delivered</option><option>Cancelled</option></select>
+          </div></div>
           <div class="tbl-wrap"><table><thead><tr><th>PO No.</th><th>Material</th><th>Supplier</th><th>Qty</th><th>Value (Rs)</th><th>Required By</th><th>Status</th><th>Actions</th></tr></thead><tbody id="po-tbl"></tbody></table></div>
         </div>
       </div>
@@ -295,7 +313,9 @@
           <div class="ff"><button class="btn bO" onclick="clrForm('dc')">Clear</button><button class="btn bP" id="dc-sb" onclick="saveDC()">Generate Challan</button></div>
         </div>
         <div class="card">
-          <div class="ch"><div class="ct">Dispatch Register</div><div class="ch-r"><select id="dc-flt" onchange="renderDC()"><option value="">All Status</option><option>In Transit</option><option>Delivered</option></select></div></div>
+          <div class="ch"><div class="ct">Dispatch Register</div><div class="ch-r">
+            <select id="dc-flt" onchange="renderDC()"><option value="">All Status</option><option>In Transit</option><option>Delivered</option></select>
+          </div></div>
           <div class="tbl-wrap"><table><thead><tr><th>DC No.</th><th>SO Ref</th><th>Customer</th><th>Product</th><th>Qty</th><th>Vehicle</th><th>Date</th><th>LR</th><th>Status</th><th>Actions</th></tr></thead><tbody id="dc-tbl"></tbody></table></div>
         </div>
       </div>
@@ -314,7 +334,7 @@
             <div class="fr"><label>Customer / Party</label><input type="text" id="inv2-party"/></div>
             <div class="fr"><label>Link Sales Order</label><select id="inv2-so"><option value="">-- None --</option></select></div>
             <div class="fr"><label>Amount (Rs)</label><input type="number" id="inv2-amt" min="0"/></div>
-            <div class="fr"><label>GST %</label><select id="inv2-gst"><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option><option value="28">28%</option></select></div>
+            <div class="fr"><label>GST %</label><select id="inv2-gst"><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18" selected>18%</option><option value="28">28%</option></select></div>
             <div class="fr"><label>Due Date</label><input type="date" id="inv2-due"/></div>
             <div class="fr"><label>Payment Terms</label><select id="inv2-terms"><option>Net 30</option><option>Net 45</option><option>Net 60</option><option>Immediate</option></select></div>
             <div class="fr"><label>Payment Ref</label><input type="text" id="inv2-ref" placeholder="NEFT/UPI reference"/></div>
@@ -324,16 +344,16 @@
           <div class="ff"><button class="btn bO" onclick="clrForm('inv2')">Clear</button><button class="btn bP" id="inv2-sb" onclick="saveInv2()">Create Invoice</button></div>
         </div>
         <div class="g3" style="margin-bottom:18px">
-          <div class="card"><div class="qbig"><div class="qnum" id="inv2-tot" style="color:var(--gn);font-size:24px">--</div><div class="qlbl">Total Invoiced</div></div></div>
-          <div class="card"><div class="qbig"><div class="qnum" id="inv2-upd" style="color:var(--rd);font-size:24px">--</div><div class="qlbl">Unpaid / Overdue</div></div></div>
-          <div class="card"><div class="qbig"><div class="qnum" id="inv2-pad" style="color:var(--gn);font-size:24px">--</div><div class="qlbl">Total Collected</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="inv2-tot" style="color:var(--gn);font-size:22px">--</div><div class="qlbl">Total Invoiced</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="inv2-upd" style="color:var(--rd);font-size:22px">--</div><div class="qlbl">Unpaid / Overdue</div></div></div>
+          <div class="card"><div class="qbig"><div class="qnum" id="inv2-pad" style="color:var(--gn);font-size:22px">--</div><div class="qlbl">Total Collected</div></div></div>
         </div>
         <div class="card">
           <div class="ch"><div class="ct">Invoice Register</div><div class="ch-r">
             <input type="text" id="inv2-srch" placeholder="Search..." oninput="renderInv2()"/>
             <select id="inv2-flt" onchange="renderInv2()"><option value="">All Status</option><option>Unpaid</option><option>Partially Paid</option><option>Paid</option><option>Overdue</option></select>
           </div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Invoice No.</th><th>Date</th><th>Customer</th><th>SO</th><th>Amount</th><th>GST %</th><th>Total</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv2-tbl"></tbody></table></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Invoice No.</th><th>Date</th><th>Customer</th><th>SO</th><th>Amount</th><th>GST%</th><th>Total</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv2-tbl"></tbody></table></div>
         </div>
       </div>
 
@@ -353,9 +373,9 @@
             <div class="fr"><label>Email</label><input type="email" id="vnd-email"/></div>
             <div class="fr"><label>GST Number</label><input type="text" id="vnd-gst" placeholder="36AABCX1234Y1ZX"/></div>
             <div class="fr"><label>Payment Terms</label><select id="vnd-terms"><option>Advance</option><option>Net 30</option><option>Net 45</option><option>Net 60</option><option>On Delivery</option></select></div>
-            <div class="fr"><label>Rating</label><select id="vnd-rating"><option value="5">5 — Excellent</option><option value="4">4 — Good</option><option value="3">3 — Average</option><option value="2">2 — Below Avg</option><option value="1">1 — Poor</option></select></div>
+            <div class="fr"><label>Rating</label><select id="vnd-rating"><option value="5">5 - Excellent</option><option value="4">4 - Good</option><option value="3">3 - Average</option><option value="2">2 - Below Avg</option><option value="1">1 - Poor</option></select></div>
             <div class="fr"><label>Status</label><select id="vnd-status"><option>Active</option><option>Inactive</option><option>Blacklisted</option></select></div>
-            <div class="fr full"><label>Materials / Services Supplied</label><textarea id="vnd-materials" rows="2"></textarea></div>
+            <div class="fr full"><label>Materials / Services</label><textarea id="vnd-materials" rows="2"></textarea></div>
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('vnd')">Clear</button><button class="btn bP" id="vnd-sb" onclick="saveVnd()">Save Vendor</button></div>
         </div>
@@ -375,14 +395,14 @@
             <input type="hidden" id="prod-eid"/>
             <div class="fr"><label>Product Name</label><input type="text" id="prod-name" placeholder="PPI-66kV"/></div>
             <div class="fr"><label>Product Code</label><input type="text" id="prod-code" placeholder="PROD-004"/></div>
-            <div class="fr"><label>Description</label><input type="text" id="prod-desc" placeholder="66kV Polymer Pin Insulator"/></div>
+            <div class="fr"><label>Description</label><input type="text" id="prod-desc"/></div>
             <div class="fr"><label>Unit</label><select id="prod-unit"><option>pcs</option><option>sets</option><option>kg</option><option>m</option></select></div>
             <div class="fr"><label>Default Price (Rs)</label><input type="number" id="prod-price" min="0"/></div>
             <div class="fr"><label>Category</label><select id="prod-cat"><option>Pin Insulator</option><option>Disc Insulator</option><option>Post Insulator</option><option>Composite Insulator</option><option>Others</option></select></div>
             <div class="fr"><label>HSN Code</label><input type="text" id="prod-hsn" placeholder="8546"/></div>
-            <div class="fr"><label>GST %</label><select id="prod-gst"><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option><option value="28">28%</option></select></div>
+            <div class="fr"><label>GST %</label><select id="prod-gst"><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18" selected>18%</option><option value="28">28%</option></select></div>
             <div class="fr"><label>Status</label><select id="prod-active"><option value="true">Active</option><option value="false">Inactive</option></select></div>
-            <div class="fr full"><label>Specifications / Notes</label><textarea id="prod-notes" rows="2" placeholder="Voltage class, creepage, standards..."></textarea></div>
+            <div class="fr full"><label>Specifications / Notes</label><textarea id="prod-notes" rows="2"></textarea></div>
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('prod')">Clear</button><button class="btn bP" id="prod-sb" onclick="saveProd()">Add Product</button></div>
         </div>
@@ -391,13 +411,13 @@
             <input type="text" id="prod-srch" placeholder="Search..." oninput="renderProducts()"/>
             <select id="prod-sflt" onchange="renderProducts()"><option value="">All</option><option value="true">Active</option><option value="false">Inactive</option></select>
           </div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Code</th><th>Category</th><th>Unit</th><th>Price</th><th>HSN</th><th>GST %</th><th>Status</th><th>Actions</th></tr></thead><tbody id="prod-tbl"></tbody></table></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Code</th><th>Category</th><th>Unit</th><th>Price</th><th>HSN</th><th>GST%</th><th>Status</th><th>Actions</th></tr></thead><tbody id="prod-tbl"></tbody></table></div>
         </div>
       </div>
 
       <!-- ANALYTICS -->
       <div class="tc" id="tab-reports">
-        <div class="ph"><div><div class="pt">Analytics</div><div class="pst">// live business intelligence</div></div><div class="ph-r"><button class="btn bO sm" onclick="refreshAll()">↻ Refresh</button></div></div>
+        <div class="ph"><div><div class="pt">Analytics</div><div class="pst">// live business intelligence</div></div><div class="ph-r"><button class="btn bO sm" onclick="refreshAll()">Refresh</button></div></div>
         <div class="g4" id="rep-kpi"></div>
         <div class="g2">
           <div class="card"><div class="ch"><div class="ct">Production by Variant</div></div><div style="padding:18px" id="rep-prod"></div></div>
@@ -409,9 +429,26 @@
         </div>
       </div>
 
+      <!-- AUDIT LOG -->
+      <div class="tc" id="tab-audit">
+        <div class="ph"><div><div class="pt">Audit Log</div><div class="pst">// all user actions with timestamps</div></div></div>
+        <div class="card">
+          <div class="ch"><div class="ct">Activity Log</div><div class="ch-r">
+            <input type="text" id="audit-srch" placeholder="Search user, module..." oninput="renderAudit()"/>
+            <select id="audit-flt" onchange="renderAudit()">
+              <option value="">All Actions</option>
+              <option>LOGIN</option><option>LOGOUT</option>
+              <option>CREATE</option><option>UPDATE</option><option>DELETE</option>
+              <option>APPROVE</option><option>REJECT</option><option>REQUEST_APPROVAL</option>
+            </select>
+          </div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Module</th><th>Record</th><th>Details</th></tr></thead><tbody id="audit-tbl"></tbody></table></div>
+        </div>
+      </div>
+
       <!-- USERS -->
       <div class="tc" id="tab-users">
-        <div class="ph"><div><div class="pt">User Management</div><div class="pst">// Supabase Auth — encrypted login</div></div></div>
+        <div class="ph"><div><div class="pt">User Management</div><div class="pst">// Supabase Auth secured</div></div></div>
         <div class="card" style="margin-bottom:18px">
           <div class="ch"><div class="ct">Access Roles</div><button class="btn bP sm" onclick="openMo('mo-add')">+ Add User</button></div>
           <div class="roles-grid" id="roles-grid"></div>
@@ -426,34 +463,26 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     MODALS
-═══════════════════════════════════════ -->
-
-<!-- Update Status -->
+<!-- MODALS -->
 <div class="mo" id="mo-upd">
   <div class="modal sm-mo">
-    <div class="mh"><div class="mt" id="mo-upd-t">Update Status</div><button class="mx" onclick="closeMo('mo-upd')">✕</button></div>
+    <div class="mh"><div class="mt" id="mo-upd-t">Update Status</div><button class="mx" onclick="closeMo('mo-upd')">x</button></div>
     <div class="mb">
       <input type="hidden" id="upd-col"/><input type="hidden" id="upd-id"/>
       <div class="info-row" id="upd-info"></div>
       <div class="fr" style="margin-bottom:13px"><label>New Status</label><select id="upd-stat"></select></div>
       <div class="fr" id="upd-prod-wrap" style="display:none;margin-bottom:13px"><label>Qty Produced</label><input type="number" id="upd-prod" min="0"/></div>
-      <div class="fr"><label>Note / Reason</label><textarea id="upd-note" rows="2" placeholder="Optional note about this status change"></textarea></div>
+      <div class="fr"><label>Note / Reason</label><textarea id="upd-note" rows="2"></textarea></div>
     </div>
     <div class="mf"><button class="btn bO" onclick="closeMo('mo-upd')">Cancel</button><button class="btn bP" onclick="saveUpd()">Update Status</button></div>
   </div>
 </div>
 
-<!-- Add User -->
 <div class="mo" id="mo-add">
   <div class="modal">
-    <div class="mh"><div class="mt">Add New User</div><button class="mx" onclick="closeMo('mo-add')">✕</button></div>
+    <div class="mh"><div class="mt">Add New User</div><button class="mx" onclick="closeMo('mo-add')">x</button></div>
     <div class="mb">
-      <div class="ibox green" style="margin-bottom:16px">
-        <div class="ibox-t">Supabase Authentication</div>
-        User is created securely in Supabase. Passwords are never stored in any file.
-      </div>
+      <div class="ibox green" style="margin-bottom:16px"><div class="ibox-t">Supabase Auth</div>User created securely. Passwords never stored in any file.</div>
       <div class="form-2col">
         <div class="fr"><label>Full Name</label><input id="au-name" type="text"/></div>
         <div class="fr"><label>Email Address</label><input id="au-email" type="email" placeholder="user@eipd.in"/></div>
@@ -474,24 +503,47 @@
         <div class="fr"><label>Employee ID</label><input id="au-empid" type="text" placeholder="EIPD-007"/></div>
       </div>
       <div class="ferr" id="au-err"></div>
-      <div class="al alw" style="margin-top:12px">
-        <span class="al-i">ℹ️</span>
-        If user creation fails, the user can sign up using the login page with the email and password you provide them.
-      </div>
+      <div class="al alw" style="margin-top:12px"><span class="al-i">i</span>If creation fails, user can sign up at the login page with the email and password you provide them.</div>
     </div>
     <div class="mf"><button class="btn bO" onclick="closeMo('mo-add')">Cancel</button><button class="btn bP" onclick="addUser()">Create User</button></div>
   </div>
 </div>
 
-<!-- Profile -->
+<div class="mo" id="mo-edit-user">
+  <div class="modal">
+    <div class="mh"><div class="mt">Edit User</div><button class="mx" onclick="closeMo('mo-edit-user')">x</button></div>
+    <div class="mb">
+      <input type="hidden" id="eu-id"/>
+      <div class="form-2col">
+        <div class="fr"><label>Full Name</label><input id="eu-name" type="text"/></div>
+        <div class="fr"><label>Email (read only)</label><input id="eu-email" type="email" disabled style="opacity:.4;cursor:not-allowed"/></div>
+        <div class="fr"><label>Role</label>
+          <select id="eu-role">
+            <option value="admin">Plant Admin</option><option value="manager">Plant Manager</option>
+            <option value="production">Production Supvr</option><option value="storekeeper">Store Keeper</option>
+            <option value="qc">QC Inspector</option><option value="dispatch">Dispatch Officer</option>
+            <option value="viewer">Read-Only</option>
+          </select>
+        </div>
+        <div class="fr"><label>Status</label><select id="eu-active"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+        <div class="fr"><label>Department</label><input id="eu-dept" type="text"/></div>
+        <div class="fr"><label>Phone</label><input id="eu-phone" type="text"/></div>
+        <div class="fr"><label>Employee ID</label><input id="eu-empid" type="text"/></div>
+      </div>
+      <div id="eu-msg" style="display:none;margin-top:12px"></div>
+    </div>
+    <div class="mf"><button class="btn bO" onclick="closeMo('mo-edit-user')">Cancel</button><button class="btn bP" onclick="saveEditUser()">Save Changes</button></div>
+  </div>
+</div>
+
 <div class="mo" id="mo-prof">
   <div class="modal">
-    <div class="mh"><div class="mt">My Profile</div><button class="mx" onclick="closeMo('mo-prof')">✕</button></div>
+    <div class="mh"><div class="mt">My Profile</div><button class="mx" onclick="closeMo('mo-prof')">x</button></div>
     <div class="mb">
       <div class="prof-header" id="prof-header"></div>
       <div class="form-2col" style="margin-bottom:16px">
         <div class="fr"><label>Full Name</label><input id="mp-n" type="text"/></div>
-        <div class="fr"><label>Email</label><input id="mp-e" type="email" disabled style="opacity:.4;cursor:not-allowed"/></div>
+        <div class="fr"><label>Email</label><input id="mp-e" type="email" disabled style="opacity:.4"/></div>
         <div class="fr"><label>Department</label><input id="mp-d" type="text"/></div>
         <div class="fr"><label>Phone</label><input id="mp-ph" type="text"/></div>
       </div>
@@ -508,9 +560,7 @@
   </div>
 </div>
 
-<!-- SCRIPTS -->
 <script src="js/config.js"></script>
 <script type="module" src="js/app.js"></script>
-
 </body>
 </html>
