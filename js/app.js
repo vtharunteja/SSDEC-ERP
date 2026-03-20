@@ -950,9 +950,6 @@ function renderUsers() {
     const editBtn = canAct ? `<button class="btn bO sm" onclick="openEditUser('${u.id}')" style="flex-shrink:0;margin-left:8px">Edit</button>` : '';
     return `<div class="ur"><div class="uavb" style="background:${r.bg};color:${r.color}">${ini(u.name||u.email||'?')}</div><div class="uinf"><div class="unl">${u.name||u.email}${isMe?' <span style="color:var(--mu);font-size:10px">(you)</span>':''}</div><div class="uel">${u.email||''}${u.dept?' - '+u.dept:''}</div></div><span class="pill ${u.active!==false?'pg':'pgr'}">${u.active!==false?'Active':'Inactive'}</span><span class="pill" style="background:${r.bg};color:${r.color};border:1px solid ${r.color}20">${r.label}</span>${editBtn}</div>`;
   }).join('') || '<div class="empty"><div class="empty-tt">No users found</div></div>';
-    const isMe = u.id === CU?.id;
-    return `<div class="ur"><div class="uavb" style="background:${r.bg};color:${r.color}">${ini(u.name||u.email||'?')}</div><div class="uinf"><div class="unl">${u.name||u.email}${isMe?' <span style="color:var(--mu);font-size:10px">(you)</span>':''}</div><div class="uel">${u.email||''}${u.dept?'  '+u.dept:''}</div></div><span class="pill ${u.active!==false?'pg':'pgr'}">${u.active!==false?'Active':'Inactive'}</span><span class="pill" style="background:${r.bg};color:${r.color};border:1px solid ${r.color}20">${r.label}</span></div>`;
-  }).join('') || '<div class="empty"><div class="empty-ic">UM</div><div class="empty-tt">No users found</div></div>';
 }
 
 window.openEditUser = async (id) => {
