@@ -13,7 +13,7 @@
 <body>
 
 <!-- LOADER -->
-<div id="loader" style="display:none!important">
+<div id="loader" style="display:none!important;visibility:hidden">
   <div class="loader-logo">EIPD ERP</div>
   <div class="loader-sub">// POLYMER INSULATOR MANUFACTURING</div>
   <div class="spin"></div>
@@ -560,6 +560,18 @@
   </div>
 </div>
 
+<script>
+// Run before anything else — ensure login shows immediately
+// and loader never appears on fresh page load
+(function(){
+  var loader = document.getElementById('loader');
+  var login  = document.getElementById('login');
+  var erp    = document.getElementById('erp');
+  if (loader) loader.style.cssText = 'display:none!important;visibility:hidden';
+  if (login)  login.classList.add('show');
+  if (erp)    erp.style.display = 'none';
+})();
+</script>
 <script src="js/config.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
