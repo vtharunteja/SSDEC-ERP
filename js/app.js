@@ -101,6 +101,23 @@ const ini = n => (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase
 const canEdit = m => (CAN_EDIT[CU?.role||'viewer']||[]).includes(m);
 const fmtD = d => { if(!d) return '--'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return d; } };
 const fmtM = n => 'Rs ' + (parseFloat(n)||0).toLocaleString('en-IN',{maximumFractionDigits:0});
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtApprD = d => {
+  if (!d) return '--';
+  try {
+    const dt = new Date(d);
+    const now = new Date();
+    const sameYear = dt.getFullYear() === now.getFullYear();
+    const opts = sameYear
+      ? { day:'2-digit', month:'short' }
+      : { day:'2-digit', month:'short', year:'numeric' };
+    const datePart = dt.toLocaleDateString('en-IN', opts);
+    const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0 || String(d).includes('T');
+    if (!hasTime) return datePart;
+    const timePart = dt.toLocaleTimeString('en-IN', { hour:'numeric', minute:'2-digit' });
+    return `${datePart}, ${timePart}`;
+  } catch(e) { return d; }
+};
 
 function pill(s) {
   const m = {
@@ -1135,7 +1152,8 @@ window.requestApproval = async (module, recordId, recordRef) => {
   if (exists) { toast('Approval already requested for '+recordRef,'i'); return; }
   const ok = await dbInsert('approvals',{
     module, record_id:recordId, record_ref:recordRef,
-    status:'Pending', requested_by:CU.id, requested_name:CU.name||CU.email
+    status:'Pending', requested_by:CU.id, requested_name:CU.name||CU.email,
+    requested_at:new Date().toISOString()
   });
   if(ok) { await logAudit('REQUEST_APPROVAL',module,recordId,recordRef); toast('Approval requested for '+recordRef); renderWO(); renderPO(); }
 };
@@ -1144,7 +1162,7 @@ window.processApproval = async (approvalId, decision) => {
   const appr = DB.approvals.find(a=>a.id===approvalId); if(!appr) return;
   if(CU?.role!=='admin'&&CU?.role!=='manager'){toast('Only Admin or Manager can approve','e');return;}
   const reason = decision==='Rejected'?prompt('Reason for rejection:'):null;
-  await dbUpdate('approvals',approvalId,{status:decision,approved_by:CU.id,approved_name:CU.name||CU.email,reason:reason||''});
+  await dbUpdate('approvals',approvalId,{status:decision,approved_by:CU.id,approved_name:CU.name||CU.email,approved_at:new Date().toISOString(),reason:reason||''});
   if(decision==='Approved'){
     if(appr.module==='work_orders')     await dbUpdate('work_orders',    appr.record_id,{status:'Queued'});
     if(appr.module==='purchase_orders') await dbUpdate('purchase_orders',appr.record_id,{status:'Raised'});
@@ -1162,13 +1180,37 @@ function approvalBadge(recordId,module,ref,canRequest=true){
     if(!canRequest) return '';
     return `<button class="btn bO sm" onclick="requestApproval('${module}','${recordId}','${ref}')">Request Approval</button>`;
   }
-  if(appr.status==='Pending'){
-    const canApprove=CU?.role==='admin'||CU?.role==='manager';
-    const appBtn=canApprove?`<button class="btn bG sm" onclick="processApproval('${appr.id}','Approved')">Approve</button><button class="btn bD sm" onclick="processApproval('${appr.id}','Rejected')">Reject</button>`:'';
-    return `<span class="pill po">Pending Approval</span>${appBtn}`;
+  const status = appr.status || 'Pending';
+  const reqBy = esc(appr.requested_name || appr.requester_name || appr.created_by_name || 'Unknown');
+  const reqAt = fmtApprD(appr.requested_at || appr.created_at);
+  const who   = esc(appr.approved_name || appr.approver_name || appr.reason || '');
+  const canApprove=CU?.role==='admin'||CU?.role==='manager';
+  const actions = status==='Pending' && canApprove
+    ? `<div class="apb-a"><button class="btn bG sm" onclick="processApproval('${appr.id}','Approved')">Approve</button><button class="btn bD sm" onclick="processApproval('${appr.id}','Rejected')">Reject</button></div>`
+    : '';
+  if(status==='Pending'){
+    return `<div class="apb pending">
+      <div class="apb-h"><span class="apb-s">Pending</span></div>
+      <div class="apb-p"><b>${reqBy}</b></div>
+      <div class="apb-p">${reqAt}</div>
+      <div class="apb-w">⏳ Admin / Manager</div>
+      ${actions}
+    </div>`;
   }
-  if(appr.status==='Approved') return `<span class="pill pg">Approved</span>`;
-  return `<span class="pill pr">Rejected${appr.reason?' - '+appr.reason:''}</span>`;
+  if(status==='Approved'){
+    return `<div class="apb approved">
+      <div class="apb-h"><span class="apb-s">Approved</span></div>
+      <div class="apb-p"><b>${reqBy}</b></div>
+      <div class="apb-p">${reqAt}</div>
+      <div class="apb-w">✓ By ${who || 'Manager'}</div>
+    </div>`;
+  }
+  return `<div class="apb rejected">
+    <div class="apb-h"><span class="apb-s">Rejected</span></div>
+    <div class="apb-p"><b>${reqBy}</b></div>
+    <div class="apb-p">${reqAt}</div>
+    <div class="apb-w">✗ ${who || 'Rejected'}</div>
+  </div>`;
 }
 
 window.saveFG = async () => {
