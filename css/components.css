@@ -1,8 +1,8 @@
-/* ═══════════════════════════════════════════
-   components.css — UI Components
-═══════════════════════════════════════════ */
+/* 
+   components.css  UI Components
+ */
 
-/* ── KPI CARD ────────────────────────────── */
+/*  KPI CARD  */
 .kc {
   background:var(--sf); border:1px solid var(--br); border-radius:var(--rl);
   padding:18px 20px; position:relative; overflow:hidden; transition:all .2s;
@@ -17,13 +17,13 @@
 .kv { font-size:32px; font-weight:800; margin-top:6px; line-height:1.1; }
 .ks { font-family:var(--fm); font-size:11px; color:var(--mu); margin-top:5px; }
 
-/* ── CARD ────────────────────────────────── */
+/*  CARD  */
 .card { background:var(--sf); border:1px solid var(--br); border-radius:var(--rl); overflow:hidden; margin-bottom:18px; }
 .ch  { padding:14px 18px; border-bottom:1px solid var(--br); display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
 .ct  { font-size:14px; font-weight:700; }
 .ch-r{ display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
 
-/* ── TABLE ───────────────────────────────── */
+/*  TABLE  */
 .tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 table { width:100%; border-collapse:collapse; font-size:12px; min-width:500px; }
 thead th {
@@ -37,7 +37,7 @@ tbody tr:hover { background:rgba(255,255,255,.025); }
 tbody td { padding:11px 14px; }
 .mn { font-family:var(--fm); }
 
-/* ── PILLS ───────────────────────────────── */
+/*  PILLS  */
 .pill { display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-family:var(--fm); font-size:10px; font-weight:600; white-space:nowrap; }
 .pg  { background:rgba(34,197,94,.09);  color:var(--gn); border:1px solid rgba(34,197,94,.2); }
 .po  { background:rgba(249,115,22,.09); color:var(--ac); border:1px solid rgba(249,115,22,.2); }
@@ -47,11 +47,11 @@ tbody td { padding:11px 14px; }
 .pc  { background:rgba(6,182,212,.09);  color:var(--cy); border:1px solid rgba(6,182,212,.2); }
 .pgr { background:rgba(74,85,104,.09);  color:var(--mu); border:1px solid rgba(74,85,104,.2); }
 
-/* ── PROGRESS BAR ────────────────────────── */
+/*  PROGRESS BAR  */
 .pbar  { background:var(--br); border-radius:4px; height:5px; width:100%; overflow:hidden; }
 .pfill { height:100%; border-radius:4px; transition:width .6s ease; }
 
-/* ── BUTTONS ─────────────────────────────── */
+/*  BUTTONS  */
 .btn {
   padding:8px 16px; border-radius:var(--r); font-family:var(--fm); font-size:11px;
   font-weight:600; border:none; cursor:pointer; transition:all .2s;
@@ -68,7 +68,7 @@ tbody td { padding:11px 14px; }
 .bG:hover  { background:rgba(34,197,94,.13); }
 .sm  { padding:5px 11px; font-size:11px; }
 
-/* ── FORMS ───────────────────────────────── */
+/*  FORMS  */
 .fg { display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:18px; }
 .fr { display:flex; flex-direction:column; gap:6px; }
 .fr.full { grid-column:1/-1; }
@@ -99,7 +99,7 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .ff { padding:0 18px 18px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
 .ferr { color:var(--rd); font-family:var(--fm); font-size:12px; margin-top:6px; display:none; animation:fadeUp .2s; }
 
-/* ── ALERTS ──────────────────────────────── */
+/*  ALERTS  */
 .al  { display:flex; align-items:flex-start; gap:9px; padding:11px 14px; border-radius:var(--r); margin-bottom:10px; font-size:12px; line-height:1.6; }
 .al-i{ flex-shrink:0; font-size:14px; }
 .alw { background:rgba(251,191,36,.06); border:1px solid rgba(251,191,36,.2); color:var(--a2); }
@@ -113,7 +113,7 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .ibox-t { font-family:var(--fm); font-size:10px; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:5px; color:var(--bl); }
 .ibox.green .ibox-t { color:var(--gn); }
 
-/* ── MODAL ───────────────────────────────── */
+/*  MODAL  */
 .mo {
   position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:500; display:none;
   align-items:flex-end; justify-content:center; backdrop-filter:blur(6px);
@@ -146,17 +146,17 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .pw-wrap { border:1px solid var(--br); border-radius:var(--r); padding:14px; margin-top:4px; }
 .pw-title{ font-family:var(--fm); font-size:10px; color:var(--mu); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; }
 
-/* ── EMPTY STATE ─────────────────────────── */
+/*  EMPTY STATE  */
 .empty { text-align:center; padding:52px 20px; }
 .empty-ic { font-size:42px; margin-bottom:12px; opacity:.2; }
 .empty-tt { font-size:16px; font-weight:600; color:var(--t2); margin-bottom:5px; }
 .empty-st { font-family:var(--fm); font-size:12px; color:var(--mu); }
 
-/* ── INVENTORY ROW ───────────────────────── */
+/*  INVENTORY ROW  */
 .ir { display:flex; align-items:center; gap:10px; padding:11px 18px; border-bottom:1px solid rgba(255,255,255,.04); }
 .ir:last-child { border-bottom:none; }
 
-/* ── USER ROW ────────────────────────────── */
+/*  USER ROW  */
 .ur { display:flex; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid rgba(255,255,255,.04); transition:background .1s; }
 .ur:last-child { border-bottom:none; }
 .ur:hover { background:rgba(255,255,255,.02); }
@@ -166,7 +166,7 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .uel  { font-family:var(--fm); font-size:10px; color:var(--mu); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .ucnt { font-family:var(--fm); font-size:11px; color:var(--mu); }
 
-/* ── ROLE CARDS ──────────────────────────── */
+/*  ROLE CARDS  */
 .roles-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding:18px; }
 .rolec { background:var(--bg); border:1px solid var(--br); border-radius:var(--r); padding:14px; position:relative; overflow:hidden; }
 .rolec::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
@@ -182,7 +182,7 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .at  { font-family:var(--fm); font-size:10px; padding:2px 7px; border-radius:3px; display:inline-flex; margin:2px; }
 .at.a{ background:rgba(34,197,94,.08); color:var(--gn); border:1px solid rgba(34,197,94,.15); }
 
-/* ── RESPONSIVE COMPONENTS ───────────────── */
+/*  RESPONSIVE COMPONENTS  */
 @media (max-width:768px) {
   .g4  { grid-template-columns:1fr 1fr; gap:10px; }
   .kv  { font-size:24px; }
