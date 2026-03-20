@@ -117,10 +117,15 @@ function pill(s) {
 const ron = () => '<div class="al ali" style="margin-bottom:14px"><span class="al-i">i</span>Read-only access for your role. Contact Plant Admin for edit permissions.</div>';
 
 function showLoader(t='Loading...') {
-  document.getElementById('loader').style.display = 'flex';
-  document.getElementById('loader-msg').textContent = t;
+  const el = document.getElementById('loader');
+  if (el) { el.style.cssText = 'display:flex!important'; }
+  const msg = document.getElementById('loader-msg');
+  if (msg) msg.textContent = t;
 }
-function hideLoader() { document.getElementById('loader').style.display = 'none'; }
+function hideLoader() {
+  const el = document.getElementById('loader');
+  if (el) el.style.cssText = 'display:none!important';
+}
 
 window.openMo  = id => document.getElementById(id).classList.add('open');
 window.closeMo = id => document.getElementById(id).classList.remove('open');
@@ -206,54 +211,71 @@ sb.auth.onAuthStateChange(async (event, session) => {
   const shouldInit = event === 'INITIAL_SESSION' || event === 'SIGNED_IN';
   const isSignOut  = event === 'SIGNED_OUT';
 
-  // Handle sign out
   if (isSignOut) {
     isInitialized = false; CU = null;
     if (typeof stopIdleDetection === 'function') stopIdleDetection();
-    document.getElementById('erp').style.display = 'none';
+    document.getElementById('loader').style.display  = 'none';
+    document.getElementById('erp').style.display     = 'none';
     document.getElementById('login').classList.add('show');
     const b = document.getElementById('lbtn');
     if (b) { b.disabled = false; b.textContent = 'SIGN IN'; }
     return;
   }
 
-  // Ignore everything except INITIAL_SESSION and SIGNED_IN
-  if (!shouldInit) return;
-  // Already initialized - never run twice
-  if (isInitialized) return;
+  if (!shouldInit || isInitialized) return;
 
   if (session?.user) {
     isInitialized = true;
     showLoader('Loading your profile...');
+
+    // Safety timeout  if profile load hangs for 8s, show login
+    const safetyTimer = setTimeout(() => {
+      if (document.getElementById('loader').style.display !== 'none') {
+        hideLoader();
+        isInitialized = false;
+        document.getElementById('login').classList.add('show');
+        toast('Session timed out. Please sign in again.', 'e');
+      }
+    }, 8000);
+
     try {
       const { data: profile } = await sb
         .from('profiles').select('*').eq('id', session.user.id).single();
+      clearTimeout(safetyTimer);
       if (profile) {
         CU = profile;
       } else {
-        // Auto-create missing profile
-        const np = { id: session.user.id, email: session.user.email,
-                     name: session.user.email, role: 'admin',
-                     dept: 'Management', active: true };
+        // Profile missing  create it
+        const np = {
+          id: session.user.id, email: session.user.email,
+          name: session.user.email, role: 'admin',
+          dept: 'Management', active: true
+        };
         await sb.from('profiles').upsert(np);
         CU = np;
       }
+      document.getElementById('login').classList.remove('show');
+      document.getElementById('erp').style.display = 'flex';
+      hideLoader();
+      initERP();
     } catch(err) {
-      // Fallback - use basic profile on any DB error
-      CU = { id: session.user.id, email: session.user.email,
-             name: session.user.email, role: 'admin', dept: 'Management' };
+      clearTimeout(safetyTimer);
+      // On any DB error still log in with basic profile
+      CU = {
+        id: session.user.id, email: session.user.email,
+        name: session.user.email, role: 'admin', dept: 'Management'
+      };
+      document.getElementById('login').classList.remove('show');
+      document.getElementById('erp').style.display = 'flex';
+      hideLoader();
+      initERP();
     }
-    document.getElementById('login').classList.remove('show');
-    document.getElementById('erp').style.display = 'flex';
-    hideLoader();
-    initERP();
   } else {
-    // No session - show login
+    // No session  show login immediately
     document.getElementById('loader').style.display = 'none';
     document.getElementById('login').classList.add('show');
   }
-});
-// ---
+});// ---
 // LOAD ALL DATA + REALTIME
 // ---
 async function loadAllData() {
