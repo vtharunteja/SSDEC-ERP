@@ -1,12 +1,12 @@
-/* ═══════════════════════════════════════════
-   layout.css — Screens, Header, Sidebar, Main
-═══════════════════════════════════════════ */
+/* 
+   layout.css  Screens, Header, Sidebar, Main
+ */
 
-/* ── SCREENS ─────────────────────────────── */
+/*  SCREENS  */
 .screen      { display:none!important; }
 .screen.show { display:flex!important; }
 
-/* ── LOADER ──────────────────────────────── */
+/*  LOADER  */
 #loader {
   position:fixed; inset:0; background:var(--bg); z-index:9999;
   display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px;
@@ -16,7 +16,7 @@
 .spin { width:38px; height:38px; border:3px solid var(--br); border-top-color:var(--ac); border-radius:50%; animation:spin .8s linear infinite; }
 .loader-msg  { font-family:var(--fm); font-size:12px; color:var(--mu); }
 
-/* ── TOAST ───────────────────────────────── */
+/*  TOAST  */
 #toast-wrap {
   position:fixed; top:20px; right:20px; z-index:8888;
   display:flex; flex-direction:column; gap:8px; pointer-events:none;
@@ -33,7 +33,7 @@
 .toast.w { background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); color:var(--a2); }
 .toast-ic { font-size:16px; flex-shrink:0; }
 
-/* ── LOGIN ───────────────────────────────── */
+/*  LOGIN  */
 #login {
   min-height:100vh; align-items:center; justify-content:center;
   background:
@@ -96,10 +96,10 @@
 .login-foot button { background:none; border:none; color:var(--mu); font-family:var(--fm); font-size:11px; text-decoration:underline; }
 .login-foot button:hover { color:var(--ac); }
 
-/* ── ERP SHELL ───────────────────────────── */
+/*  ERP SHELL  */
 #erp { display:none; flex-direction:column; min-height:100vh; }
 
-/* ── HEADER ──────────────────────────────── */
+/*  HEADER  */
 .hdr {
   background:rgba(13,17,23,.97); border-bottom:1px solid var(--br);
   padding:0 20px; height:56px; display:flex; align-items:center;
@@ -149,7 +149,7 @@
 }
 .hlogout:hover { border-color:var(--rd); color:var(--rd); }
 
-/* ── OFFLINE / SETUP BANNERS ─────────────── */
+/*  OFFLINE / SETUP BANNERS  */
 .offline-bar {
   background:rgba(239,68,68,.07); border-bottom:1px solid rgba(239,68,68,.2);
   padding:9px 20px; text-align:center; font-family:var(--fm); font-size:12px;
@@ -162,12 +162,12 @@
 }
 .setup-banner span { font-family:var(--fm); font-size:12px; color:var(--ac); }
 
-/* ── LAYOUT ──────────────────────────────── */
+/*  LAYOUT  */
 .layout { display:flex; flex:1; min-height:0; position:relative; }
 .sb-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:150; backdrop-filter:blur(4px); }
 .sb-overlay.open { display:block; }
 
-/* ── SIDEBAR ─────────────────────────────── */
+/*  SIDEBAR  */
 .sb {
   width:220px; min-width:220px; background:var(--sf); border-right:1px solid var(--br);
   padding:10px 0 24px; overflow-y:auto; flex-shrink:0; transition:transform .25s ease;
@@ -189,25 +189,25 @@
 .nbg    { background:var(--ac); color:#fff; font-family:var(--fm); font-size:10px; padding:1px 7px; border-radius:10px; font-weight:700; }
 .nbg.r  { background:var(--rd); }
 
-/* ── MAIN ────────────────────────────────── */
+/*  MAIN  */
 .main { flex:1; padding:24px; overflow-y:auto; min-width:0; }
 .tc   { display:none; }
 .tc.on{ display:block; animation:fadeUp .2s ease; }
 
-/* ── PAGE HEADER ─────────────────────────── */
+/*  PAGE HEADER  */
 .ph  { margin-bottom:22px; display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:12px; }
 .pt  { font-size:26px; font-weight:800; letter-spacing:.3px; }
 .pst { color:var(--mu); font-size:12px; font-family:var(--fm); margin-top:3px; }
 .ph-r{ display:flex; gap:8px; flex-wrap:wrap; }
 
-/* ── GRIDS ───────────────────────────────── */
+/*  GRIDS  */
 .g2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
 .g4 { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
 
-/* ════════════════════════════════════════════
+/* 
    RESPONSIVE
-════════════════════════════════════════════ */
+ */
 @media (max-width:768px) {
   .hburger  { display:block; }
   .hclock   { display:none; }
