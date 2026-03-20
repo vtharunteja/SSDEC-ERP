@@ -47,6 +47,26 @@ tbody td { padding:11px 14px; }
 .pc  { background:rgba(6,182,212,.09);  color:var(--cy); border:1px solid rgba(6,182,212,.2); }
 .pgr { background:rgba(74,85,104,.09);  color:var(--mu); border:1px solid rgba(74,85,104,.2); }
 
+/*  APPROVAL BADGE  */
+.apb {
+  min-width:170px; width:100%; max-width:240px; padding:10px 12px; border-radius:12px;
+  border:1px solid var(--br); background:rgba(255,255,255,.03);
+  display:flex; flex-direction:column; gap:7px;
+}
+.apb-h { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.apb-s { font-family:var(--fm); font-size:10px; letter-spacing:1.2px; text-transform:uppercase; }
+.apb-p { font-size:12px; color:var(--tx); line-height:1.35; word-break:break-word; }
+.apb-p b { color:var(--t2); font-weight:700; }
+.apb-w { font-size:12px; font-weight:600; line-height:1.35; word-break:break-word; }
+.apb-a { display:flex; gap:6px; flex-wrap:wrap; }
+.apb-a .btn { flex:1 1 84px; text-align:center; }
+.apb.pending  { border-color:rgba(249,115,22,.22); background:rgba(249,115,22,.06); }
+.apb.pending .apb-s, .apb.pending .apb-w { color:var(--ac); }
+.apb.approved { border-color:rgba(34,197,94,.22); background:rgba(34,197,94,.06); }
+.apb.approved .apb-s, .apb.approved .apb-w { color:var(--gn); }
+.apb.rejected { border-color:rgba(239,68,68,.22); background:rgba(239,68,68,.06); }
+.apb.rejected .apb-s, .apb.rejected .apb-w { color:var(--rd); }
+
 /*  PROGRESS BAR  */
 .pbar  { background:var(--br); border-radius:4px; height:5px; width:100%; overflow:hidden; }
 .pfill { height:100%; border-radius:4px; transition:width .6s ease; }
