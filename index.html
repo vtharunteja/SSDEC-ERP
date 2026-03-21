@@ -482,6 +482,34 @@
   </div>
 </div>
 
+<div class="mo" id="mo-appr">
+  <div class="modal sm-mo">
+    <div class="mh"><div class="mt" id="mo-appr-t">Approval Flow</div><button class="mx" onclick="closeMo('mo-appr')">x</button></div>
+    <div class="mb">
+      <input type="hidden" id="appr-module"/>
+      <input type="hidden" id="appr-record-id"/>
+      <input type="hidden" id="appr-record-ref"/>
+      <div class="info-row" id="appr-info"></div>
+      <div class="ap-flow">
+        <div class="ap-flow-t">Approval Hierarchy</div>
+        <div class="ap-flow-s" id="appr-hierarchy"></div>
+      </div>
+      <div class="ap-flow">
+        <div class="ap-flow-t">Approval Journey</div>
+        <div id="appr-steps"></div>
+      </div>
+      <div class="fr">
+        <label>Request Note</label>
+        <textarea id="appr-note" rows="2" placeholder="Optional note for approver"></textarea>
+      </div>
+    </div>
+    <div class="mf" id="appr-actions">
+      <button class="btn bO" onclick="closeMo('mo-appr')">Close</button>
+      <button class="btn bP" onclick="saveApprovalRequest()">Confirm Request</button>
+    </div>
+  </div>
+</div>
+
 <div class="mo" id="mo-add">
   <div class="modal">
     <div class="mh"><div class="mt">Add New User</div><button class="mx" onclick="closeMo('mo-add')">x</button></div>

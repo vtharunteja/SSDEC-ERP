@@ -1290,11 +1290,92 @@ window.processApproval = async (approvalId, decision) => {
 
 function getApprovalStatus(recordId){ return DB.approvals.find(a=>a.record_id===recordId); }
 
+function approvalSteps(appr, ref) {
+  if (!appr) {
+    return [
+      { cls:'done',    ic:'1', title:'Request Initiated', sub:`${ref} is ready to be sent for approval.` },
+      { cls:'current', ic:'2', title:'Awaiting Admin / Manager', sub:'Approval request will be routed to Plant Admin or Plant Manager.' },
+      { cls:'wait',    ic:'3', title:'Final Decision', sub:'Record will be marked approved or rejected with reason.' }
+    ];
+  }
+  if (appr.status === 'Pending') {
+    return [
+      { cls:'done',    ic:'1', title:'Request Raised', sub:`Requested by ${appr.requested_name||'User'} on ${fmtApprD(appr.requested_at || appr.created_at)}.` },
+      { cls:'current', ic:'2', title:'Awaiting Admin / Manager', sub:'Current stage: waiting for approval action.' },
+      { cls:'wait',    ic:'3', title:'Final Decision', sub:'Decision and remarks will appear here once completed.' }
+    ];
+  }
+  if (appr.status === 'Approved') {
+    return [
+      { cls:'done', ic:'1', title:'Request Raised', sub:`Requested by ${appr.requested_name||'User'} on ${fmtApprD(appr.requested_at || appr.created_at)}.` },
+      { cls:'done', ic:'2', title:'Reviewed', sub:`Reviewed by ${appr.approved_name||'Admin / Manager'}.` },
+      { cls:'done', ic:'3', title:'Approved', sub:`Completed on ${fmtApprD(appr.approved_at || appr.updated_at || appr.created_at)}.` }
+    ];
+  }
+  return [
+    { cls:'done',    ic:'1', title:'Request Raised', sub:`Requested by ${appr.requested_name||'User'} on ${fmtApprD(appr.requested_at || appr.created_at)}.` },
+    { cls:'done',    ic:'2', title:'Reviewed', sub:`Reviewed by ${appr.approved_name||'Admin / Manager'}.` },
+    { cls:'current', ic:'3', title:'Rejected', sub:appr.reason || 'Rejected without reason.' }
+  ];
+}
+
+function renderApprovalFlow(module, recordId, recordRef, appr=null, preview=false) {
+  SV('appr-module', module);
+  SV('appr-record-id', recordId);
+  SV('appr-record-ref', recordRef);
+  const title = appr ? 'Approval Progress' : 'Request Approval';
+  document.getElementById('mo-appr-t').textContent = title;
+  document.getElementById('appr-info').textContent = `${recordRef} | Module: ${module.replace(/_/g,' ')} | From start to end the approval flow is shown below.`;
+  document.getElementById('appr-hierarchy').innerHTML = `<strong>Step 1:</strong> User raises request<br><strong>Step 2:</strong> Plant Manager or Plant Admin reviews<br><strong>Step 3:</strong> Final decision is recorded with status and reason`;
+  document.getElementById('appr-steps').innerHTML = approvalSteps(appr, recordRef).map(step => `
+    <div class="ap-step ${step.cls}">
+      <div class="ap-step-dot">${step.ic}</div>
+      <div>
+        <div class="ap-step-b">${step.title}</div>
+        <div class="ap-step-s">${step.sub}</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('appr-note').value = appr?.notes || '';
+  document.getElementById('appr-note').disabled = !preview;
+  document.getElementById('appr-actions').innerHTML = preview
+    ? `<button class="btn bO" onclick="closeMo('mo-appr')">Close</button><button class="btn bP" onclick="saveApprovalRequest()">Confirm Request</button>`
+    : `<button class="btn bO" onclick="closeMo('mo-appr')">Close</button>`;
+  openMo('mo-appr');
+}
+
+window.requestApprovalPreview = (module, recordId, recordRef) => {
+  renderApprovalFlow(module, recordId, recordRef, null, true);
+};
+
+window.viewApprovalFlow = (recordId, module, recordRef) => {
+  const appr = getApprovalStatus(recordId);
+  renderApprovalFlow(module, recordId, recordRef, appr, false);
+};
+
+window.saveApprovalRequest = async () => {
+  const module = V('appr-module'), recordId = V('appr-record-id'), recordRef = V('appr-record-ref');
+  if (!CU) return;
+  const exists = DB.approvals.find(a=>a.record_id===recordId&&a.status==='Pending');
+  if (exists) { toast('Approval already requested for '+recordRef,'i'); closeMo('mo-appr'); return; }
+  const ok = await dbInsert('approvals',{
+    module, record_id:recordId, record_ref:recordRef,
+    status:'Pending', requested_by:CU.id, requested_name:CU.name||CU.email,
+    requested_at:new Date().toISOString(), notes:V('appr-note')
+  });
+  if(ok) {
+    await logAudit('REQUEST_APPROVAL',module,recordId,recordRef);
+    closeMo('mo-appr');
+    toast('Approval requested for '+recordRef);
+    renderWO(); renderPO();
+  }
+};
+
 function approvalBadge(recordId,module,ref,canRequest=true){
   const appr=getApprovalStatus(recordId);
   if(!appr){
     if(!canRequest) return '';
-    return `<button class="btn bO sm" onclick="requestApproval('${module}','${recordId}','${ref}')">Request Approval</button>`;
+    return `<button class="btn bO sm" onclick="requestApprovalPreview('${module}','${recordId}','${ref}')">Request Approval</button>`;
   }
   const status = appr.status || 'Pending';
   const reqBy = esc(appr.requested_name || appr.requester_name || appr.created_by_name || 'Unknown');
@@ -1306,7 +1387,7 @@ function approvalBadge(recordId,module,ref,canRequest=true){
     : '';
   if(status==='Pending'){
     return `<div class="apb pending">
-      <div class="apb-h"><span class="apb-s">Pending</span></div>
+      <div class="apb-h"><span class="apb-s">Pending</span><button class="btn bO sm" onclick="viewApprovalFlow('${recordId}','${module}','${ref}')">Flow</button></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
       <div class="apb-w">&#x23F3; Admin / Manager</div>
@@ -1315,14 +1396,14 @@ function approvalBadge(recordId,module,ref,canRequest=true){
   }
   if(status==='Approved'){
     return `<div class="apb approved">
-      <div class="apb-h"><span class="apb-s">Approved</span></div>
+      <div class="apb-h"><span class="apb-s">Approved</span><button class="btn bO sm" onclick="viewApprovalFlow('${recordId}','${module}','${ref}')">Flow</button></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
       <div class="apb-w">&#10003; By ${who || 'Manager'}</div>
     </div>`;
   }
   return `<div class="apb rejected">
-    <div class="apb-h"><span class="apb-s">Rejected</span></div>
+    <div class="apb-h"><span class="apb-s">Rejected</span><button class="btn bO sm" onclick="viewApprovalFlow('${recordId}','${module}','${ref}')">Flow</button></div>
     <div class="apb-p"><b>${reqBy}</b></div>
     <div class="apb-p">${reqAt}</div>
     <div class="apb-w">&#10007; ${who || 'Rejected'}</div>

@@ -174,6 +174,20 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .mf { padding:14px 22px; border-top:1px solid var(--br); display:flex; gap:8px; justify-content:flex-end; position:sticky; bottom:0; background:var(--sf); }
 
 .info-row { font-family:var(--fm); font-size:11px; color:var(--mu); padding:8px 12px; background:var(--bg); border-radius:6px; border:1px solid var(--br); margin-bottom:13px; }
+.ap-flow { border:1px solid var(--br); border-radius:var(--r); padding:12px 14px; background:rgba(255,255,255,.02); margin-bottom:12px; }
+.ap-flow-t { font-family:var(--fm); font-size:10px; text-transform:uppercase; letter-spacing:1.4px; color:var(--mu); margin-bottom:10px; }
+.ap-flow-s { font-size:13px; color:var(--t2); line-height:1.6; }
+.ap-step { display:flex; gap:10px; align-items:flex-start; margin-bottom:10px; }
+.ap-step:last-child { margin-bottom:0; }
+.ap-step-dot {
+  width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; flex:0 0 22px; border:1px solid var(--br); color:var(--mu);
+}
+.ap-step.done .ap-step-dot { background:rgba(34,197,94,.12); color:var(--gn); border-color:rgba(34,197,94,.28); }
+.ap-step.current .ap-step-dot { background:rgba(249,115,22,.12); color:var(--ac); border-color:rgba(249,115,22,.28); }
+.ap-step.wait .ap-step-dot { background:rgba(74,85,104,.10); color:var(--mu); border-color:rgba(74,85,104,.2); }
+.ap-step-b { font-size:13px; color:var(--t2); }
+.ap-step-s { font-size:11px; color:var(--mu); margin-top:2px; line-height:1.5; }
 .prof-header { display:flex; align-items:center; gap:14px; padding:14px; background:var(--bg); border-radius:var(--r); border:1px solid var(--br); margin-bottom:16px; }
 .prof-av { width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; flex-shrink:0; }
 .prof-name { font-size:18px; font-weight:700; }
