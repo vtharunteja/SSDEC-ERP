@@ -99,6 +99,7 @@ const V   = id => { const e = document.getElementById(id); return e ? e.value.tr
 const SV  = (id,v) => { const e = document.getElementById(id); if(e) e.value = v != null ? String(v) : ''; };
 const ini = n => (n||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 const canEdit = m => (CAN_EDIT[CU?.role||'viewer']||[]).includes(m);
+const canDelete = () => ['admin','manager'].includes(CU?.role||'');
 const fmtD = d => { if(!d) return '--'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return d; } };
 const fmtM = n => 'Rs ' + (parseFloat(n)||0).toLocaleString('en-IN',{maximumFractionDigits:0});
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -332,6 +333,7 @@ async function dbInsert(tbl, data) {
   data.created_by = CU?.id;
   const { error } = await sb.from(tbl).insert(data);
   if (error) { setSyncB('err'); toast('Save error: ' + error.message, 'e'); return false; }
+  await refreshTable(tbl);
   setSyncB('idle');
   return true;
 }
@@ -340,6 +342,7 @@ async function dbUpdate(tbl, id, data) {
   data.updated_at = new Date().toISOString();
   const { error } = await sb.from(tbl).update(data).eq('id', id);
   if (error) { setSyncB('err'); toast('Update error: ' + error.message, 'e'); return false; }
+  await refreshTable(tbl);
   setSyncB('idle');
   return true;
 }
@@ -347,8 +350,20 @@ async function dbDelete(tbl, id) {
   setSyncB('saving');
   const { error } = await sb.from(tbl).delete().eq('id', id);
   if (error) { setSyncB('err'); toast('Delete error: ' + error.message, 'e'); return false; }
+  await refreshTable(tbl);
   setSyncB('idle');
   return true;
+}
+async function refreshTable(tbl) {
+  if (!Object.prototype.hasOwnProperty.call(DB, tbl)) return;
+  const { data, error } = await sb.from(tbl).select('*').order('created_at', { ascending: false });
+  if (error) return;
+  DB[tbl] = data || [];
+  fillProdDDs();
+  buildSB();
+  const cur = document.querySelector('.tc.on');
+  if (cur) renderMod(cur.id.replace('tab-',''));
+  renderDash();
 }
 
 // ---
@@ -456,6 +471,7 @@ function renderAudit() {
 
 function renderFG() {
   const ed = canEdit('fg');
+  const del = canDelete();
   const roEl = document.getElementById('fg-ro'); if(roEl) roEl.innerHTML = ed?'':ron();
   const fcEl = document.getElementById('fg-fc'); if(fcEl) fcEl.style.display = ed?'block':'none';
   const ps = document.getElementById('fg-prod');
@@ -474,7 +490,7 @@ function renderFG() {
   tbl.innerHTML=DB.finished_goods
     .filter(g=>(!flt||g.status===flt)&&(!srch||(g.product+g.batch+(g.wo_ref||'')).toLowerCase().includes(srch)))
     .map(g=>{
-      const acts=ed?`<button class="btn bO sm" onclick="editFG('${g.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('finished_goods','${g.id}','fg')">Status</button><button class="btn bD sm" onclick="delRec('finished_goods','${g.id}')">Del</button>`:'';
+      const acts=ed?`<button class="btn bO sm" onclick="editFG('${g.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('finished_goods','${g.id}','fg')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('finished_goods','${g.id}')">Del</button>`:''}`:'';
       return `<tr><td style="font-weight:600">${g.product}</td><td class="mn" style="color:var(--ac)">${g.batch||'--'}</td><td class="mn">${g.qty} ${g.unit}</td><td class="mn">${fmtM(parseFloat(g.qty||0)*parseFloat(g.cost||0))}</td><td>${g.location||'Main Warehouse'}</td><td class="mn">${g.wo_ref||'--'}</td><td class="mn">${g.qc_batch||'--'}</td><td>${pill(g.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('')||'<tr><td colspan="9"><div class="empty"><div class="empty-tt">No Finished Goods</div></div></td></tr>';
 }
@@ -536,6 +552,7 @@ function renderDash() {
 // ---
 function renderWO() {
   const ed = canEdit('production');
+  const del = canDelete();
   const roEl = document.getElementById('wo-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('wo-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   fillProdDDs();
@@ -545,7 +562,7 @@ function renderWO() {
     .filter(w => (!flt||w.status===flt) && (!srch||(w.wono+w.product+w.status).toLowerCase().includes(srch)))
     .map(w => {
       const apprBadge = approvalBadge(w.id,'work_orders',w.wono,ed);
-      const acts = ed ? `<button class="btn bO sm" onclick="editWO('${w.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('work_orders','${w.id}','wo')">Update</button><button class="btn bD sm" onclick="delRec('work_orders','${w.id}')">Del</button>` : '';
+      const acts = ed ? `<button class="btn bO sm" onclick="editWO('${w.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('work_orders','${w.id}','wo')">Update</button>${del?`<button class="btn bD sm" onclick="delRec('work_orders','${w.id}')">Del</button>`:''}` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${w.product}</td><td class="mn">${w.qty}</td><td class="mn">${w.produced||0}</td><td>${fmtD(w.start_date)}</td><td>${fmtD(w.end_date)}</td><td>${pill(w.priority||'Normal')}</td><td>${pill(w.status)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${apprBadge}${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">WO</div><div class="empty-tt">No Work Orders</div><div class="empty-st">Create one above</div></div></td></tr>';
 }
@@ -586,6 +603,7 @@ window.editWO = id => {
 // ---
 function renderMach() {
   const ed = canEdit('machines');
+  const del = canDelete();
   const roEl = document.getElementById('mach-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('mach-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   const pc = {Running:'g',Idle:'o',Maintenance:'r'};
@@ -594,7 +612,7 @@ function renderMach() {
   gEl.innerHTML = DB.machines.map(m => {
     const oee = parseFloat(m.oee||0);
     const col = oee>=80?'var(--gn)':oee>=60?'var(--ac)':'var(--rd)';
-    const acts = ed ? `<div class="mca"><button class="btn bO sm" style="flex:1" onclick="editMach('${m.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('machines','${m.id}','mach')">Status</button><button class="btn bD sm" onclick="delRec('machines','${m.id}')">Del</button></div>` : '';
+    const acts = ed ? `<div class="mca"><button class="btn bO sm" style="flex:1" onclick="editMach('${m.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('machines','${m.id}','mach')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('machines','${m.id}')">Del</button>`:''}</div>` : '';
     return `<div class="mc ${mc[m.status]||''}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div class="mcn">${m.name}</div><div class="mci">${m.eqid}  ${m.model}</div></div><span class="pill ${pc[m.status]||'pgr'}"><span class="pulse ${pc[m.status]||''}"></span>${m.status}</span></div>${m.param?`<div class="mcr"><span>Parameter</span><span class="mn">${m.param}</span></div>`:''}<div class="mcr"><span>OEE</span><span class="mn" style="color:${col};font-weight:600">${m.oee}%</span></div>${m.notes?`<div style="font-size:11px;color:var(--rd);margin-top:8px">${m.notes}</div>`:''}<div class="pbar" style="margin-top:10px"><div class="pfill" style="width:${m.oee}%;background:${col}"></div></div>${acts}</div>`;
   }).join('') || '<div style="padding:40px;text-align:center;color:var(--mu);grid-column:1/-1"><div class="empty-ic">MH</div><div class="empty-tt">No machines added</div></div>';
 }
@@ -619,6 +637,7 @@ window.editMach = id => {
 // ---
 function renderQC() {
   const ed = canEdit('quality');
+  const del = canDelete();
   const roEl = document.getElementById('qc-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('qc-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   fillProdDDs();
@@ -639,7 +658,7 @@ function renderQC() {
       const res  = pct>=95?'Passed':pct>=80?'Conditional':'Failed';
       const canCert = parseFloat(pct)>=80;
       const certBtn = canCert ? `<button class="btn bG sm" onclick="generateCert('${q.id}')">Cert</button>` : '';
-      const acts = ed ? `<button class="btn bO sm" onclick="editQC('${q.id}')">Edit</button>${certBtn}<button class="btn bD sm" onclick="delRec('qc_records','${q.id}')">Del</button>` : certBtn;
+      const acts = ed ? `<button class="btn bO sm" onclick="editQC('${q.id}')">Edit</button>${certBtn}${del?`<button class="btn bD sm" onclick="delRec('qc_records','${q.id}')">Del</button>`:''}` : certBtn;
       return `<tr><td class="mn" style="color:var(--ac)">${q.batchid||q.id.slice(-8)}</td><td>${q.product}</td><td class="mn">${q.wo||'--'}</td><td>${q.sample}</td><td style="color:var(--gn)">${q.pass}</td><td style="color:var(--rd)">${fail}</td><td class="mn">${pct}%</td><td>${q.test}</td><td>${q.inspector||'--'}</td><td>${pill(res)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="11"><div class="empty"><div class="empty-ic">QC</div><div class="empty-tt">No QC Records</div></div></td></tr>';
 }
@@ -666,6 +685,7 @@ window.editQC = id => {
 // ---
 function renderInv() {
   const ed = canEdit('inventory');
+  const del = canDelete();
   const roEl = document.getElementById('inv-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('inv-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   let alerts = '';
@@ -681,7 +701,7 @@ function renderInv() {
     .map(i => {
       const st  = parseFloat(i.stock)<=parseFloat(i.min)?'Reorder Now':parseFloat(i.stock)<=parseFloat(i.reorder)?'Low':'OK';
       const col = parseFloat(i.stock)<=parseFloat(i.min)?'var(--rd)':parseFloat(i.stock)<=parseFloat(i.reorder)?'var(--ac)':'inherit';
-      const acts = ed ? `<button class="btn bO sm" onclick="editInv('${i.id}')">Edit</button><button class="btn bD sm" onclick="delRec('inventory','${i.id}')">Del</button>` : '';
+      const acts = ed ? `<button class="btn bO sm" onclick="editInv('${i.id}')">Edit</button>${del?`<button class="btn bD sm" onclick="delRec('inventory','${i.id}')">Del</button>`:''}` : '';
       return `<tr><td style="font-weight:500">${i.name}</td><td class="mn">${i.code}</td><td>${i.unit}</td><td class="mn" style="color:${col}">${i.stock}</td><td class="mn">${i.reorder}</td><td class="mn">${i.min}</td><td class="mn">${fmtM(i.cost)}</td><td class="mn">${fmtM(parseFloat(i.stock||0)*parseFloat(i.cost||0))}</td><td>${pill(st)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">IV</div><div class="empty-tt">No Inventory</div></div></td></tr>';
 }
@@ -706,6 +726,7 @@ window.editInv = id => {
 // ---
 function renderPO() {
   const ed = canEdit('purchase');
+  const del = canDelete();
   const roEl = document.getElementById('po-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('po-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   const flt  = V('po-flt');
@@ -714,7 +735,7 @@ function renderPO() {
     .filter(p => !flt || p.status===flt)
     .map(p => {
       const apprBadge2 = approvalBadge(p.id,'purchase_orders',p.pono||p.id,ed);
-      const acts = ed ? `<button class="btn bO sm" onclick="editPO('${p.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('purchase_orders','${p.id}','po')">Status</button><button class="btn bD sm" onclick="delRec('purchase_orders','${p.id}')">Del</button>` : '';
+      const acts = ed ? `<button class="btn bO sm" onclick="editPO('${p.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('purchase_orders','${p.id}','po')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('purchase_orders','${p.id}')">Del</button>`:''}` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${p.pono||p.id.slice(-8)}</td><td>${p.material}</td><td>${p.supplier}</td><td class="mn">${p.qty}</td><td class="mn">${fmtM(parseFloat(p.qty||0)*parseFloat(p.price||0))}</td><td>${fmtD(p.date)}</td><td>${pill(p.status)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${apprBadge2}${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">PO</div><div class="empty-tt">No Purchase Orders</div></div></td></tr>';
 }
@@ -745,6 +766,7 @@ window.editPO = id => {
 // ---
 function renderSO() {
   const ed = canEdit('sales');
+  const del = canDelete();
   const roEl = document.getElementById('so-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('so-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   fillProdDDs();
@@ -756,7 +778,7 @@ function renderSO() {
   tbl.innerHTML = DB.sales_orders
     .filter(s => (!flt||s.status===flt) && (!srch||(s.sono+s.customer+s.product).toLowerCase().includes(srch)))
     .map(s => {
-      const acts = ed ? `<button class="btn bO sm" onclick="editSO('${s.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('sales_orders','${s.id}','so')">Status</button><button class="btn bD sm" onclick="delRec('sales_orders','${s.id}')">Del</button>` : '';
+      const acts = ed ? `<button class="btn bO sm" onclick="editSO('${s.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('sales_orders','${s.id}','so')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('sales_orders','${s.id}')">Del</button>`:''}` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${s.sono||s.id.slice(-8)}</td><td>${s.customer}</td><td>${s.product}</td><td class="mn">${s.qty}</td><td class="mn">${fmtM(parseFloat(s.qty||0)*parseFloat(s.price||0))}</td><td>${fmtD(s.deadline)}</td><td class="mn" style="color:var(--mu)">${s.wo||'--'}</td><td>${pill(s.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">SO</div><div class="empty-tt">No Sales Orders</div></div></td></tr>';
 }
@@ -785,6 +807,7 @@ window.editSO = id => {
 // ---
 function renderDC() {
   const ed = canEdit('dispatch');
+  const del = canDelete();
   const roEl = document.getElementById('dc-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('dc-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   const flt  = V('dc-flt');
@@ -792,7 +815,7 @@ function renderDC() {
   tbl.innerHTML = DB.dispatches
     .filter(d => !flt || d.status===flt)
     .map(d => {
-      const acts = ed ? `<button class="btn bO sm" onclick="editDC('${d.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('dispatches','${d.id}','dc')">Status</button><button class="btn bD sm" onclick="delRec('dispatches','${d.id}')">Del</button>` : '';
+      const acts = ed ? `<button class="btn bO sm" onclick="editDC('${d.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('dispatches','${d.id}','dc')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('dispatches','${d.id}')">Del</button>`:''}` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${d.dcno||d.id.slice(-8)}</td><td class="mn">${d.soref||'--'}</td><td>${d.customer}</td><td>${d.product}</td><td class="mn">${d.qty}</td><td class="mn">${d.vehicle||'--'}</td><td>${fmtD(d.date)}</td><td class="mn">${d.lr||'--'}</td><td>${pill(d.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">DC</div><div class="empty-tt">No Dispatches</div></div></td></tr>';
 }
@@ -822,6 +845,7 @@ window.editDC = id => {
 // ---
 function renderInv2() {
   const ed = canEdit('invoices');
+  const del = canDelete();
   const roEl = document.getElementById('inv2-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('inv2-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   let alerts = '';
@@ -839,7 +863,7 @@ function renderInv2() {
     .filter(i => (!flt||i.status===flt) && (!srch||(i.invno+(i.party||'')).toLowerCase().includes(srch)))
     .map(i => {
       const total = parseFloat(i.amt||0)*(1+parseFloat(i.gst||0)/100);
-      const acts  = ed ? `<button class="btn bO sm" onclick="editInv2('${i.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('invoices','${i.id}','inv2')">Status</button><button class="btn bD sm" onclick="delRec('invoices','${i.id}')">Del</button>` : '';
+      const acts  = ed ? `<button class="btn bO sm" onclick="editInv2('${i.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('invoices','${i.id}','inv2')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('invoices','${i.id}')">Del</button>`:''}` : '';
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${i.invno||i.id.slice(-8)}</td><td>${fmtD(i.date)}</td><td>${i.party||''}</td><td class="mn" style="color:var(--mu)">${i.soref||'--'}</td><td class="mn">${fmtM(i.amt)}</td><td class="mn">${i.gst||0}%</td><td class="mn" style="font-weight:700">${fmtM(total)}</td><td>${fmtD(i.due)}</td><td>${pill(i.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">IN</div><div class="empty-tt">No Invoices</div></div></td></tr>';
 }
@@ -869,6 +893,7 @@ window.editInv2 = id => {
 // ---
 function renderVnd() {
   const ed = canEdit('vendors');
+  const del = canDelete();
   const roEl = document.getElementById('vnd-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('vnd-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   const srch = (V('vnd-srch')||'').toLowerCase();
@@ -878,7 +903,7 @@ function renderVnd() {
     .map(v => {
       const sc   = {Active:'pg',Inactive:'pgr',Blacklisted:'pr'}[v.status]||'pgr';
       const stars = '*'.repeat(parseInt(v.rating||3));
-      const acts  = ed ? `<button class="btn bO sm" onclick="editVnd('${v.id}')">Edit</button><button class="btn bD sm" onclick="delRec('vendors','${v.id}')">Del</button>` : '';
+      const acts  = ed ? `<button class="btn bO sm" onclick="editVnd('${v.id}')">Edit</button>${del?`<button class="btn bD sm" onclick="delRec('vendors','${v.id}')">Del</button>`:''}` : '';
       return `<tr><td style="font-weight:600">${v.name}</td><td class="mn">${v.code}</td><td><span class="pill pb">${v.category}</span></td><td>${v.contact||'--'}</td><td class="mn">${v.phone||'--'}</td><td class="mn" style="font-size:11px">${v.gst||'--'}</td><td>${v.terms}</td><td style="color:var(--a2)">${stars}</td><td>${pill(v.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">VN</div><div class="empty-tt">No Vendors</div></div></td></tr>';
 }
@@ -905,6 +930,7 @@ window.editVnd = id => {
 // ---
 function renderProducts() {
   const ed = canEdit('products');
+  const del = canDelete();
   const roEl = document.getElementById('prod-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('prod-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   const srch = (V('prod-srch')||'').toLowerCase(), sflt = V('prod-sflt');
@@ -912,7 +938,7 @@ function renderProducts() {
   tbl.innerHTML = DB.products
     .filter(p => (!sflt||String(p.active)===sflt) && (!srch||(p.name+p.code+(p.description||'')).toLowerCase().includes(srch)))
     .map(p => {
-      const acts = ed ? `<button class="btn bO sm" onclick="editProd('${p.id}')">Edit</button><button class="btn bD sm" onclick="delRec('products','${p.id}')">Del</button>` : '';
+      const acts = ed ? `<button class="btn bO sm" onclick="editProd('${p.id}')">Edit</button>${del?`<button class="btn bD sm" onclick="delRec('products','${p.id}')">Del</button>`:''}` : '';
       return `<tr><td style="font-weight:600">${p.name}</td><td class="mn" style="color:var(--ac)">${p.code}</td><td><span class="pill pb">${p.category||'--'}</span></td><td>${p.unit}</td><td class="mn">${fmtM(p.price||0)}</td><td class="mn">${p.hsn||'--'}</td><td class="mn">${p.gst||0}%</td><td>${pill(p.active?'Active':'Inactive')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">PM</div><div class="empty-tt">No Products</div><div class="empty-st">Add products to enable dropdowns</div></div></td></tr>';
 }
@@ -1137,6 +1163,7 @@ window.saveUpd = async () => {
 // GENERIC DELETE
 // ---
 window.delRec = async (tbl, id) => {
+  if (!canDelete()) { toast('Only Plant Admin or Plant Manager can delete records','e'); return; }
   const names = { work_orders:'work order', qc_records:'QC record', inventory:'material', purchase_orders:'purchase order', sales_orders:'sales order', dispatches:'dispatch', machines:'machine', invoices:'invoice', vendors:'vendor', products:'product' };
   if (!confirm('Delete this '+(names[tbl]||'record')+'? This cannot be undone.')) return;
   if (await dbDelete(tbl, id)) toast('Record deleted');
@@ -1193,7 +1220,7 @@ function approvalBadge(recordId,module,ref,canRequest=true){
       <div class="apb-h"><span class="apb-s">Pending</span></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
-      <div class="apb-w">⏳ Admin / Manager</div>
+      <div class="apb-w">&#x23F3; Admin / Manager</div>
       ${actions}
     </div>`;
   }
@@ -1202,14 +1229,14 @@ function approvalBadge(recordId,module,ref,canRequest=true){
       <div class="apb-h"><span class="apb-s">Approved</span></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
-      <div class="apb-w">✓ By ${who || 'Manager'}</div>
+      <div class="apb-w">&#10003; By ${who || 'Manager'}</div>
     </div>`;
   }
   return `<div class="apb rejected">
     <div class="apb-h"><span class="apb-s">Rejected</span></div>
     <div class="apb-p"><b>${reqBy}</b></div>
     <div class="apb-p">${reqAt}</div>
-    <div class="apb-w">✗ ${who || 'Rejected'}</div>
+    <div class="apb-w">&#10007; ${who || 'Rejected'}</div>
   </div>`;
 }
 
