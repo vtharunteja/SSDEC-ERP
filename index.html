@@ -112,11 +112,14 @@
           <div class="fg">
             <input type="hidden" id="wo-eid"/>
             <div class="fr"><label>Product</label><select id="wo-prod"></select></div>
+            <div class="fr"><label>Order Type</label><select id="wo-type" onchange="toggleWOServiceFields()"><option>In-house</option><option>External Service</option></select></div>
+            <div class="fr"><label>External Vendor</label><select id="wo-vendor"><option value="">-- Select service vendor --</option></select></div>
             <div class="fr"><label>Planned Qty</label><input type="number" id="wo-qty" min="1" placeholder="e.g. 500"/></div>
             <div class="fr"><label>Start Date</label><input type="date" id="wo-start"/></div>
             <div class="fr"><label>Target Date</label><input type="date" id="wo-end"/></div>
             <div class="fr"><label>Priority</label><select id="wo-pri"><option>Normal</option><option>High</option><option>Urgent</option></select></div>
             <div class="fr"><label>Shift</label><select id="wo-shift"><option>Shift A (6AM-2PM)</option><option>Shift B (2PM-10PM)</option><option>Shift C (10PM-6AM)</option></select></div>
+            <div class="fr full" id="wo-service-wrap"><label>Service Details</label><textarea id="wo-service" rows="2" placeholder="Mention galvanizing, testing, machining, outsourcing scope..."></textarea></div>
             <div class="fr full"><label>Remarks</label><textarea id="wo-rem" rows="2" placeholder="Customer ref, special instructions..."></textarea></div>
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('wo')">Clear</button><button class="btn bP" id="wo-sb" onclick="saveWO()">Create Work Order</button></div>
@@ -126,7 +129,7 @@
             <input type="text" id="wo-srch" placeholder="Search..." oninput="renderWO()"/>
             <select id="wo-flt" onchange="renderWO()"><option value="">All Status</option><option>Pending Approval</option><option>Queued</option><option>In Progress</option><option>On Track</option><option>Delayed</option><option>Completed</option></select>
           </div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>WO No.</th><th>Product</th><th>Qty</th><th>Produced</th><th>Start</th><th>Target</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead><tbody id="wo-tbl"></tbody></table></div>
+          <div class="tbl-wrap"><table><thead><tr><th>WO No.</th><th>Product / Scope</th><th>Type</th><th>External Party</th><th>Qty</th><th>Start</th><th>Target</th><th>Status</th><th>Actions</th></tr></thead><tbody id="wo-tbl"></tbody></table></div>
         </div>
       </div>
 
@@ -277,6 +280,7 @@
           <div class="ch"><div class="ct" id="so-ft">New Sales Order</div></div>
           <div class="fg">
             <input type="hidden" id="so-eid"/>
+            <div class="fr"><label>Buyer Master</label><select id="so-buyer" onchange="autofillSalesBuyer()"><option value="">-- Select buyer --</option></select></div>
             <div class="fr"><label>Customer</label><input type="text" id="so-cust" placeholder="TSSPDCL, APTRANSCO..."/></div>
             <div class="fr"><label>Product</label><select id="so-prod"></select></div>
             <div class="fr"><label>Qty (pcs)</label><input type="number" id="so-qty" min="1"/></div>
@@ -285,7 +289,8 @@
             <div class="fr"><label>Delivery Deadline</label><input type="date" id="so-dl"/></div>
             <div class="fr"><label>Link Work Order</label><select id="so-wo"><option value="">-- None --</option></select></div>
             <div class="fr"><label>Customer PO Ref</label><input type="text" id="so-ref"/></div>
-            <div class="fr full"><label>Delivery Address</label><textarea id="so-addr" rows="2"></textarea></div>
+            <div class="fr"><label>Buyer GST</label><input type="text" id="so-gst" placeholder="Auto from buyer master"/></div>
+            <div class="fr full"><label>Shipping Address</label><textarea id="so-addr" rows="2"></textarea></div>
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('so')">Clear</button><button class="btn bP" id="so-sb" onclick="saveSO()">Create Sales Order</button></div>
         </div>
@@ -335,14 +340,33 @@
             <input type="hidden" id="inv2-eid"/>
             <div class="fr"><label>Invoice No.</label><input type="text" id="inv2-no" placeholder="INV-2026-001"/></div>
             <div class="fr"><label>Invoice Date</label><input type="date" id="inv2-date"/></div>
+            <div class="fr"><label>Our Company</label><select id="inv2-company" onchange="autofillInvoiceCompany()"><option value="">-- Select company --</option></select></div>
+            <div class="fr"><label>Buyer</label><select id="inv2-buyer" onchange="autofillInvoiceBuyer()"><option value="">-- Select buyer --</option></select></div>
             <div class="fr"><label>Customer / Party</label><input type="text" id="inv2-party"/></div>
-            <div class="fr"><label>Link Sales Order</label><select id="inv2-so"><option value="">-- None --</option></select></div>
-            <div class="fr"><label>Amount (Rs)</label><input type="number" id="inv2-amt" min="0"/></div>
-            <div class="fr"><label>GST %</label><select id="inv2-gst"><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18" selected>18%</option><option value="28">28%</option></select></div>
+            <div class="fr"><label>Customer GST</label><input type="text" id="inv2-cgst" placeholder="Auto from buyer master"/></div>
+            <div class="fr"><label>Link Sales Order</label><select id="inv2-so" onchange="autofillInvoiceSO()"><option value="">-- None --</option></select></div>
             <div class="fr"><label>Due Date</label><input type="date" id="inv2-due"/></div>
             <div class="fr"><label>Payment Terms</label><select id="inv2-terms"><option>Net 30</option><option>Net 45</option><option>Net 60</option><option>Immediate</option></select></div>
             <div class="fr"><label>Payment Ref</label><input type="text" id="inv2-ref" placeholder="NEFT/UPI reference"/></div>
             <div class="fr"><label>Status</label><select id="inv2-status"><option>Unpaid</option><option>Partially Paid</option><option>Paid</option><option>Overdue</option><option>Cancelled</option></select></div>
+            <div class="fr full">
+              <label class="checkline"><input type="checkbox" id="inv2-same" checked onchange="syncInvoiceShipping()"/> Billing and shipping address are same</label>
+            </div>
+            <div class="fr full"><label>Billing Address</label><textarea id="inv2-billaddr" rows="2" oninput="syncInvoiceShipping()"></textarea></div>
+            <div class="fr full"><label>Shipping Address</label><textarea id="inv2-shipaddr" rows="2"></textarea></div>
+            <div class="fr full">
+              <div class="line-card">
+                <div class="line-head">
+                  <div>
+                    <div class="line-title">Invoice Line Items</div>
+                    <div class="line-sub">Add one or more billed products in the same invoice.</div>
+                  </div>
+                  <button type="button" class="btn bO sm" onclick="addInvoiceLine()">Add Item</button>
+                </div>
+                <div id="inv2-lines"></div>
+                <div class="line-totals" id="inv2-totals"></div>
+              </div>
+            </div>
             <div class="fr full"><label>Notes</label><textarea id="inv2-notes" rows="2"></textarea></div>
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('inv2')">Clear</button><button class="btn bP" id="inv2-sb" onclick="saveInv2()">Create Invoice</button></div>
@@ -361,15 +385,44 @@
         </div>
       </div>
 
+      <!-- INWARD BILLS -->
+      <div class="tc" id="tab-ibill">
+        <div class="ph"><div><div class="pt">Inward Bills</div><div class="pst">// supplier bills linked with vendors and purchase orders</div></div></div>
+        <div id="ib-ro"></div>
+        <div class="card" id="ib-fc">
+          <div class="ch"><div class="ct" id="ib-ft">Add Inward Bill</div></div>
+          <div class="fg">
+            <input type="hidden" id="ib-eid"/>
+            <div class="fr"><label>Bill No.</label><input type="text" id="ib-no" placeholder="BILL-2026-001"/></div>
+            <div class="fr"><label>Bill Date</label><input type="date" id="ib-date"/></div>
+            <div class="fr"><label>Vendor</label><select id="ib-vendor" onchange="autofillInwardBillVendor()"><option value="">-- Select vendor --</option></select></div>
+            <div class="fr"><label>Link Purchase Order</label><select id="ib-po" onchange="autofillInwardBillPO()"><option value="">-- None --</option></select></div>
+            <div class="fr"><label>Vendor GST</label><input type="text" id="ib-gst" placeholder="Auto from vendor"/></div>
+            <div class="fr"><label>Base Amount (Rs)</label><input type="number" id="ib-amt" min="0" oninput="updateInwardBillTotal()"/></div>
+            <div class="fr"><label>GST %</label><select id="ib-gstpct" onchange="updateInwardBillTotal()"><option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18" selected>18%</option><option value="28">28%</option></select></div>
+            <div class="fr"><label>Total (Rs)</label><input type="number" id="ib-total" min="0" readonly/></div>
+            <div class="fr"><label>Due Date</label><input type="date" id="ib-due"/></div>
+            <div class="fr"><label>Status</label><select id="ib-status"><option>Pending</option><option>Booked</option><option>Paid</option><option>Overdue</option><option>Cancelled</option></select></div>
+            <div class="fr full"><label>Notes</label><textarea id="ib-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('ib')">Clear</button><button class="btn bP" id="ib-sb" onclick="saveIB()">Save Inward Bill</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Inward Bill Register</div><div class="ch-r"><input type="text" id="ib-srch" placeholder="Search..." oninput="renderIB()"/></div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Bill No.</th><th>Date</th><th>Vendor</th><th>PO</th><th>Base</th><th>Total</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead><tbody id="ib-tbl"></tbody></table></div>
+        </div>
+      </div>
+
       <!-- VENDORS -->
       <div class="tc" id="tab-vendors">
-        <div class="ph"><div><div class="pt">Vendors</div><div class="pst">// supplier directory & GST register</div></div></div>
+        <div class="ph"><div><div class="pt">Vendors</div><div class="pst">// vendors, buyers and our company master</div></div></div>
         <div id="vnd-ro"></div>
         <div class="card" id="vnd-fc">
           <div class="ch"><div class="ct" id="vnd-ft">Add Vendor</div></div>
           <div class="fg">
             <input type="hidden" id="vnd-eid"/>
-            <div class="fr"><label>Vendor Name</label><input type="text" id="vnd-name"/></div>
+            <div class="fr"><label>Entity Type</label><select id="vnd-type"><option>Vendor</option><option>Buyer</option><option>Our Company</option></select></div>
+            <div class="fr"><label>Name</label><input type="text" id="vnd-name"/></div>
             <div class="fr"><label>Code</label><input type="text" id="vnd-code" placeholder="VND-001"/></div>
             <div class="fr"><label>Category</label><select id="vnd-cat"><option>Raw Material</option><option>Machinery</option><option>Consumables</option><option>Logistics</option><option>Services</option></select></div>
             <div class="fr"><label>Contact Person</label><input type="text" id="vnd-contact"/></div>
@@ -379,13 +432,14 @@
             <div class="fr"><label>Payment Terms</label><select id="vnd-terms"><option>Advance</option><option>Net 30</option><option>Net 45</option><option>Net 60</option><option>On Delivery</option></select></div>
             <div class="fr"><label>Rating</label><select id="vnd-rating"><option value="5">5 - Excellent</option><option value="4">4 - Good</option><option value="3">3 - Average</option><option value="2">2 - Below Avg</option><option value="1">1 - Poor</option></select></div>
             <div class="fr"><label>Status</label><select id="vnd-status"><option>Active</option><option>Inactive</option><option>Blacklisted</option></select></div>
-            <div class="fr full"><label>Materials / Services</label><textarea id="vnd-materials" rows="2"></textarea></div>
+            <div class="fr full"><label>Billing / Office Address</label><textarea id="vnd-address" rows="2"></textarea></div>
+            <div class="fr full"><label>Materials / Services / Notes</label><textarea id="vnd-materials" rows="2"></textarea></div>
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('vnd')">Clear</button><button class="btn bP" id="vnd-sb" onclick="saveVnd()">Save Vendor</button></div>
         </div>
         <div class="card">
           <div class="ch"><div class="ct">Vendor Directory</div><div class="ch-r"><input type="text" id="vnd-srch" placeholder="Search..." oninput="renderVnd()"/></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Vendor Name</th><th>Code</th><th>Category</th><th>Contact</th><th>Phone</th><th>GST No.</th><th>Terms</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead><tbody id="vnd-tbl"></tbody></table></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Category</th><th>Contact</th><th>Phone</th><th>GST No.</th><th>Address</th><th>Status</th><th>Actions</th></tr></thead><tbody id="vnd-tbl"></tbody></table></div>
         </div>
       </div>
 

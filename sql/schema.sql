@@ -72,6 +72,9 @@ create table if not exists work_orders (
   id          uuid default gen_random_uuid() primary key,
   wono        text unique,
   product     text,
+  order_type  text default 'In-house',
+  vendor      text,
+  service_details text,
   qty         numeric default 0,
   produced    numeric default 0,
   start_date  date,
@@ -122,6 +125,7 @@ create table if not exists purchase_orders (
 -- ── VENDORS ─────────────────────────────────────────────
 create table if not exists vendors (
   id          uuid default gen_random_uuid() primary key,
+  entity_type text default 'Vendor',
   name        text not null,
   code        text,
   category    text,
@@ -132,6 +136,7 @@ create table if not exists vendors (
   terms       text,
   rating      numeric default 3,
   status      text default 'Active',
+  address     text,
   materials   text,
   created_by  uuid references auth.users(id),
   created_at  timestamptz default now(),
@@ -142,6 +147,7 @@ create table if not exists vendors (
 create table if not exists sales_orders (
   id          uuid default gen_random_uuid() primary key,
   sono        text unique,
+  buyer       text,
   customer    text,
   product     text,
   qty         numeric default 0,
@@ -150,6 +156,8 @@ create table if not exists sales_orders (
   deadline    date,
   wo          text,
   ref         text,
+  gst         text,
+  shipping_addr text,
   addr        text,
   status      text default 'Pending',
   created_by  uuid references auth.users(id),
@@ -180,8 +188,15 @@ create table if not exists dispatches (
 create table if not exists invoices (
   id          uuid default gen_random_uuid() primary key,
   invno       text unique,
+  company     text,
+  buyer       text,
   party       text,
+  customer_gst text,
+  bill_to_same boolean default true,
+  billing_addr text,
+  shipping_addr text,
   soref       text,
+  items_json  text,
   amt         numeric default 0,
   gst         numeric default 18,
   total       numeric default 0,
@@ -190,6 +205,25 @@ create table if not exists invoices (
   terms       text,
   ref         text,
   status      text default 'Unpaid',
+  notes       text,
+  created_by  uuid references auth.users(id),
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+
+-- -- INWARD BILLS -----------------------------------------
+create table if not exists inward_bills (
+  id          uuid default gen_random_uuid() primary key,
+  bill_no     text unique,
+  vendor      text,
+  po_ref      text,
+  vendor_gst  text,
+  amt         numeric default 0,
+  gst         numeric default 18,
+  total       numeric default 0,
+  date        date,
+  due         date,
+  status      text default 'Pending',
   notes       text,
   created_by  uuid references auth.users(id),
   created_at  timestamptz default now(),
@@ -211,6 +245,7 @@ alter table vendors        enable row level security;
 alter table sales_orders   enable row level security;
 alter table dispatches     enable row level security;
 alter table invoices       enable row level security;
+alter table inward_bills   enable row level security;
 
 -- Policies — allow all operations for authenticated users
 create policy "auth_all" on profiles        for all using (auth.role() = 'authenticated');
@@ -224,6 +259,7 @@ create policy "auth_all" on vendors         for all using (auth.role() = 'authen
 create policy "auth_all" on sales_orders    for all using (auth.role() = 'authenticated');
 create policy "auth_all" on dispatches      for all using (auth.role() = 'authenticated');
 create policy "auth_all" on invoices        for all using (auth.role() = 'authenticated');
+create policy "auth_all" on inward_bills    for all using (auth.role() = 'authenticated');
 
 -- Auto-create profile on signup
 create or replace function handle_new_user()

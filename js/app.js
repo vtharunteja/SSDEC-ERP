@@ -14,7 +14,7 @@ let SUBS = [];     // realtime subscriptions
 const DB = {
   profiles:[], products:[], machines:[], inventory:[],
   work_orders:[], qc_records:[], purchase_orders:[],
-  vendors:[], sales_orders:[], dispatches:[], invoices:[],
+  vendors:[], sales_orders:[], dispatches:[], invoices:[], inward_bills:[],
   audit_logs:[], approvals:[], finished_goods:[], qc_certificates:[]
 };
 
@@ -23,7 +23,7 @@ const TBL = {
   production:'work_orders', quality:'qc_records',
   inventory:'inventory', purchase:'purchase_orders',
   sales:'sales_orders', dispatch:'dispatches',
-  invoices:'invoices', vendors:'vendors',
+  invoices:'invoices', ibill:'inward_bills', vendors:'vendors',
   machines:'machines', products:'products',
   users:'profiles'
 };
@@ -39,21 +39,21 @@ const ROLES = {
   viewer:     {label:'Read-Only',        color:'var(--mu)',bg:'rgba(74,85,104,.12)'}
 };
 const NAV_ACCESS = {
-  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','vendors','products','reports','audit','users'],
-  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','vendors','products','reports'],
+  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','ibill','vendors','products','reports','audit','users'],
+  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','ibill','vendors','products','reports'],
   production: ['dashboard','production','machines','quality','fg'],
   storekeeper:['dashboard','inventory','fg','purchase','vendors'],
   qc:         ['dashboard','quality'],
-  dispatch:   ['dashboard','sales','dispatch','invoices','fg'],
+  dispatch:   ['dashboard','sales','dispatch','invoices','ibill','fg'],
   viewer:     ['dashboard','reports']
 };
 const CAN_EDIT = {
-  admin:      ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','vendors','products','users','audit'],
-  manager:    ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','vendors','products'],
+  admin:      ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','ibill','vendors','products','users','audit'],
+  manager:    ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','ibill','vendors','products'],
   production: ['production','machines','quality','fg'],
   storekeeper:['inventory','fg','purchase','vendors'],
   qc:         ['quality'],
-  dispatch:   ['dispatch','invoices','fg'],
+  dispatch:   ['dispatch','invoices','ibill','fg'],
   viewer:     []
 };
 const STATUSES = {
@@ -63,7 +63,8 @@ const STATUSES = {
   sales_orders:   ['Pending','In Production','Ready','Dispatched','Delivered'],
   dispatches:     ['In Transit','Delivered'],
   machines:       ['Running','Idle','Maintenance'],
-  invoices:       ['Unpaid','Partially Paid','Paid','Overdue','Cancelled']
+  invoices:       ['Unpaid','Partially Paid','Paid','Overdue','Cancelled'],
+  inward_bills:   ['Pending','Booked','Paid','Overdue','Cancelled']
 };
 const NAVDEF = [
   {s:'Overview'},
@@ -80,6 +81,7 @@ const NAVDEF = [
   {id:'dispatch',    ic:'&#9194;',  lb:'Dispatch'},
   {s:'Finance'},
   {id:'invoices',    ic:'&#9636;',  lb:'Invoices',       binv2:1},
+  {id:'ibill',       ic:'&#9789;',  lb:'Inward Bills'},
   {id:'vendors',     ic:'&#9962;',  lb:'Vendors'},
   {s:'Finished Goods'},
   {id:'fg',          ic:'&#9632;',  lb:'Finished Goods',    bfg:1},
@@ -103,6 +105,7 @@ const canDelete = () => ['admin','manager'].includes(CU?.role||'');
 const fmtD = d => { if(!d) return '--'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return d; } };
 const fmtM = n => 'Rs ' + (parseFloat(n)||0).toLocaleString('en-IN',{maximumFractionDigits:0});
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const jParse = (v, fb) => { try { return v ? JSON.parse(v) : fb; } catch(e) { return fb; } };
 const fmtApprD = d => {
   if (!d) return '--';
   try {
@@ -232,7 +235,281 @@ function fillProdDDs() {
     e.innerHTML = opts || '<option>No products  add in Product Master</option>';
     if (cur) e.value = cur;
   });
+  document.querySelectorAll('[data-inv2-line-product]').forEach(sel => {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- Select product --</option>' + opts;
+    if (cur) sel.value = cur;
+  });
+  fillPartyDDs();
 }
+
+function entityType(v) {
+  return v?.entity_type || (v?.category === 'Buyer' ? 'Buyer' : 'Vendor');
+}
+function getEntities(type) {
+  return DB.vendors.filter(v => (entityType(v) === type) && (v.status || 'Active') !== 'Blacklisted');
+}
+function getBuyerByName(name) {
+  return getEntities('Buyer').find(v => v.name === name) || null;
+}
+function getCompanyByName(name) {
+  return getEntities('Our Company').find(v => v.name === name) || null;
+}
+function getVendorByName(name) {
+  return DB.vendors.find(v => v.name === name) || null;
+}
+function getProductByName(name) {
+  return DB.products.find(p => p.name === name) || null;
+}
+function soAddress(s) {
+  return s?.shipping_addr || s?.addr || '';
+}
+function setOptions(id, items, valueKey='name', labelFn=null, placeholder='-- Select --') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const cur = el.value;
+  const html = [`<option value="">${placeholder}</option>`].concat(items.map(item => {
+    const value = item[valueKey] ?? '';
+    const label = labelFn ? labelFn(item) : value;
+    return `<option value="${esc(value)}">${esc(label)}</option>`;
+  }));
+  el.innerHTML = html.join('');
+  if (cur) el.value = cur;
+}
+function fillPartyDDs() {
+  setOptions('wo-vendor', DB.vendors.filter(v => entityType(v) === 'Vendor' && (!v.category || v.category === 'Services' || v.category === 'Logistics' || v.category === 'Machinery' || v.category === 'Consumables' || v.category === 'Raw Material')), 'name', v => `${v.name}${v.category ? ' - ' + v.category : ''}`, '-- Select service vendor --');
+  setOptions('so-buyer', getEntities('Buyer'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select buyer --');
+  setOptions('inv2-buyer', getEntities('Buyer'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select buyer --');
+  setOptions('inv2-company', getEntities('Our Company'), 'name', v => v.name, '-- Select company --');
+  setOptions('ib-vendor', DB.vendors.filter(v => entityType(v) === 'Vendor'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select vendor --');
+  const soEl = document.getElementById('so-wo');
+  if (soEl) {
+    const cur = soEl.value;
+    soEl.innerHTML = '<option value="">-- None --</option>' + DB.work_orders.map(w => `<option value="${esc(w.wono)}">${esc(w.wono)} - ${esc(w.product || w.service_details || '')}</option>`).join('');
+    if (cur) soEl.value = cur;
+  }
+  const dcEl = document.getElementById('dc-so');
+  if (dcEl) {
+    const cur = dcEl.value;
+    dcEl.innerHTML = DB.sales_orders.filter(s => s.status !== 'Delivered').map(s => `<option value="${esc(s.sono)}">${esc(s.sono)} - ${esc(s.customer)}</option>`).join('');
+    if (cur) dcEl.value = cur;
+  }
+  const invSoEl = document.getElementById('inv2-so');
+  if (invSoEl) {
+    const cur = invSoEl.value;
+    invSoEl.innerHTML = '<option value="">-- None --</option>' + DB.sales_orders.map(s => `<option value="${esc(s.sono)}">${esc(s.sono)} - ${esc(s.customer)}</option>`).join('');
+    if (cur) invSoEl.value = cur;
+  }
+  const ibPoEl = document.getElementById('ib-po');
+  if (ibPoEl) {
+    const cur = ibPoEl.value;
+    ibPoEl.innerHTML = '<option value="">-- None --</option>' + DB.purchase_orders.map(p => `<option value="${esc(p.pono)}">${esc(p.pono)} - ${esc(p.supplier || '')}</option>`).join('');
+    if (cur) ibPoEl.value = cur;
+  }
+  toggleWOServiceFields();
+  syncInvoiceShipping();
+}
+
+function toggleWOServiceFields() {
+  const isExternal = V('wo-type') === 'External Service';
+  const vendor = document.getElementById('wo-vendor');
+  const wrap = document.getElementById('wo-service-wrap');
+  if (vendor) vendor.disabled = !isExternal;
+  if (wrap) wrap.style.display = isExternal ? 'block' : 'none';
+}
+
+function autofillSalesBuyer() {
+  const buyer = getBuyerByName(V('so-buyer'));
+  if (!buyer) return;
+  if (!V('so-cust')) SV('so-cust', buyer.name);
+  SV('so-gst', buyer.gst || '');
+  if (!V('so-addr')) SV('so-addr', buyer.address || '');
+}
+
+function invoiceDefaultCompany() {
+  return getCompanyByName(V('inv2-company')) || getEntities('Our Company')[0] || null;
+}
+
+function syncInvoiceShipping() {
+  const same = document.getElementById('inv2-same');
+  const ship = document.getElementById('inv2-shipaddr');
+  if (!same || !ship) return;
+  if (same.checked) {
+    ship.value = V('inv2-billaddr');
+    ship.setAttribute('readonly', 'readonly');
+  } else {
+    ship.removeAttribute('readonly');
+  }
+}
+
+function autofillInvoiceBuyer() {
+  const buyer = getBuyerByName(V('inv2-buyer'));
+  if (!buyer) return;
+  SV('inv2-party', buyer.name);
+  SV('inv2-cgst', buyer.gst || '');
+  SV('inv2-billaddr', buyer.address || '');
+  if (document.getElementById('inv2-same')?.checked) SV('inv2-shipaddr', buyer.address || '');
+  syncInvoiceShipping();
+}
+
+function autofillInvoiceCompany() {
+  const company = invoiceDefaultCompany();
+  const notes = V('inv2-notes');
+  if (company && !notes.includes('Company GST:')) {
+    const extra = [notes, `Company GST: ${company.gst || '--'}`].filter(Boolean).join('\n');
+    SV('inv2-notes', extra.trim());
+  }
+}
+
+function getInvoiceItems(inv) {
+  if (inv?.items_json) {
+    const parsed = jParse(inv.items_json, []);
+    if (Array.isArray(parsed) && parsed.length) return parsed;
+  }
+  if (parseFloat(inv?.amt || 0) > 0) {
+    return [{
+      product: inv.product || '',
+      description: inv.product || 'Invoice amount',
+      qty: 1,
+      price: parseFloat(inv.amt || 0),
+      gst: parseFloat(inv.gst || 0)
+    }];
+  }
+  return [{
+    product:'',
+    description:'',
+    qty:1,
+    price:0,
+    gst:18
+  }];
+}
+
+function invoiceLineMarkup(item={}, idx=0) {
+  const lineTotal = (parseFloat(item.qty || 0) * parseFloat(item.price || 0));
+  return `<div class="line-item" data-inv2-line="${idx}">
+    <div class="line-grid">
+      <div class="line-col">
+        <label>Product</label>
+        <select data-inv2-line-product onchange="autofillInvoiceLine(${idx})"></select>
+      </div>
+      <div class="line-col">
+        <label>Description</label>
+        <input type="text" id="inv2-desc-${idx}" value="${esc(item.description || '')}" placeholder="Product description / HSN note"/>
+      </div>
+      <div class="line-col">
+        <label>Qty</label>
+        <input type="number" id="inv2-qty-${idx}" min="0" value="${esc(item.qty ?? 1)}" oninput="updateInvoiceTotals()"/>
+      </div>
+      <div class="line-col">
+        <label>Rate (Rs)</label>
+        <input type="number" id="inv2-price-${idx}" min="0" value="${esc(item.price ?? 0)}" oninput="updateInvoiceTotals()"/>
+      </div>
+      <div class="line-col">
+        <label>GST %</label>
+        <select id="inv2-gst-${idx}" onchange="updateInvoiceTotals()">
+          <option value="0">0%</option><option value="5">5%</option><option value="12">12%</option><option value="18">18%</option><option value="28">28%</option>
+        </select>
+      </div>
+      <div class="line-col">
+        <label>Line Total</label>
+        <div class="line-total" id="inv2-ltot-${idx}">${fmtM(lineTotal)}</div>
+      </div>
+      <div class="line-col">
+        <button type="button" class="btn bD sm" onclick="removeInvoiceLine(${idx})">Remove</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderInvoiceLines(items=null) {
+  const wrap = document.getElementById('inv2-lines');
+  if (!wrap) return;
+  const data = items && items.length ? items : getInvoiceItems({});
+  wrap.innerHTML = data.map((item, idx) => invoiceLineMarkup(item, idx)).join('');
+  fillProdDDs();
+  data.forEach((item, idx) => {
+    const prodSel = document.querySelector(`[data-inv2-line="${idx}"] [data-inv2-line-product]`);
+    if (prodSel) prodSel.value = item.product || '';
+    const gstSel = document.getElementById(`inv2-gst-${idx}`);
+    if (gstSel) gstSel.value = String(item.gst ?? 18);
+  });
+  updateInvoiceTotals();
+}
+
+function collectInvoiceLines() {
+  return [...document.querySelectorAll('[data-inv2-line]')].map((row, idx) => {
+    const product = row.querySelector('[data-inv2-line-product]')?.value || '';
+    const description = V(`inv2-desc-${idx}`);
+    const qty = parseFloat(V(`inv2-qty-${idx}`) || '0');
+    const price = parseFloat(V(`inv2-price-${idx}`) || '0');
+    const gst = parseFloat(V(`inv2-gst-${idx}`) || '0');
+    return { product, description, qty, price, gst, line_total: qty * price };
+  }).filter(item => item.product || item.description || item.qty || item.price);
+}
+
+window.addInvoiceLine = () => {
+  const items = collectInvoiceLines();
+  items.push({ product:'', description:'', qty:1, price:0, gst:18 });
+  renderInvoiceLines(items);
+};
+window.removeInvoiceLine = idx => {
+  const items = collectInvoiceLines().filter((_, i) => i !== idx);
+  renderInvoiceLines(items.length ? items : null);
+};
+window.autofillInvoiceLine = idx => {
+  const row = document.querySelector(`[data-inv2-line="${idx}"]`);
+  if (!row) return;
+  const product = getProductByName(row.querySelector('[data-inv2-line-product]')?.value || '');
+  if (!product) { updateInvoiceTotals(); return; }
+  const desc = document.getElementById(`inv2-desc-${idx}`);
+  const price = document.getElementById(`inv2-price-${idx}`);
+  const gst = document.getElementById(`inv2-gst-${idx}`);
+  if (desc && !desc.value) desc.value = product.description || product.name;
+  if (price && (!price.value || parseFloat(price.value) === 0)) price.value = product.price || 0;
+  if (gst) gst.value = String(product.gst ?? 18);
+  updateInvoiceTotals();
+};
+window.updateInvoiceTotals = () => {
+  const items = collectInvoiceLines();
+  let base = 0, tax = 0;
+  items.forEach((item, idx) => {
+    const lineBase = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
+    const lineTax = lineBase * (parseFloat(item.gst || 0) / 100);
+    base += lineBase;
+    tax += lineTax;
+    const el = document.getElementById(`inv2-ltot-${idx}`);
+    if (el) el.textContent = fmtM(lineBase);
+  });
+  const total = base + tax;
+  const box = document.getElementById('inv2-totals');
+  if (box) box.innerHTML = `<div>Base Amount<br><strong>${fmtM(base)}</strong></div><div>Total GST<br><strong>${fmtM(tax)}</strong></div><div>Grand Total<br><strong>${fmtM(total)}</strong></div>`;
+  return { base, tax, total, items };
+};
+
+window.autofillInvoiceSO = () => {
+  const so = DB.sales_orders.find(s => s.sono === V('inv2-so'));
+  if (!so) return;
+  if (so.buyer) SV('inv2-buyer', so.buyer);
+  if (so.customer) SV('inv2-party', so.customer);
+  if (so.gst) SV('inv2-cgst', so.gst);
+  if (so.addr) {
+    SV('inv2-shipaddr', soAddress(so));
+    if (!V('inv2-billaddr')) SV('inv2-billaddr', soAddress(so));
+  }
+  syncInvoiceShipping();
+  renderInvoiceLines([{
+    product: so.product || '',
+    description: so.product || '',
+    qty: parseFloat(so.qty || 0),
+    price: parseFloat(so.price || 0),
+    gst: parseFloat(getProductByName(so.product)?.gst ?? 18)
+  }]);
+};
+window.toggleWOServiceFields = toggleWOServiceFields;
+window.autofillSalesBuyer = autofillSalesBuyer;
+window.syncInvoiceShipping = syncInvoiceShipping;
+window.autofillInvoiceBuyer = autofillInvoiceBuyer;
+window.autofillInvoiceCompany = autofillInvoiceCompany;
 
 // ---
 // AUTH
@@ -496,7 +773,7 @@ window.goTab = id => {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const tab = document.getElementById('tab-' + id); if (tab) tab.classList.add('on');
   const nav = document.getElementById('nav-' + id); if (nav) nav.classList.add('on');
-  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',vendors:'Vendors',products:'Product Master',reports:'Analytics',audit:'Audit Log',users:'User Management'};
+  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',products:'Product Master',reports:'Analytics',audit:'Audit Log',users:'User Management'};
   document.getElementById('hmod').textContent = '// ' + (L[id] || id);
   renderMod(id);
 };
@@ -505,7 +782,7 @@ function renderMod(id) {
   const fns = {
     dashboard:renderDash, production:renderWO, machines:renderMach, quality:renderQC,
     inventory:renderInv,  purchase:renderPO,   sales:renderSO,      dispatch:renderDC,
-    invoices:renderInv2,  vendors:renderVnd,   products:renderProducts,
+    invoices:renderInv2,  ibill:renderIB,      vendors:renderVnd,   products:renderProducts,
     reports:renderRep,    users:renderUsers,   fg:renderFG,
     audit:renderAudit
   };
@@ -631,17 +908,30 @@ function renderWO() {
   const srch = (V('wo-srch')||'').toLowerCase(), flt = V('wo-flt');
   const tbl  = document.getElementById('wo-tbl'); if(!tbl) return;
   tbl.innerHTML = DB.work_orders
-    .filter(w => (!flt||w.status===flt) && (!srch||(w.wono+w.product+w.status).toLowerCase().includes(srch)))
+    .filter(w => (!flt||w.status===flt) && (!srch||(w.wono+(w.product||'')+(w.vendor||'')+(w.service_details||'')+w.status).toLowerCase().includes(srch)))
     .map(w => {
       const apprBadge = approvalBadge(w.id,'work_orders',w.wono,ed);
       const acts = ed ? `<button class="btn bO sm" onclick="editWO('${w.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('work_orders','${w.id}','wo')">Update</button>${del?`<button class="btn bD sm" onclick="delRec('work_orders','${w.id}')">Del</button>`:''}` : '';
-      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${w.product}</td><td class="mn">${w.qty}</td><td class="mn">${w.produced||0}</td><td>${fmtD(w.start_date)}</td><td>${fmtD(w.end_date)}</td><td>${pill(w.priority||'Normal')}</td><td>${pill(w.status)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${apprBadge}${acts}</div></td></tr>`;
+      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${esc(w.product || w.service_details || '--')}</td><td>${pill(w.order_type || 'In-house')}</td><td>${esc(w.vendor || '--')}</td><td class="mn">${w.qty}</td><td>${fmtD(w.start_date)}</td><td>${fmtD(w.end_date)}</td><td>${pill(w.status)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${apprBadge}${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">WO</div><div class="empty-tt">No Work Orders</div><div class="empty-st">Create one above</div></div></td></tr>';
 }
 window.saveWO = async () => {
   const eid = V('wo-eid'), qty = parseInt(V('wo-qty')), start = V('wo-start'), end = V('wo-end');
   if (!qty||!start||!end) { toast('Fill Qty, Start and Target dates','e'); return; }
-  const data = { product:V('wo-prod'), qty, produced:0, start_date:start, end_date:end, priority:V('wo-pri'), shift:V('wo-shift'), status:'Queued', remarks:V('wo-rem') };
+  const data = {
+    product:V('wo-prod'),
+    qty,
+    produced:0,
+    start_date:start,
+    end_date:end,
+    priority:V('wo-pri'),
+    shift:V('wo-shift'),
+    status:'Queued',
+    remarks:V('wo-rem'),
+    order_type:V('wo-type') || 'In-house',
+    vendor:V('wo-vendor'),
+    service_details:V('wo-service')
+  };
   if (eid) {
     delete data.produced;
     const old = DB.work_orders.find(x=>x.id===eid);
@@ -664,7 +954,8 @@ window.editWO = id => {
   const w = DB.work_orders.find(x=>x.id===id); if(!w) return;
   SV('wo-eid',id); SV('wo-prod',w.product); SV('wo-qty',w.qty);
   SV('wo-start',w.start_date); SV('wo-end',w.end_date); SV('wo-pri',w.priority);
-  SV('wo-shift',w.shift); SV('wo-rem',w.remarks);
+  SV('wo-shift',w.shift); SV('wo-rem',w.remarks); SV('wo-type',w.order_type || 'In-house'); SV('wo-vendor',w.vendor); SV('wo-service',w.service_details);
+  toggleWOServiceFields();
   document.getElementById('wo-ft').textContent = 'Edit ' + w.wono;
   document.getElementById('wo-sb').textContent = 'Update Work Order';
   document.getElementById('wo-fc').scrollIntoView({behavior:'smooth'});
@@ -859,22 +1150,19 @@ function renderSO() {
   const roEl = document.getElementById('so-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('so-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   fillProdDDs();
-  const wsel = document.getElementById('so-wo'); if(wsel) wsel.innerHTML = '<option value="">-- None --</option>'+DB.work_orders.map(w=>`<option value="${w.wono}">${w.wono}</option>`).join('');
-  const dsel = document.getElementById('dc-so'); if(dsel) dsel.innerHTML = DB.sales_orders.filter(s=>s.status!=='Delivered').map(s=>`<option value="${s.sono}">${s.sono}  ${s.customer}</option>`).join('');
-  const i2sel = document.getElementById('inv2-so'); if(i2sel) i2sel.innerHTML = '<option value="">-- None --</option>'+DB.sales_orders.map(s=>`<option value="${s.sono}">${s.sono}  ${s.customer}</option>`).join('');
   const srch = (V('so-srch')||'').toLowerCase(), flt = V('so-flt');
   const tbl  = document.getElementById('so-tbl'); if(!tbl) return;
   tbl.innerHTML = DB.sales_orders
-    .filter(s => (!flt||s.status===flt) && (!srch||(s.sono+s.customer+s.product).toLowerCase().includes(srch)))
+    .filter(s => (!flt||s.status===flt) && (!srch||(s.sono+s.customer+s.product+(s.buyer||'')).toLowerCase().includes(srch)))
     .map(s => {
       const acts = ed ? `<button class="btn bO sm" onclick="editSO('${s.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('sales_orders','${s.id}','so')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('sales_orders','${s.id}')">Del</button>`:''}` : '';
-      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${s.sono||s.id.slice(-8)}</td><td>${s.customer}</td><td>${s.product}</td><td class="mn">${s.qty}</td><td class="mn">${fmtM(parseFloat(s.qty||0)*parseFloat(s.price||0))}</td><td>${fmtD(s.deadline)}</td><td class="mn" style="color:var(--mu)">${s.wo||'--'}</td><td>${pill(s.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${s.sono||s.id.slice(-8)}</td><td>${esc(s.customer)}</td><td>${esc(s.product)}</td><td class="mn">${s.qty}</td><td class="mn">${fmtM(parseFloat(s.qty||0)*parseFloat(s.price||0))}</td><td>${fmtD(s.deadline)}</td><td class="mn" style="color:var(--mu)">${esc(s.wo||'--')}</td><td>${pill(s.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">SO</div><div class="empty-tt">No Sales Orders</div></div></td></tr>';
 }
 window.saveSO = async () => {
   const eid = V('so-eid'), cust = V('so-cust'), qty = parseFloat(V('so-qty')), price = parseFloat(V('so-price'));
   if (!cust||!qty||!price) { toast('Customer, Qty and Price required','e'); return; }
-  const data = { customer:cust, product:V('so-prod'), qty, price, date:V('so-date'), deadline:V('so-dl'), wo:V('so-wo'), ref:V('so-ref'), addr:V('so-addr') };
+  const data = { customer:cust, buyer:V('so-buyer'), product:V('so-prod'), qty, price, date:V('so-date'), deadline:V('so-dl'), wo:V('so-wo'), ref:V('so-ref'), addr:V('so-addr'), shipping_addr:V('so-addr'), gst:V('so-gst') };
   if (eid) { if(await dbUpdate('sales_orders',eid,data)) toast('SO updated'); }
   else {
     const mx = DB.sales_orders.reduce((m,s) => Math.max(m,parseInt((s.sono||'SO-0').split('-')[1])||0), 204);
@@ -885,8 +1173,8 @@ window.saveSO = async () => {
 };
 window.editSO = id => {
   const s = DB.sales_orders.find(x=>x.id===id); if(!s) return;
-  SV('so-eid',id); SV('so-cust',s.customer); SV('so-prod',s.product); SV('so-qty',s.qty);
-  SV('so-price',s.price); SV('so-date',s.date); SV('so-dl',s.deadline); SV('so-wo',s.wo); SV('so-ref',s.ref); SV('so-addr',s.addr);
+  SV('so-eid',id); SV('so-buyer',s.buyer); SV('so-cust',s.customer); SV('so-prod',s.product); SV('so-qty',s.qty);
+  SV('so-price',s.price); SV('so-date',s.date); SV('so-dl',s.deadline); SV('so-wo',s.wo); SV('so-ref',s.ref); SV('so-addr',soAddress(s)); SV('so-gst',s.gst);
   document.getElementById('so-ft').textContent = 'Edit '+(s.sono||'SO');
   document.getElementById('so-fc').scrollIntoView({behavior:'smooth'});
 };
@@ -937,6 +1225,7 @@ function renderInv2() {
   const del = canDelete();
   const roEl = document.getElementById('inv2-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('inv2-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  if (document.getElementById('inv2-lines') && !document.querySelector('[data-inv2-line]')) renderInvoiceLines();
   let alerts = '';
   DB.invoices.filter(i=>i.status==='Overdue').forEach(i=>alerts+=`<div class="al ald"><span class="al-i">!!</span>Overdue: <strong>${i.invno||'Invoice'}</strong>  ${i.party}  ${fmtM(i.total)}</div>`);
   const a2El = document.getElementById('inv2-alerts'); if(a2El) a2El.innerHTML = alerts;
@@ -951,16 +1240,35 @@ function renderInv2() {
   tbl.innerHTML = DB.invoices
     .filter(i => (!flt||i.status===flt) && (!srch||(i.invno+(i.party||'')).toLowerCase().includes(srch)))
     .map(i => {
-      const total = parseFloat(i.amt||0)*(1+parseFloat(i.gst||0)/100);
-      const acts  = ed ? `<button class="btn bO sm" onclick="editInv2('${i.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('invoices','${i.id}','inv2')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('invoices','${i.id}')">Del</button>`:''}` : '';
-      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${i.invno||i.id.slice(-8)}</td><td>${fmtD(i.date)}</td><td>${i.party||''}</td><td class="mn" style="color:var(--mu)">${i.soref||'--'}</td><td class="mn">${fmtM(i.amt)}</td><td class="mn">${i.gst||0}%</td><td class="mn" style="font-weight:700">${fmtM(total)}</td><td>${fmtD(i.due)}</td><td>${pill(i.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+      const acts  = `<button class="btn bG sm" onclick="printInv2('${i.id}')">Print</button>` + (ed ? `<button class="btn bO sm" onclick="editInv2('${i.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('invoices','${i.id}','inv2')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('invoices','${i.id}')">Del</button>`:''}` : '');
+      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${i.invno||i.id.slice(-8)}</td><td>${fmtD(i.date)}</td><td>${esc(i.party||'')}</td><td class="mn" style="color:var(--mu)">${esc(i.soref||'--')}</td><td class="mn">${fmtM(i.amt)}</td><td class="mn">${i.gst||0}%</td><td class="mn" style="font-weight:700">${fmtM(i.total)}</td><td>${fmtD(i.due)}</td><td>${pill(i.status)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">IN</div><div class="empty-tt">No Invoices</div></div></td></tr>';
 }
 window.saveInv2 = async () => {
-  const eid = V('inv2-eid'), party = V('inv2-party'), amt = parseFloat(V('inv2-amt'));
-  if (!party||!amt) { toast('Customer and Amount required','e'); return; }
-  const gst = parseFloat(V('inv2-gst')||'0'), total = amt*(1+gst/100);
-  const data = { party, soref:V('inv2-so'), amt, gst, total, date:V('inv2-date'), due:V('inv2-due'), terms:V('inv2-terms'), ref:V('inv2-ref'), status:V('inv2-status'), notes:V('inv2-notes') };
+  const eid = V('inv2-eid'), party = V('inv2-party');
+  const calc = updateInvoiceTotals();
+  if (!party || !calc.items.length) { toast('Buyer / party and at least one line item are required','e'); return; }
+  const effectiveGST = calc.base > 0 ? parseFloat(((calc.tax / calc.base) * 100).toFixed(2)) : 0;
+  const data = {
+    party,
+    buyer:V('inv2-buyer'),
+    company:V('inv2-company'),
+    customer_gst:V('inv2-cgst'),
+    bill_to_same:document.getElementById('inv2-same')?.checked || false,
+    billing_addr:V('inv2-billaddr'),
+    shipping_addr:V('inv2-shipaddr'),
+    soref:V('inv2-so'),
+    amt:calc.base,
+    gst:effectiveGST,
+    total:calc.total,
+    items_json:JSON.stringify(calc.items),
+    date:V('inv2-date'),
+    due:V('inv2-due'),
+    terms:V('inv2-terms'),
+    ref:V('inv2-ref'),
+    status:V('inv2-status'),
+    notes:V('inv2-notes')
+  };
   if (eid) { if(await dbUpdate('invoices',eid,data)) toast('Invoice updated'); }
   else {
     data.invno = 'INV-'+new Date().getFullYear()+'-'+String(DB.invoices.length+1).padStart(3,'0');
@@ -970,11 +1278,152 @@ window.saveInv2 = async () => {
 };
 window.editInv2 = id => {
   const i = DB.invoices.find(x=>x.id===id); if(!i) return;
-  SV('inv2-eid',id); SV('inv2-no',i.invno); SV('inv2-party',i.party); SV('inv2-so',i.soref);
-  SV('inv2-amt',i.amt); SV('inv2-gst',i.gst); SV('inv2-date',i.date); SV('inv2-due',i.due);
-  SV('inv2-terms',i.terms); SV('inv2-ref',i.ref); SV('inv2-status',i.status); SV('inv2-notes',i.notes);
+  SV('inv2-eid',id); SV('inv2-no',i.invno); SV('inv2-company',i.company); SV('inv2-buyer',i.buyer); SV('inv2-party',i.party); SV('inv2-cgst',i.customer_gst); SV('inv2-so',i.soref);
+  SV('inv2-date',i.date); SV('inv2-due',i.due); SV('inv2-terms',i.terms); SV('inv2-ref',i.ref); SV('inv2-status',i.status); SV('inv2-notes',i.notes);
+  SV('inv2-billaddr',i.billing_addr || ''); SV('inv2-shipaddr',i.shipping_addr || '');
+  const same = document.getElementById('inv2-same'); if (same) same.checked = !!i.bill_to_same;
+  renderInvoiceLines(getInvoiceItems(i));
+  syncInvoiceShipping();
   document.getElementById('inv2-ft').textContent = 'Edit '+(i.invno||'Invoice');
   document.getElementById('inv2-fc').scrollIntoView({behavior:'smooth'});
+};
+window.printInv2 = id => {
+  const inv = DB.invoices.find(x => x.id === id); if (!inv) return;
+  const company = getCompanyByName(inv.company) || invoiceDefaultCompany() || {};
+  const buyer = getBuyerByName(inv.buyer) || getVendorByName(inv.party) || {};
+  const items = getInvoiceItems(inv);
+  const rows = items.map((item, idx) => {
+    const base = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
+    const tax = base * (parseFloat(item.gst || 0) / 100);
+    return `<tr>
+      <td>${idx + 1}</td>
+      <td>${esc(item.product || '--')}</td>
+      <td>${esc(item.description || item.product || '--')}</td>
+      <td>${parseFloat(item.qty || 0)}</td>
+      <td>${fmtM(item.price || 0)}</td>
+      <td>${item.gst || 0}%</td>
+      <td>${fmtM(base + tax)}</td>
+    </tr>`;
+  }).join('');
+  const base = parseFloat(inv.amt || 0);
+  const total = parseFloat(inv.total || 0);
+  const gstValue = total - base;
+  const html = `<!DOCTYPE html><html><head><title>Invoice ${esc(inv.invno || '')}</title>
+  <style>
+  *{box-sizing:border-box} body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:12px}
+  .head{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #f97316;padding-bottom:16px;margin-bottom:16px}
+  .brand{font-size:22px;font-weight:700;color:#f97316}.sub{font-size:11px;color:#666;margin-top:4px;line-height:1.5}
+  .title{font-size:20px;font-weight:700;text-transform:uppercase}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  .box{border:1px solid #e5e7eb;border-radius:8px;padding:12px}.box h4{margin:0 0 8px 0;font-size:12px;text-transform:uppercase;color:#666;letter-spacing:1px}
+  table{width:100%;border-collapse:collapse;margin-top:14px} th{background:#f97316;color:#fff;padding:9px;font-size:11px;text-align:left}
+  td{border-bottom:1px solid #e5e7eb;padding:9px;vertical-align:top}.totals{margin-top:18px;margin-left:auto;width:320px}
+  .totals td{border:none;padding:6px 0}.totals .grand td{font-size:15px;font-weight:700;border-top:1px solid #111;padding-top:10px}
+  .note{margin-top:20px;border-top:1px dashed #d1d5db;padding-top:12px;color:#555;line-height:1.6}
+  @media print{body{padding:16px}}
+  </style></head><body>
+  <div class="head">
+    <div>
+      <div class="brand">${esc(company.name || 'EIPD ERP')}</div>
+      <div class="sub">${esc(company.address || 'Company address not set')}<br>GST: ${esc(company.gst || '--')}<br>${esc(company.contact || '')} ${company.phone ? ' | ' + esc(company.phone) : ''}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="title">Tax Invoice</div>
+      <div style="margin-top:8px">Invoice No: <strong>${esc(inv.invno || '--')}</strong></div>
+      <div>Date: <strong>${esc(fmtD(inv.date))}</strong></div>
+      <div>Due: <strong>${esc(fmtD(inv.due))}</strong></div>
+      <div>Status: <strong>${esc(inv.status || 'Unpaid')}</strong></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="box"><h4>Bill To</h4><div><strong>${esc(inv.party || buyer.name || '--')}</strong></div><div>GST: ${esc(inv.customer_gst || buyer.gst || '--')}</div><div style="white-space:pre-line">${esc(inv.billing_addr || buyer.address || '--')}</div></div>
+    <div class="box"><h4>Ship To</h4><div style="white-space:pre-line">${esc(inv.shipping_addr || inv.billing_addr || buyer.address || '--')}</div><div style="margin-top:8px">Sales Order: ${esc(inv.soref || '--')}</div><div>Payment Terms: ${esc(inv.terms || '--')}</div></div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Product</th><th>Description</th><th>Qty</th><th>Rate</th><th>GST</th><th>Total</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Base Amount</td><td style="text-align:right">${fmtM(base)}</td></tr>
+    <tr><td>GST</td><td style="text-align:right">${fmtM(gstValue)}</td></tr>
+    <tr class="grand"><td>Grand Total</td><td style="text-align:right">${fmtM(total)}</td></tr>
+  </table>
+  <div class="note">Reference: ${esc(inv.ref || '--')}<br>${esc(inv.notes || '')}</div>
+  </body></html>`;
+  const win = window.open('', '_blank', 'width=980,height=780');
+  if (!win) return toast('Allow pop-ups and try again', 'e');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+};
+
+// ---
+// INWARD BILLS
+// ---
+function renderIB() {
+  const ed = canEdit('ibill');
+  const del = canDelete();
+  const roEl = document.getElementById('ib-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('ib-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const srch = (V('ib-srch') || '').toLowerCase();
+  const tbl = document.getElementById('ib-tbl'); if(!tbl) return;
+  tbl.innerHTML = DB.inward_bills
+    .filter(b => !srch || ((b.bill_no || '') + (b.vendor || '') + (b.po_ref || '')).toLowerCase().includes(srch))
+    .map(b => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editIB('${b.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('inward_bills','${b.id}','ib')">Status</button>${del ? `<button class="btn bD sm" onclick="delRec('inward_bills','${b.id}')">Del</button>` : ''}` : '';
+      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${esc(b.bill_no || b.id.slice(-8))}</td><td>${fmtD(b.date)}</td><td>${esc(b.vendor || '--')}</td><td class="mn">${esc(b.po_ref || '--')}</td><td class="mn">${fmtM(b.amt)}</td><td class="mn" style="font-weight:700">${fmtM(b.total)}</td><td>${fmtD(b.due)}</td><td>${pill(b.status || 'Pending')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">IB</div><div class="empty-tt">No Inward Bills</div></div></td></tr>';
+}
+
+window.updateInwardBillTotal = () => {
+  const amt = parseFloat(V('ib-amt') || '0');
+  const gst = parseFloat(V('ib-gstpct') || '0');
+  SV('ib-total', (amt + amt * gst / 100).toFixed(2));
+};
+window.autofillInwardBillVendor = () => {
+  const vendor = getVendorByName(V('ib-vendor'));
+  if (!vendor) return;
+  SV('ib-gst', vendor.gst || '');
+};
+window.autofillInwardBillPO = () => {
+  const po = DB.purchase_orders.find(p => p.pono === V('ib-po'));
+  if (!po) return;
+  if (po.supplier) SV('ib-vendor', po.supplier);
+  const vendor = getVendorByName(po.supplier);
+  if (vendor) SV('ib-gst', vendor.gst || '');
+  SV('ib-amt', po.qty && po.price ? parseFloat(po.qty) * parseFloat(po.price) : V('ib-amt'));
+  updateInwardBillTotal();
+};
+window.saveIB = async () => {
+  const eid = V('ib-eid');
+  if (!V('ib-vendor') || !V('ib-date') || !parseFloat(V('ib-amt') || '0')) { toast('Vendor, date and amount are required','e'); return; }
+  const data = {
+    bill_no: V('ib-no'),
+    date: V('ib-date'),
+    vendor: V('ib-vendor'),
+    po_ref: V('ib-po'),
+    vendor_gst: V('ib-gst'),
+    amt: parseFloat(V('ib-amt') || '0'),
+    gst: parseFloat(V('ib-gstpct') || '0'),
+    total: parseFloat(V('ib-total') || '0'),
+    due: V('ib-due'),
+    status: V('ib-status') || 'Pending',
+    notes: V('ib-notes')
+  };
+  if (eid) {
+    if (await dbUpdate('inward_bills', eid, data)) toast('Inward bill updated');
+  } else {
+    if (!data.bill_no) data.bill_no = 'BILL-' + new Date().getFullYear() + '-' + String(DB.inward_bills.length + 1).padStart(3,'0');
+    if (await dbInsert('inward_bills', data)) toast(data.bill_no + ' saved');
+  }
+  clrForm('ib');
+};
+window.editIB = id => {
+  const b = DB.inward_bills.find(x => x.id === id); if (!b) return;
+  SV('ib-eid', id); SV('ib-no', b.bill_no); SV('ib-date', b.date); SV('ib-vendor', b.vendor); SV('ib-po', b.po_ref);
+  SV('ib-gst', b.vendor_gst); SV('ib-amt', b.amt); SV('ib-gstpct', b.gst); SV('ib-total', b.total); SV('ib-due', b.due); SV('ib-status', b.status); SV('ib-notes', b.notes);
+  document.getElementById('ib-ft').textContent = 'Edit ' + (b.bill_no || 'Inward Bill');
+  document.getElementById('ib-fc').scrollIntoView({behavior:'smooth'});
 };
 
 // ---
@@ -988,28 +1437,26 @@ function renderVnd() {
   const srch = (V('vnd-srch')||'').toLowerCase();
   const tbl  = document.getElementById('vnd-tbl'); if(!tbl) return;
   tbl.innerHTML = DB.vendors
-    .filter(v => !srch || (v.name+v.code).toLowerCase().includes(srch))
+    .filter(v => !srch || (v.name+v.code+(v.entity_type||'')+(v.address||'')).toLowerCase().includes(srch))
     .map(v => {
-      const sc   = {Active:'pg',Inactive:'pgr',Blacklisted:'pr'}[v.status]||'pgr';
-      const stars = '*'.repeat(parseInt(v.rating||3));
       const acts  = ed ? `<button class="btn bO sm" onclick="editVnd('${v.id}')">Edit</button>${del?`<button class="btn bD sm" onclick="delRec('vendors','${v.id}')">Del</button>`:''}` : '';
-      return `<tr><td style="font-weight:600">${v.name}</td><td class="mn">${v.code}</td><td><span class="pill pb">${v.category}</span></td><td>${v.contact||'--'}</td><td class="mn">${v.phone||'--'}</td><td class="mn" style="font-size:11px">${v.gst||'--'}</td><td>${v.terms}</td><td style="color:var(--a2)">${stars}</td><td>${pill(v.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">VN</div><div class="empty-tt">No Vendors</div></div></td></tr>';
+      return `<tr><td style="font-weight:600">${esc(v.name)}</td><td>${pill(entityType(v))}</td><td><span class="pill pb">${esc(v.category || '--')}</span></td><td>${esc(v.contact||'--')}</td><td class="mn">${esc(v.phone||'--')}</td><td class="mn" style="font-size:11px">${esc(v.gst||'--')}</td><td>${esc(v.address||'--')}</td><td>${pill(v.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">VN</div><div class="empty-tt">No Vendors</div></div></td></tr>';
 }
 window.saveVnd = async () => {
   const eid = V('vnd-eid'), name = V('vnd-name');
   if (!name) { toast('Vendor name required','e'); return; }
   const mx   = DB.vendors.reduce((m,v) => Math.max(m,parseInt((v.code||'VND-0').split('-')[1])||0), 0);
-  const data = { name, code:V('vnd-code')||('VND-'+String(mx+1).padStart(3,'0')), category:V('vnd-cat'), contact:V('vnd-contact'), phone:V('vnd-phone'), email:V('vnd-email'), gst:V('vnd-gst'), terms:V('vnd-terms'), rating:parseInt(V('vnd-rating'))||3, status:V('vnd-status'), materials:V('vnd-materials') };
+  const data = { entity_type:V('vnd-type') || 'Vendor', name, code:V('vnd-code')||('VND-'+String(mx+1).padStart(3,'0')), category:V('vnd-cat'), contact:V('vnd-contact'), phone:V('vnd-phone'), email:V('vnd-email'), gst:V('vnd-gst'), terms:V('vnd-terms'), rating:parseInt(V('vnd-rating'))||3, status:V('vnd-status'), address:V('vnd-address'), materials:V('vnd-materials') };
   if (eid) { if(await dbUpdate('vendors',eid,data)) toast('Vendor updated'); }
   else     { if(await dbInsert('vendors',data)) toast(name+' added'); }
   clrForm('vnd');
 };
 window.editVnd = id => {
   const v = DB.vendors.find(x=>x.id===id); if(!v) return;
-  SV('vnd-eid',id); SV('vnd-name',v.name); SV('vnd-code',v.code); SV('vnd-cat',v.category);
+  SV('vnd-eid',id); SV('vnd-type',entityType(v)); SV('vnd-name',v.name); SV('vnd-code',v.code); SV('vnd-cat',v.category);
   SV('vnd-contact',v.contact); SV('vnd-phone',v.phone); SV('vnd-email',v.email);
-  SV('vnd-gst',v.gst); SV('vnd-terms',v.terms); SV('vnd-rating',v.rating); SV('vnd-status',v.status); SV('vnd-materials',v.materials);
+  SV('vnd-gst',v.gst); SV('vnd-terms',v.terms); SV('vnd-rating',v.rating); SV('vnd-status',v.status); SV('vnd-address',v.address); SV('vnd-materials',v.materials);
   document.getElementById('vnd-ft').textContent = 'Edit  ' + v.name;
   document.getElementById('vnd-fc').scrollIntoView({behavior:'smooth'});
 };
@@ -1226,7 +1673,7 @@ window.openUpd = (tbl, id, type) => {
   sel.innerHTML = (STATUSES[tbl]||[]).map(s=>`<option${rec.status===s?' selected':''}>${s}</option>`).join('');
   const pw = document.getElementById('upd-prod-wrap');
   if (type==='wo') { pw.style.display='block'; document.getElementById('upd-prod').value=rec.produced||0; } else pw.style.display='none';
-  document.getElementById('mo-upd-t').textContent = 'Update  '+(rec.wono||rec.pono||rec.sono||rec.dcno||rec.name||'Record');
+  document.getElementById('mo-upd-t').textContent = 'Update  '+(rec.wono||rec.pono||rec.sono||rec.dcno||rec.invno||rec.bill_no||rec.name||'Record');
   document.getElementById('upd-info').textContent = 'Current status: ' + rec.status;
   document.getElementById('upd-note').value = '';
   openMo('mo-upd');
@@ -1253,7 +1700,7 @@ window.saveUpd = async () => {
 // ---
 window.delRec = async (tbl, id) => {
   if (!canDelete()) { toast('Only Plant Admin or Plant Manager can delete records','e'); return; }
-  const names = { work_orders:'work order', qc_records:'QC record', inventory:'material', purchase_orders:'purchase order', sales_orders:'sales order', dispatches:'dispatch', machines:'machine', invoices:'invoice', vendors:'vendor', products:'product' };
+  const names = { work_orders:'work order', qc_records:'QC record', inventory:'material', purchase_orders:'purchase order', sales_orders:'sales order', dispatches:'dispatch', machines:'machine', invoices:'invoice', inward_bills:'inward bill', vendors:'vendor', products:'product' };
   if (!confirm('Delete this '+(names[tbl]||'record')+'? This cannot be undone.')) return;
   if (await dbDelete(tbl, id)) toast('Record deleted');
 };
@@ -1508,20 +1955,21 @@ ${obsHtml?`<tr><td><strong>Observations</strong></td><td colspan="3">${obsHtml}<
 };
 
 const FORM_FIELDS = {
-  wo:   ['wo-eid','wo-qty','wo-start','wo-end','wo-rem'],
+  wo:   ['wo-eid','wo-qty','wo-start','wo-end','wo-rem','wo-vendor','wo-service'],
   fg:   ['fg-eid','fg-qty','fg-cost','fg-loc','fg-qcbatch','fg-notes'],
   mach: ['mach-eid','mach-name','mach-eqid','mach-model','mach-oee','mach-param','mach-notes'],
   qc:   ['qc-eid','qc-sample','qc-pass','qc-insp','qc-notes'],
   inv:  ['inv-eid','inv-name','inv-code','inv-stock','inv-reorder','inv-min','inv-cost','inv-sup'],
   po:   ['po-eid','po-qty','po-price','po-date','po-notes'],
-  so:   ['so-eid','so-cust','so-qty','so-price','so-date','so-dl','so-ref','so-addr'],
+  so:   ['so-eid','so-buyer','so-cust','so-qty','so-price','so-date','so-dl','so-ref','so-addr','so-gst'],
   dc:   ['dc-eid','dc-qty','dc-date','dc-veh','dc-trans','dc-lr','dc-notes'],
-  inv2: ['inv2-eid','inv2-no','inv2-party','inv2-amt','inv2-date','inv2-due','inv2-ref','inv2-notes'],
-  vnd:  ['vnd-eid','vnd-name','vnd-code','vnd-contact','vnd-phone','vnd-email','vnd-gst','vnd-materials'],
+  inv2: ['inv2-eid','inv2-no','inv2-company','inv2-buyer','inv2-party','inv2-cgst','inv2-so','inv2-date','inv2-due','inv2-terms','inv2-ref','inv2-status','inv2-billaddr','inv2-shipaddr','inv2-notes'],
+  ib:   ['ib-eid','ib-no','ib-date','ib-vendor','ib-po','ib-gst','ib-amt','ib-gstpct','ib-total','ib-due','ib-status','ib-notes'],
+  vnd:  ['vnd-eid','vnd-type','vnd-name','vnd-code','vnd-contact','vnd-phone','vnd-email','vnd-gst','vnd-address','vnd-materials'],
   prod: ['prod-eid','prod-name','prod-code','prod-desc','prod-price','prod-hsn','prod-notes']
 };
-const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', vnd:'Add Vendor', prod:'Add New Product' };
-const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', vnd:'Save Vendor', prod:'Add Product' };
+const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', ib:'Add Inward Bill', vnd:'Add Vendor', prod:'Add New Product' };
+const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', ib:'Save Inward Bill', vnd:'Save Vendor', prod:'Add Product' };
 
 window.clrForm = f => {
   (FORM_FIELDS[f]||[]).forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
@@ -1529,4 +1977,12 @@ window.clrForm = f => {
   const bEl = document.getElementById(f+'-sb'); if(bEl) bEl.textContent = FORM_BTNS[f]||'Save';
   if (f==='po') { const pa=document.getElementById('po-addr'); if(pa) pa.value='EIPD Plant, Unit 2'; }
   if (f==='qc') renderQCTestList();
+  if (f==='wo') { SV('wo-type','In-house'); toggleWOServiceFields(); }
+  if (f==='inv2') {
+    const same = document.getElementById('inv2-same');
+    if (same) same.checked = true;
+    renderInvoiceLines();
+    syncInvoiceShipping();
+  }
+  if (f==='ib') { SV('ib-status','Pending'); SV('ib-gstpct','18'); SV('ib-total',''); }
 };
