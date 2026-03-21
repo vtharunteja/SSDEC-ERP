@@ -351,7 +351,12 @@
             <div class="fr"><label>Payment Ref</label><input type="text" id="inv2-ref" placeholder="NEFT/UPI reference"/></div>
             <div class="fr"><label>Status</label><select id="inv2-status"><option>Unpaid</option><option>Partially Paid</option><option>Paid</option><option>Overdue</option><option>Cancelled</option></select></div>
             <div class="fr full">
-              <label class="checkline"><input type="checkbox" id="inv2-same" checked onchange="syncInvoiceShipping()"/> Billing and shipping address are same</label>
+              <div class="checkpanel">
+                <label class="checkline" for="inv2-same">
+                  <input type="checkbox" id="inv2-same" checked onchange="syncInvoiceShipping()"/>
+                  <span>Billing and shipping address are same</span>
+                </label>
+              </div>
             </div>
             <div class="fr full"><label>Billing Address</label><textarea id="inv2-billaddr" rows="2" oninput="syncInvoiceShipping()"></textarea></div>
             <div class="fr full"><label>Shipping Address</label><textarea id="inv2-shipaddr" rows="2"></textarea></div>
