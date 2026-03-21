@@ -280,6 +280,7 @@ window.doLogout = async () => {
 // Auth state listener
 let isInitialized = false;
 let activeSessionKey = null;
+let erpBooted = false;
 
 async function initSession(session) {
   const sessionKey = session?.access_token || session?.user?.id || '';
@@ -332,6 +333,8 @@ async function initSession(session) {
   document.getElementById('login').classList.remove('show');
   document.getElementById('erp').style.display = 'flex';
   hideLoader();
+  if (erpBooted) return;
+  erpBooted = true;
   initERP();
 }
 
@@ -342,6 +345,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
   if (isSignOut) {
     isInitialized = false;
     activeSessionKey = null;
+    erpBooted = false;
     CU = null;
     if (typeof stopIdleDetection === 'function') stopIdleDetection();
     document.getElementById('loader').style.display  = 'none';
