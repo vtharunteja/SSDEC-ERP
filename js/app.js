@@ -352,13 +352,16 @@ function invoiceDefaultCompany() {
 
 function syncInvoiceShipping() {
   const same = document.getElementById('inv2-same');
+  const bill = document.getElementById('inv2-billaddr');
   const ship = document.getElementById('inv2-shipaddr');
-  if (!same || !ship) return;
+  if (!same || !ship || !bill) return;
   if (same.checked) {
-    ship.value = V('inv2-billaddr');
+    ship.value = bill.value;
     ship.setAttribute('readonly', 'readonly');
+    ship.classList.add('is-locked');
   } else {
     ship.removeAttribute('readonly');
+    ship.classList.remove('is-locked');
   }
 }
 
@@ -368,7 +371,6 @@ function autofillInvoiceBuyer() {
   SV('inv2-party', buyer.name);
   SV('inv2-cgst', buyer.gst || '');
   SV('inv2-billaddr', buyer.address || '');
-  if (document.getElementById('inv2-same')?.checked) SV('inv2-shipaddr', buyer.address || '');
   syncInvoiceShipping();
 }
 
@@ -513,8 +515,8 @@ window.autofillInvoiceSO = () => {
   if (so.customer) SV('inv2-party', so.customer);
   if (so.gst) SV('inv2-cgst', so.gst);
   if (so.addr) {
-    SV('inv2-shipaddr', soAddress(so));
     if (!V('inv2-billaddr')) SV('inv2-billaddr', soAddress(so));
+    if (!document.getElementById('inv2-same')?.checked) SV('inv2-shipaddr', soAddress(so));
   }
   syncInvoiceShipping();
   renderInvoiceLines([{

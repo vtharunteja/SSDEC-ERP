@@ -198,6 +198,7 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .checkpanel { border:1px solid var(--br); border-radius:var(--r); background:var(--bg); padding:12px 14px; min-height:48px; display:flex; align-items:center; }
 .checkline input[type="checkbox"] { width:16px; height:16px; flex:0 0 16px; margin:0; accent-color:var(--ac); }
 .checkline span { line-height:1.4; }
+.is-locked { opacity:.85; border-style:dashed; }
 .line-card { border:1px solid var(--br); border-radius:var(--r); background:var(--bg); padding:14px; }
 .line-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .line-title { font-size:14px; font-weight:700; color:var(--t2); }
