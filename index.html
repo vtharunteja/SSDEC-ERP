@@ -120,6 +120,7 @@
             <div class="fr"><label>Priority</label><select id="wo-pri"><option>Normal</option><option>High</option><option>Urgent</option></select></div>
             <div class="fr"><label>Shift</label><select id="wo-shift"><option>Shift A (6AM-2PM)</option><option>Shift B (2PM-10PM)</option><option>Shift C (10PM-6AM)</option></select></div>
             <div class="fr full" id="wo-service-wrap"><label>Service Details</label><textarea id="wo-service" rows="2" placeholder="Mention galvanizing, testing, machining, outsourcing scope..."></textarea></div>
+            <div class="fr full"><label>Expected Output</label><textarea id="wo-output" rows="2" placeholder="Mention output required, deliverables, finished stage, or service result expected..."></textarea></div>
             <div class="fr full"><label>Remarks</label><textarea id="wo-rem" rows="2" placeholder="Customer ref, special instructions..."></textarea></div>
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('wo')">Clear</button><button class="btn bP" id="wo-sb" onclick="saveWO()">Create Work Order</button></div>
@@ -413,15 +414,68 @@
         </div>
       </div>
 
+      <!-- BUYERS -->
+      <div class="tc" id="tab-buyers">
+        <div class="ph"><div><div class="pt">Buyer Master</div><div class="pst">// customer billing master for sales orders and invoices</div></div></div>
+        <div id="buy-ro"></div>
+        <div class="card" id="buy-fc">
+          <div class="ch"><div class="ct" id="buy-ft">Add Buyer</div></div>
+          <div class="fg">
+            <input type="hidden" id="buy-eid"/>
+            <div class="fr"><label>Buyer Name</label><input type="text" id="buy-name"/></div>
+            <div class="fr"><label>Code</label><input type="text" id="buy-code" placeholder="BUY-001"/></div>
+            <div class="fr"><label>Contact Person</label><input type="text" id="buy-contact"/></div>
+            <div class="fr"><label>Phone</label><input type="text" id="buy-phone"/></div>
+            <div class="fr"><label>Email</label><input type="email" id="buy-email"/></div>
+            <div class="fr"><label>GST Number</label><input type="text" id="buy-gst"/></div>
+            <div class="fr"><label>Payment Terms</label><select id="buy-terms"><option>Advance</option><option>Net 30</option><option>Net 45</option><option>Net 60</option><option>Immediate</option></select></div>
+            <div class="fr"><label>Status</label><select id="buy-status"><option>Active</option><option>Inactive</option></select></div>
+            <div class="fr full"><label>Billing Address</label><textarea id="buy-address" rows="2"></textarea></div>
+            <div class="fr full"><label>Remarks</label><textarea id="buy-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('buy')">Clear</button><button class="btn bP" id="buy-sb" onclick="saveBuyer()">Save Buyer</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Buyer Register</div><div class="ch-r"><input type="text" id="buy-srch" placeholder="Search..." oninput="renderBuyers()"/></div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Buyer</th><th>Code</th><th>Contact</th><th>Phone</th><th>GST No.</th><th>Address</th><th>Status</th><th>Actions</th></tr></thead><tbody id="buy-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- COMPANY DETAILS -->
+      <div class="tc" id="tab-company">
+        <div class="ph"><div><div class="pt">Our Company</div><div class="pst">// invoice header, GST and registered office details</div></div></div>
+        <div id="cmp-ro"></div>
+        <div class="card" id="cmp-fc">
+          <div class="ch"><div class="ct" id="cmp-ft">Add Company Details</div></div>
+          <div class="fg">
+            <input type="hidden" id="cmp-eid"/>
+            <div class="fr"><label>Company Name</label><input type="text" id="cmp-name"/></div>
+            <div class="fr"><label>Short Name</label><input type="text" id="cmp-short" placeholder="EIPD ERP"/></div>
+            <div class="fr"><label>GST Number</label><input type="text" id="cmp-gst"/></div>
+            <div class="fr"><label>Contact Person</label><input type="text" id="cmp-contact"/></div>
+            <div class="fr"><label>Phone</label><input type="text" id="cmp-phone"/></div>
+            <div class="fr"><label>Email</label><input type="email" id="cmp-email"/></div>
+            <div class="fr"><label>State Code</label><input type="text" id="cmp-state" placeholder="36"/></div>
+            <div class="fr"><label>Status</label><select id="cmp-status"><option>Active</option><option>Inactive</option></select></div>
+            <div class="fr full"><label>Registered Address</label><textarea id="cmp-address" rows="2"></textarea></div>
+            <div class="fr full"><label>Footer / Notes</label><textarea id="cmp-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('cmp')">Clear</button><button class="btn bP" id="cmp-sb" onclick="saveCompany()">Save Company</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Company Register</div><div class="ch-r"><input type="text" id="cmp-srch" placeholder="Search..." oninput="renderCompany()"/></div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Company</th><th>Short Name</th><th>GST No.</th><th>Contact</th><th>Phone</th><th>Address</th><th>Status</th><th>Actions</th></tr></thead><tbody id="cmp-tbl"></tbody></table></div>
+        </div>
+      </div>
+
       <!-- VENDORS -->
       <div class="tc" id="tab-vendors">
-        <div class="ph"><div><div class="pt">Vendors</div><div class="pst">// vendors, buyers and our company master</div></div></div>
+        <div class="ph"><div><div class="pt">Vendors</div><div class="pst">// supplier and service partner master</div></div></div>
         <div id="vnd-ro"></div>
         <div class="card" id="vnd-fc">
           <div class="ch"><div class="ct" id="vnd-ft">Add Vendor</div></div>
           <div class="fg">
             <input type="hidden" id="vnd-eid"/>
-            <div class="fr"><label>Entity Type</label><select id="vnd-type"><option>Vendor</option><option>Buyer</option><option>Our Company</option></select></div>
             <div class="fr"><label>Name</label><input type="text" id="vnd-name"/></div>
             <div class="fr"><label>Code</label><input type="text" id="vnd-code" placeholder="VND-001"/></div>
             <div class="fr"><label>Category</label><select id="vnd-cat"><option>Raw Material</option><option>Machinery</option><option>Consumables</option><option>Logistics</option><option>Services</option></select></div>
@@ -439,7 +493,7 @@
         </div>
         <div class="card">
           <div class="ch"><div class="ct">Vendor Directory</div><div class="ch-r"><input type="text" id="vnd-srch" placeholder="Search..." oninput="renderVnd()"/></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Category</th><th>Contact</th><th>Phone</th><th>GST No.</th><th>Address</th><th>Status</th><th>Actions</th></tr></thead><tbody id="vnd-tbl"></tbody></table></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Category</th><th>Contact</th><th>Phone</th><th>GST No.</th><th>Address</th><th>Status</th><th>Actions</th></tr></thead><tbody id="vnd-tbl"></tbody></table></div>
         </div>
       </div>
 

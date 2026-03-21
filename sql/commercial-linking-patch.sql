@@ -1,7 +1,8 @@
 alter table if exists work_orders
   add column if not exists order_type text default 'In-house',
   add column if not exists vendor text,
-  add column if not exists service_details text;
+  add column if not exists service_details text,
+  add column if not exists output_required text;
 
 alter table if exists vendors
   add column if not exists entity_type text default 'Vendor',
@@ -43,3 +44,45 @@ alter table inward_bills enable row level security;
 
 drop policy if exists "auth_all" on inward_bills;
 create policy "auth_all" on inward_bills for all using (auth.role() = 'authenticated');
+
+create table if not exists buyers (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  code text,
+  contact text,
+  phone text,
+  email text,
+  gst text,
+  terms text,
+  address text,
+  status text default 'Active',
+  notes text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists company_details (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  short_name text,
+  gst text,
+  contact text,
+  phone text,
+  email text,
+  state_code text,
+  address text,
+  status text default 'Active',
+  notes text,
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table buyers enable row level security;
+alter table company_details enable row level security;
+
+drop policy if exists "auth_all" on buyers;
+drop policy if exists "auth_all" on company_details;
+create policy "auth_all" on buyers for all using (auth.role() = 'authenticated');
+create policy "auth_all" on company_details for all using (auth.role() = 'authenticated');

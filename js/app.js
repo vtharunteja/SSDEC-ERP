@@ -14,7 +14,7 @@ let SUBS = [];     // realtime subscriptions
 const DB = {
   profiles:[], products:[], machines:[], inventory:[],
   work_orders:[], qc_records:[], purchase_orders:[],
-  vendors:[], sales_orders:[], dispatches:[], invoices:[], inward_bills:[],
+  vendors:[], buyers:[], company_details:[], sales_orders:[], dispatches:[], invoices:[], inward_bills:[],
   audit_logs:[], approvals:[], finished_goods:[], qc_certificates:[]
 };
 
@@ -23,7 +23,7 @@ const TBL = {
   production:'work_orders', quality:'qc_records',
   inventory:'inventory', purchase:'purchase_orders',
   sales:'sales_orders', dispatch:'dispatches',
-  invoices:'invoices', ibill:'inward_bills', vendors:'vendors',
+  invoices:'invoices', ibill:'inward_bills', vendors:'vendors', buyers:'buyers', company:'company_details',
   machines:'machines', products:'products',
   users:'profiles'
 };
@@ -39,21 +39,21 @@ const ROLES = {
   viewer:     {label:'Read-Only',        color:'var(--mu)',bg:'rgba(74,85,104,.12)'}
 };
 const NAV_ACCESS = {
-  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','ibill','vendors','products','reports','audit','users'],
-  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','ibill','vendors','products','reports'],
+  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','ibill','vendors','buyers','company','products','reports','audit','users'],
+  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','ibill','vendors','buyers','company','products','reports'],
   production: ['dashboard','production','machines','quality','fg'],
   storekeeper:['dashboard','inventory','fg','purchase','vendors'],
   qc:         ['dashboard','quality'],
-  dispatch:   ['dashboard','sales','dispatch','invoices','ibill','fg'],
+  dispatch:   ['dashboard','sales','dispatch','invoices','ibill','buyers','company','fg'],
   viewer:     ['dashboard','reports']
 };
 const CAN_EDIT = {
-  admin:      ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','ibill','vendors','products','users','audit'],
-  manager:    ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','ibill','vendors','products'],
+  admin:      ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','ibill','vendors','buyers','company','products','users','audit'],
+  manager:    ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','ibill','vendors','buyers','company','products'],
   production: ['production','machines','quality','fg'],
   storekeeper:['inventory','fg','purchase','vendors'],
   qc:         ['quality'],
-  dispatch:   ['dispatch','invoices','ibill','fg'],
+  dispatch:   ['dispatch','invoices','ibill','buyers','company','fg'],
   viewer:     []
 };
 const STATUSES = {
@@ -83,6 +83,8 @@ const NAVDEF = [
   {id:'invoices',    ic:'&#9636;',  lb:'Invoices',       binv2:1},
   {id:'ibill',       ic:'&#9789;',  lb:'Inward Bills'},
   {id:'vendors',     ic:'&#9962;',  lb:'Vendors'},
+  {id:'buyers',      ic:'&#9733;',  lb:'Buyer Master'},
+  {id:'company',     ic:'&#9872;',  lb:'Our Company'},
   {s:'Finished Goods'},
   {id:'fg',          ic:'&#9632;',  lb:'Finished Goods',    bfg:1},
   {s:'Master Data'},
@@ -129,6 +131,17 @@ const QC_TESTS = [
   'HV Puncture Test',
   'Thermal Cycling',
   'Mechanical Load Test'
+];
+const WO_SERVICE_OPTIONS = [
+  'Mechanical Services',
+  'Machining',
+  'Tool Room Support',
+  'Mould Maintenance',
+  'Galvanizing',
+  'CNC / Fabrication',
+  'Testing Services',
+  'Packing Services',
+  'Other Services'
 ];
 function qcTestId(name){ return name.toLowerCase().replace(/[^a-z0-9]+/g,'-'); }
 function renderQCTestList(selected=[], remarksMap={}) {
@@ -224,20 +237,27 @@ function setSyncB(s) {
 }
 
 function fillProdDDs() {
-  const opts = DB.products
+  const prodOpts = DB.products
     .filter(p => p.active === true)
     .map(p => `<option value="${p.name}">${p.name}</option>`)
     .join('');
-  ['wo-prod','qc-prod','so-prod'].forEach(id => {
+  const woOpts = prodOpts + WO_SERVICE_OPTIONS.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  ['qc-prod','so-prod'].forEach(id => {
     const e = document.getElementById(id);
     if (!e) return;
     const cur = e.value;
-    e.innerHTML = opts || '<option>No products  add in Product Master</option>';
+    e.innerHTML = prodOpts || '<option>No products  add in Product Master</option>';
     if (cur) e.value = cur;
   });
+  const woEl = document.getElementById('wo-prod');
+  if (woEl) {
+    const cur = woEl.value;
+    woEl.innerHTML = '<option value="">-- Select product / service --</option>' + woOpts;
+    if (cur) woEl.value = cur;
+  }
   document.querySelectorAll('[data-inv2-line-product]').forEach(sel => {
     const cur = sel.value;
-    sel.innerHTML = '<option value="">-- Select product --</option>' + opts;
+    sel.innerHTML = '<option value="">-- Select product --</option>' + prodOpts;
     if (cur) sel.value = cur;
   });
   fillPartyDDs();
@@ -250,10 +270,10 @@ function getEntities(type) {
   return DB.vendors.filter(v => (entityType(v) === type) && (v.status || 'Active') !== 'Blacklisted');
 }
 function getBuyerByName(name) {
-  return getEntities('Buyer').find(v => v.name === name) || null;
+  return DB.buyers.find(v => v.name === name) || getEntities('Buyer').find(v => v.name === name) || null;
 }
 function getCompanyByName(name) {
-  return getEntities('Our Company').find(v => v.name === name) || null;
+  return DB.company_details.find(v => v.name === name) || getEntities('Our Company').find(v => v.name === name) || null;
 }
 function getVendorByName(name) {
   return DB.vendors.find(v => v.name === name) || null;
@@ -278,9 +298,9 @@ function setOptions(id, items, valueKey='name', labelFn=null, placeholder='-- Se
 }
 function fillPartyDDs() {
   setOptions('wo-vendor', DB.vendors.filter(v => entityType(v) === 'Vendor' && (!v.category || v.category === 'Services' || v.category === 'Logistics' || v.category === 'Machinery' || v.category === 'Consumables' || v.category === 'Raw Material')), 'name', v => `${v.name}${v.category ? ' - ' + v.category : ''}`, '-- Select service vendor --');
-  setOptions('so-buyer', getEntities('Buyer'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select buyer --');
-  setOptions('inv2-buyer', getEntities('Buyer'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select buyer --');
-  setOptions('inv2-company', getEntities('Our Company'), 'name', v => v.name, '-- Select company --');
+  setOptions('so-buyer', DB.buyers.filter(v => (v.status || 'Active') === 'Active'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select buyer --');
+  setOptions('inv2-buyer', DB.buyers.filter(v => (v.status || 'Active') === 'Active'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select buyer --');
+  setOptions('inv2-company', DB.company_details.filter(v => (v.status || 'Active') === 'Active'), 'name', v => v.name, '-- Select company --');
   setOptions('ib-vendor', DB.vendors.filter(v => entityType(v) === 'Vendor'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select vendor --');
   const soEl = document.getElementById('so-wo');
   if (soEl) {
@@ -327,7 +347,7 @@ function autofillSalesBuyer() {
 }
 
 function invoiceDefaultCompany() {
-  return getCompanyByName(V('inv2-company')) || getEntities('Our Company')[0] || null;
+  return getCompanyByName(V('inv2-company')) || DB.company_details.find(v => (v.status || 'Active') === 'Active') || getEntities('Our Company')[0] || null;
 }
 
 function syncInvoiceShipping() {
@@ -773,7 +793,7 @@ window.goTab = id => {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const tab = document.getElementById('tab-' + id); if (tab) tab.classList.add('on');
   const nav = document.getElementById('nav-' + id); if (nav) nav.classList.add('on');
-  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',products:'Product Master',reports:'Analytics',audit:'Audit Log',users:'User Management'};
+  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',buyers:'Buyer Master',company:'Our Company',products:'Product Master',reports:'Analytics',audit:'Audit Log',users:'User Management'};
   document.getElementById('hmod').textContent = '// ' + (L[id] || id);
   renderMod(id);
 };
@@ -782,7 +802,7 @@ function renderMod(id) {
   const fns = {
     dashboard:renderDash, production:renderWO, machines:renderMach, quality:renderQC,
     inventory:renderInv,  purchase:renderPO,   sales:renderSO,      dispatch:renderDC,
-    invoices:renderInv2,  ibill:renderIB,      vendors:renderVnd,   products:renderProducts,
+    invoices:renderInv2,  ibill:renderIB,      vendors:renderVnd,   buyers:renderBuyers, company:renderCompany, products:renderProducts,
     reports:renderRep,    users:renderUsers,   fg:renderFG,
     audit:renderAudit
   };
@@ -912,7 +932,7 @@ function renderWO() {
     .map(w => {
       const apprBadge = approvalBadge(w.id,'work_orders',w.wono,ed);
       const acts = ed ? `<button class="btn bO sm" onclick="editWO('${w.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('work_orders','${w.id}','wo')">Update</button>${del?`<button class="btn bD sm" onclick="delRec('work_orders','${w.id}')">Del</button>`:''}` : '';
-      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${esc(w.product || w.service_details || '--')}</td><td>${pill(w.order_type || 'In-house')}</td><td>${esc(w.vendor || '--')}</td><td class="mn">${w.qty}</td><td>${fmtD(w.start_date)}</td><td>${fmtD(w.end_date)}</td><td>${pill(w.status)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${apprBadge}${acts}</div></td></tr>`;
+      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${esc(w.product || w.service_details || '--')}${w.output_required ? `<div class="muted-help">Output: ${esc(w.output_required)}</div>` : ''}</td><td>${pill(w.order_type || 'In-house')}</td><td>${esc(w.vendor || '--')}</td><td class="mn">${w.qty}</td><td>${fmtD(w.start_date)}</td><td>${fmtD(w.end_date)}</td><td>${pill(w.status)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${apprBadge}${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">WO</div><div class="empty-tt">No Work Orders</div><div class="empty-st">Create one above</div></div></td></tr>';
 }
 window.saveWO = async () => {
@@ -930,7 +950,8 @@ window.saveWO = async () => {
     remarks:V('wo-rem'),
     order_type:V('wo-type') || 'In-house',
     vendor:V('wo-vendor'),
-    service_details:V('wo-service')
+    service_details:V('wo-service'),
+    output_required:V('wo-output')
   };
   if (eid) {
     delete data.produced;
@@ -954,7 +975,7 @@ window.editWO = id => {
   const w = DB.work_orders.find(x=>x.id===id); if(!w) return;
   SV('wo-eid',id); SV('wo-prod',w.product); SV('wo-qty',w.qty);
   SV('wo-start',w.start_date); SV('wo-end',w.end_date); SV('wo-pri',w.priority);
-  SV('wo-shift',w.shift); SV('wo-rem',w.remarks); SV('wo-type',w.order_type || 'In-house'); SV('wo-vendor',w.vendor); SV('wo-service',w.service_details);
+  SV('wo-shift',w.shift); SV('wo-rem',w.remarks); SV('wo-type',w.order_type || 'In-house'); SV('wo-vendor',w.vendor); SV('wo-service',w.service_details); SV('wo-output',w.output_required);
   toggleWOServiceFields();
   document.getElementById('wo-ft').textContent = 'Edit ' + w.wono;
   document.getElementById('wo-sb').textContent = 'Update Work Order';
@@ -1427,6 +1448,71 @@ window.editIB = id => {
 };
 
 // ---
+// BUYERS
+// ---
+function renderBuyers() {
+  const ed = canEdit('buyers');
+  const del = canDelete();
+  const roEl = document.getElementById('buy-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('buy-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const srch = (V('buy-srch') || '').toLowerCase();
+  const tbl = document.getElementById('buy-tbl'); if (!tbl) return;
+  tbl.innerHTML = DB.buyers
+    .filter(b => !srch || ((b.name || '') + (b.code || '') + (b.gst || '')).toLowerCase().includes(srch))
+    .map(b => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editBuyer('${b.id}')">Edit</button>${del ? `<button class="btn bD sm" onclick="delRec('buyers','${b.id}')">Del</button>` : ''}` : '';
+      return `<tr><td style="font-weight:600">${esc(b.name)}</td><td class="mn">${esc(b.code || '--')}</td><td>${esc(b.contact || '--')}</td><td class="mn">${esc(b.phone || '--')}</td><td class="mn">${esc(b.gst || '--')}</td><td>${esc(b.address || '--')}</td><td>${pill(b.status || 'Active')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">BY</div><div class="empty-tt">No Buyers</div></div></td></tr>';
+}
+window.saveBuyer = async () => {
+  const eid = V('buy-eid'), name = V('buy-name');
+  if (!name) { toast('Buyer name required','e'); return; }
+  const mx = DB.buyers.reduce((m, b) => Math.max(m, parseInt((b.code || 'BUY-0').split('-')[1]) || 0), 0);
+  const data = { name, code:V('buy-code') || ('BUY-' + String(mx + 1).padStart(3,'0')), contact:V('buy-contact'), phone:V('buy-phone'), email:V('buy-email'), gst:V('buy-gst'), terms:V('buy-terms'), address:V('buy-address'), status:V('buy-status'), notes:V('buy-notes') };
+  if (eid) { if (await dbUpdate('buyers', eid, data)) toast('Buyer updated'); }
+  else { if (await dbInsert('buyers', data)) toast(name + ' added'); }
+  clrForm('buy');
+};
+window.editBuyer = id => {
+  const b = DB.buyers.find(x => x.id === id); if (!b) return;
+  SV('buy-eid', id); SV('buy-name', b.name); SV('buy-code', b.code); SV('buy-contact', b.contact); SV('buy-phone', b.phone); SV('buy-email', b.email); SV('buy-gst', b.gst); SV('buy-terms', b.terms); SV('buy-address', b.address); SV('buy-status', b.status); SV('buy-notes', b.notes);
+  document.getElementById('buy-ft').textContent = 'Edit ' + b.name;
+  document.getElementById('buy-fc').scrollIntoView({behavior:'smooth'});
+};
+
+// ---
+// COMPANY
+// ---
+function renderCompany() {
+  const ed = canEdit('company');
+  const del = canDelete();
+  const roEl = document.getElementById('cmp-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('cmp-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const srch = (V('cmp-srch') || '').toLowerCase();
+  const tbl = document.getElementById('cmp-tbl'); if (!tbl) return;
+  tbl.innerHTML = DB.company_details
+    .filter(c => !srch || ((c.name || '') + (c.short_name || '') + (c.gst || '')).toLowerCase().includes(srch))
+    .map(c => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editCompany('${c.id}')">Edit</button>${del ? `<button class="btn bD sm" onclick="delRec('company_details','${c.id}')">Del</button>` : ''}` : '';
+      return `<tr><td style="font-weight:600">${esc(c.name)}</td><td>${esc(c.short_name || '--')}</td><td class="mn">${esc(c.gst || '--')}</td><td>${esc(c.contact || '--')}</td><td class="mn">${esc(c.phone || '--')}</td><td>${esc(c.address || '--')}</td><td>${pill(c.status || 'Active')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">CO</div><div class="empty-tt">No Company Details</div></div></td></tr>';
+}
+window.saveCompany = async () => {
+  const eid = V('cmp-eid'), name = V('cmp-name');
+  if (!name) { toast('Company name required','e'); return; }
+  const data = { name, short_name:V('cmp-short'), gst:V('cmp-gst'), contact:V('cmp-contact'), phone:V('cmp-phone'), email:V('cmp-email'), state_code:V('cmp-state'), address:V('cmp-address'), status:V('cmp-status'), notes:V('cmp-notes') };
+  if (eid) { if (await dbUpdate('company_details', eid, data)) toast('Company details updated'); }
+  else { if (await dbInsert('company_details', data)) toast(name + ' added'); }
+  clrForm('cmp');
+};
+window.editCompany = id => {
+  const c = DB.company_details.find(x => x.id === id); if (!c) return;
+  SV('cmp-eid', id); SV('cmp-name', c.name); SV('cmp-short', c.short_name); SV('cmp-gst', c.gst); SV('cmp-contact', c.contact); SV('cmp-phone', c.phone); SV('cmp-email', c.email); SV('cmp-state', c.state_code); SV('cmp-address', c.address); SV('cmp-status', c.status); SV('cmp-notes', c.notes);
+  document.getElementById('cmp-ft').textContent = 'Edit ' + c.name;
+  document.getElementById('cmp-fc').scrollIntoView({behavior:'smooth'});
+};
+
+// ---
 // VENDORS
 // ---
 function renderVnd() {
@@ -1437,24 +1523,24 @@ function renderVnd() {
   const srch = (V('vnd-srch')||'').toLowerCase();
   const tbl  = document.getElementById('vnd-tbl'); if(!tbl) return;
   tbl.innerHTML = DB.vendors
-    .filter(v => !srch || (v.name+v.code+(v.entity_type||'')+(v.address||'')).toLowerCase().includes(srch))
+    .filter(v => !srch || (v.name+v.code+(v.address||'')).toLowerCase().includes(srch))
     .map(v => {
       const acts  = ed ? `<button class="btn bO sm" onclick="editVnd('${v.id}')">Edit</button>${del?`<button class="btn bD sm" onclick="delRec('vendors','${v.id}')">Del</button>`:''}` : '';
-      return `<tr><td style="font-weight:600">${esc(v.name)}</td><td>${pill(entityType(v))}</td><td><span class="pill pb">${esc(v.category || '--')}</span></td><td>${esc(v.contact||'--')}</td><td class="mn">${esc(v.phone||'--')}</td><td class="mn" style="font-size:11px">${esc(v.gst||'--')}</td><td>${esc(v.address||'--')}</td><td>${pill(v.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
-    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">VN</div><div class="empty-tt">No Vendors</div></div></td></tr>';
+      return `<tr><td style="font-weight:600">${esc(v.name)}</td><td><span class="pill pb">${esc(v.category || '--')}</span></td><td>${esc(v.contact||'--')}</td><td class="mn">${esc(v.phone||'--')}</td><td class="mn" style="font-size:11px">${esc(v.gst||'--')}</td><td>${esc(v.address||'--')}</td><td>${pill(v.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">VN</div><div class="empty-tt">No Vendors</div></div></td></tr>';
 }
 window.saveVnd = async () => {
   const eid = V('vnd-eid'), name = V('vnd-name');
   if (!name) { toast('Vendor name required','e'); return; }
   const mx   = DB.vendors.reduce((m,v) => Math.max(m,parseInt((v.code||'VND-0').split('-')[1])||0), 0);
-  const data = { entity_type:V('vnd-type') || 'Vendor', name, code:V('vnd-code')||('VND-'+String(mx+1).padStart(3,'0')), category:V('vnd-cat'), contact:V('vnd-contact'), phone:V('vnd-phone'), email:V('vnd-email'), gst:V('vnd-gst'), terms:V('vnd-terms'), rating:parseInt(V('vnd-rating'))||3, status:V('vnd-status'), address:V('vnd-address'), materials:V('vnd-materials') };
+  const data = { entity_type:'Vendor', name, code:V('vnd-code')||('VND-'+String(mx+1).padStart(3,'0')), category:V('vnd-cat'), contact:V('vnd-contact'), phone:V('vnd-phone'), email:V('vnd-email'), gst:V('vnd-gst'), terms:V('vnd-terms'), rating:parseInt(V('vnd-rating'))||3, status:V('vnd-status'), address:V('vnd-address'), materials:V('vnd-materials') };
   if (eid) { if(await dbUpdate('vendors',eid,data)) toast('Vendor updated'); }
   else     { if(await dbInsert('vendors',data)) toast(name+' added'); }
   clrForm('vnd');
 };
 window.editVnd = id => {
   const v = DB.vendors.find(x=>x.id===id); if(!v) return;
-  SV('vnd-eid',id); SV('vnd-type',entityType(v)); SV('vnd-name',v.name); SV('vnd-code',v.code); SV('vnd-cat',v.category);
+  SV('vnd-eid',id); SV('vnd-name',v.name); SV('vnd-code',v.code); SV('vnd-cat',v.category);
   SV('vnd-contact',v.contact); SV('vnd-phone',v.phone); SV('vnd-email',v.email);
   SV('vnd-gst',v.gst); SV('vnd-terms',v.terms); SV('vnd-rating',v.rating); SV('vnd-status',v.status); SV('vnd-address',v.address); SV('vnd-materials',v.materials);
   document.getElementById('vnd-ft').textContent = 'Edit  ' + v.name;
@@ -1700,7 +1786,7 @@ window.saveUpd = async () => {
 // ---
 window.delRec = async (tbl, id) => {
   if (!canDelete()) { toast('Only Plant Admin or Plant Manager can delete records','e'); return; }
-  const names = { work_orders:'work order', qc_records:'QC record', inventory:'material', purchase_orders:'purchase order', sales_orders:'sales order', dispatches:'dispatch', machines:'machine', invoices:'invoice', inward_bills:'inward bill', vendors:'vendor', products:'product' };
+  const names = { work_orders:'work order', qc_records:'QC record', inventory:'material', purchase_orders:'purchase order', sales_orders:'sales order', dispatches:'dispatch', machines:'machine', invoices:'invoice', inward_bills:'inward bill', vendors:'vendor', buyers:'buyer', company_details:'company record', products:'product' };
   if (!confirm('Delete this '+(names[tbl]||'record')+'? This cannot be undone.')) return;
   if (await dbDelete(tbl, id)) toast('Record deleted');
 };
@@ -1955,7 +2041,7 @@ ${obsHtml?`<tr><td><strong>Observations</strong></td><td colspan="3">${obsHtml}<
 };
 
 const FORM_FIELDS = {
-  wo:   ['wo-eid','wo-qty','wo-start','wo-end','wo-rem','wo-vendor','wo-service'],
+  wo:   ['wo-eid','wo-qty','wo-start','wo-end','wo-rem','wo-vendor','wo-service','wo-output'],
   fg:   ['fg-eid','fg-qty','fg-cost','fg-loc','fg-qcbatch','fg-notes'],
   mach: ['mach-eid','mach-name','mach-eqid','mach-model','mach-oee','mach-param','mach-notes'],
   qc:   ['qc-eid','qc-sample','qc-pass','qc-insp','qc-notes'],
@@ -1965,11 +2051,13 @@ const FORM_FIELDS = {
   dc:   ['dc-eid','dc-qty','dc-date','dc-veh','dc-trans','dc-lr','dc-notes'],
   inv2: ['inv2-eid','inv2-no','inv2-company','inv2-buyer','inv2-party','inv2-cgst','inv2-so','inv2-date','inv2-due','inv2-terms','inv2-ref','inv2-status','inv2-billaddr','inv2-shipaddr','inv2-notes'],
   ib:   ['ib-eid','ib-no','ib-date','ib-vendor','ib-po','ib-gst','ib-amt','ib-gstpct','ib-total','ib-due','ib-status','ib-notes'],
-  vnd:  ['vnd-eid','vnd-type','vnd-name','vnd-code','vnd-contact','vnd-phone','vnd-email','vnd-gst','vnd-address','vnd-materials'],
+  buy:  ['buy-eid','buy-name','buy-code','buy-contact','buy-phone','buy-email','buy-gst','buy-terms','buy-address','buy-notes'],
+  cmp:  ['cmp-eid','cmp-name','cmp-short','cmp-gst','cmp-contact','cmp-phone','cmp-email','cmp-state','cmp-address','cmp-notes'],
+  vnd:  ['vnd-eid','vnd-name','vnd-code','vnd-contact','vnd-phone','vnd-email','vnd-gst','vnd-address','vnd-materials'],
   prod: ['prod-eid','prod-name','prod-code','prod-desc','prod-price','prod-hsn','prod-notes']
 };
-const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', ib:'Add Inward Bill', vnd:'Add Vendor', prod:'Add New Product' };
-const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', ib:'Save Inward Bill', vnd:'Save Vendor', prod:'Add Product' };
+const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', ib:'Add Inward Bill', buy:'Add Buyer', cmp:'Add Company Details', vnd:'Add Vendor', prod:'Add New Product' };
+const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', ib:'Save Inward Bill', buy:'Save Buyer', cmp:'Save Company', vnd:'Save Vendor', prod:'Add Product' };
 
 window.clrForm = f => {
   (FORM_FIELDS[f]||[]).forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
@@ -1985,4 +2073,6 @@ window.clrForm = f => {
     syncInvoiceShipping();
   }
   if (f==='ib') { SV('ib-status','Pending'); SV('ib-gstpct','18'); SV('ib-total',''); }
+  if (f==='buy') { SV('buy-status','Active'); SV('buy-terms','Net 30'); }
+  if (f==='cmp') { SV('cmp-status','Active'); }
 };

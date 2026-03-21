@@ -75,6 +75,7 @@ create table if not exists work_orders (
   order_type  text default 'In-house',
   vendor      text,
   service_details text,
+  output_required text,
   qty         numeric default 0,
   produced    numeric default 0,
   start_date  date,
@@ -138,6 +139,42 @@ create table if not exists vendors (
   status      text default 'Active',
   address     text,
   materials   text,
+  created_by  uuid references auth.users(id),
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+
+-- -- BUYERS -----------------------------------------------
+create table if not exists buyers (
+  id          uuid default gen_random_uuid() primary key,
+  name        text not null,
+  code        text,
+  contact     text,
+  phone       text,
+  email       text,
+  gst         text,
+  terms       text,
+  address     text,
+  status      text default 'Active',
+  notes       text,
+  created_by  uuid references auth.users(id),
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+
+-- -- COMPANY DETAILS --------------------------------------
+create table if not exists company_details (
+  id          uuid default gen_random_uuid() primary key,
+  name        text not null,
+  short_name  text,
+  gst         text,
+  contact     text,
+  phone       text,
+  email       text,
+  state_code  text,
+  address     text,
+  status      text default 'Active',
+  notes       text,
   created_by  uuid references auth.users(id),
   created_at  timestamptz default now(),
   updated_at  timestamptz default now()
@@ -242,6 +279,8 @@ alter table work_orders    enable row level security;
 alter table qc_records     enable row level security;
 alter table purchase_orders enable row level security;
 alter table vendors        enable row level security;
+alter table buyers         enable row level security;
+alter table company_details enable row level security;
 alter table sales_orders   enable row level security;
 alter table dispatches     enable row level security;
 alter table invoices       enable row level security;
@@ -256,6 +295,8 @@ create policy "auth_all" on work_orders     for all using (auth.role() = 'authen
 create policy "auth_all" on qc_records      for all using (auth.role() = 'authenticated');
 create policy "auth_all" on purchase_orders for all using (auth.role() = 'authenticated');
 create policy "auth_all" on vendors         for all using (auth.role() = 'authenticated');
+create policy "auth_all" on buyers          for all using (auth.role() = 'authenticated');
+create policy "auth_all" on company_details for all using (auth.role() = 'authenticated');
 create policy "auth_all" on sales_orders    for all using (auth.role() = 'authenticated');
 create policy "auth_all" on dispatches      for all using (auth.role() = 'authenticated');
 create policy "auth_all" on invoices        for all using (auth.role() = 'authenticated');
