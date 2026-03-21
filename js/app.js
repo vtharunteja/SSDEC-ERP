@@ -166,6 +166,14 @@ function parseQCTests(q) {
     general_notes: q.notes || ''
   };
 }
+function formatQCCertificateObservations(q) {
+  const parsed = parseQCTests(q);
+  const items = (parsed.tests || [])
+    .map(t => `<div style="margin-bottom:6px"><strong>${esc(t.name)}</strong>${t.remarks ? `: ${esc(t.remarks)}` : ''}</div>`)
+    .join('');
+  const general = parsed.general_notes ? `<div style="margin-top:8px"><strong>General Notes</strong>: ${esc(parsed.general_notes)}</div>` : '';
+  return items || general ? `${items}${general}` : '';
+}
 
 function pill(s) {
   const m = {
@@ -271,13 +279,70 @@ window.doLogout = async () => {
 
 // Auth state listener
 let isInitialized = false;
+let activeSessionKey = null;
+
+async function initSession(session) {
+  const sessionKey = session?.access_token || session?.user?.id || '';
+  if (!session?.user) {
+    isInitialized = false;
+    activeSessionKey = null;
+    CU = null;
+    if (typeof stopIdleDetection === 'function') stopIdleDetection();
+    document.getElementById('erp').style.display = 'none';
+    document.getElementById('login').classList.add('show');
+    hideLoader();
+    const b = document.getElementById('lbtn');
+    if (b) { b.disabled = false; b.textContent = 'SIGN IN'; }
+    return;
+  }
+  if (isInitialized && activeSessionKey === sessionKey) return;
+
+  isInitialized = true;
+  activeSessionKey = sessionKey;
+  showLoader('Loading your profile...');
+
+  const fallbackProfile = {
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.email,
+    role: 'viewer',
+    dept: 'Management',
+    active: true
+  };
+
+  try {
+    const profilePromise = sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ timedOut:true }), 15000));
+    const result = await Promise.race([profilePromise, timeoutPromise]);
+
+    if (result?.timedOut) {
+      CU = fallbackProfile;
+      toast('Profile load is slow. Continuing with saved session...', 'i');
+    } else if (result?.data) {
+      CU = result.data;
+    } else {
+      await sb.from('profiles').upsert(fallbackProfile);
+      CU = fallbackProfile;
+    }
+  } catch (err) {
+    CU = fallbackProfile;
+    toast('Profile check failed. Continuing with saved session...', 'w');
+  }
+
+  document.getElementById('login').classList.remove('show');
+  document.getElementById('erp').style.display = 'flex';
+  hideLoader();
+  initERP();
+}
 
 sb.auth.onAuthStateChange(async (event, session) => {
   const shouldInit = event === 'INITIAL_SESSION' || event === 'SIGNED_IN';
   const isSignOut  = event === 'SIGNED_OUT';
 
   if (isSignOut) {
-    isInitialized = false; CU = null;
+    isInitialized = false;
+    activeSessionKey = null;
+    CU = null;
     if (typeof stopIdleDetection === 'function') stopIdleDetection();
     document.getElementById('loader').style.display  = 'none';
     document.getElementById('erp').style.display     = 'none';
@@ -287,59 +352,15 @@ sb.auth.onAuthStateChange(async (event, session) => {
     return;
   }
 
-  if (!shouldInit || isInitialized) return;
+  if (!shouldInit) return;
+  await initSession(session);
+});
 
-  if (session?.user) {
-    isInitialized = true;
-    showLoader('Loading your profile...');
-
-    // Safety timeout  if profile load hangs for 8s, show login
-    const safetyTimer = setTimeout(() => {
-      if (document.getElementById('loader').style.display !== 'none') {
-        hideLoader();
-        isInitialized = false;
-        document.getElementById('login').classList.add('show');
-        toast('Session timed out. Please sign in again.', 'e');
-      }
-    }, 8000);
-
-    try {
-      const { data: profile } = await sb
-        .from('profiles').select('*').eq('id', session.user.id).single();
-      clearTimeout(safetyTimer);
-      if (profile) {
-        CU = profile;
-      } else {
-        // Profile missing  create it
-        const np = {
-          id: session.user.id, email: session.user.email,
-          name: session.user.email, role: 'admin',
-          dept: 'Management', active: true
-        };
-        await sb.from('profiles').upsert(np);
-        CU = np;
-      }
-      document.getElementById('login').classList.remove('show');
-      document.getElementById('erp').style.display = 'flex';
-      hideLoader();
-      initERP();
-    } catch(err) {
-      clearTimeout(safetyTimer);
-      // On any DB error still log in with basic profile
-      CU = {
-        id: session.user.id, email: session.user.email,
-        name: session.user.email, role: 'admin', dept: 'Management'
-      };
-      document.getElementById('login').classList.remove('show');
-      document.getElementById('erp').style.display = 'flex';
-      hideLoader();
-      initERP();
-    }
-  } else {
-    // No session  show login immediately
-    document.getElementById('loader').style.display = 'none';
-    document.getElementById('login').classList.add('show');
-  }
+window.addEventListener('load', async () => {
+  try {
+    const { data } = await sb.auth.getSession();
+    if (data?.session?.user) await initSession(data.session);
+  } catch(e) {}
 });// ---
 // LOAD ALL DATA + REALTIME
 // ---
@@ -1351,7 +1372,7 @@ window.generateCert = async (qcId) => {
   if(!certNo){
     const mx=DB.qc_certificates.reduce((m,c)=>Math.max(m,parseInt((c.cert_no||'CERT-0').split('-')[2])||0),0);
     certNo='EIPD-CERT-'+String(mx+1).padStart(4,'0');
-    await dbInsert('qc_certificates',{cert_no:certNo,qc_id:qcId,batch_id:q.batchid,product:q.product,wo_ref:q.wo,issued_by:CU?.name||CU?.email,issued_date:new Date().toISOString().slice(0,10),valid_until:new Date(Date.now()+365*24*60*60*1000).toISOString().slice(0,10),standard:'IEC 61952 / IS 14772',remarks:q.notes||''});
+    await dbInsert('qc_certificates',{cert_no:certNo,qc_id:qcId,batch_id:q.batchid,product:q.product,wo_ref:q.wo,issued_by:CU?.name||CU?.email,issued_date:new Date().toISOString().slice(0,10),valid_until:new Date(Date.now()+365*24*60*60*1000).toISOString().slice(0,10),standard:'IEC 61952 / IS 14772',remarks:formatQCCertificateObservations(q)});
     await logAudit('CREATE','qc_certificates',qcId,certNo);
   }
   const today=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
@@ -1359,6 +1380,7 @@ window.generateCert = async (qcId) => {
   const col=result==='PASSED'?'#166534':'#92400e';
   const bg=result==='PASSED'?'#f0fdf4':'#fffbeb';
   const bdr2=result==='PASSED'?'#22c55e':'#f59e0b';
+  const obsHtml = formatQCCertificateObservations(q);
   const html=`<!DOCTYPE html><html><head><title>QC Certificate ${certNo}</title>
 <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;padding:30px;color:#111;font-size:13px;}
 .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #F97316;padding-bottom:16px;margin-bottom:20px;}
@@ -1387,7 +1409,7 @@ td{padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;}tr:nth-child
 <table><tr><th colspan="4">Certificate Details</th></tr>
 <tr><td><strong>Certificate No.</strong></td><td>${certNo}</td><td><strong>Issue Date</strong></td><td>${today}</td></tr>
 <tr><td><strong>Valid Until</strong></td><td>${valid}</td><td><strong>Issued By</strong></td><td>${CU?.name||CU?.email||'--'}</td></tr>
-${q.notes?`<tr><td><strong>Observations</strong></td><td colspan="3">${q.notes}</td></tr>`:''}</table>
+${obsHtml?`<tr><td><strong>Observations</strong></td><td colspan="3">${obsHtml}</td></tr>`:''}</table>
 <div class="footer">
 <div class="sign-box"><div class="stamp">EIPD QUALITY</div><div class="sign-line">QC Inspector<br>${q.inspector||'--'}</div></div>
 <div class="sign-box"><div class="stamp">EIPD APPROVED</div><div class="sign-line">QC Manager<br>EIPD Plant</div></div>
@@ -1421,4 +1443,5 @@ window.clrForm = f => {
   const tEl = document.getElementById(f+'-ft'); if(tEl) tEl.textContent = FORM_TITLES[f]||'';
   const bEl = document.getElementById(f+'-sb'); if(bEl) bEl.textContent = FORM_BTNS[f]||'Save';
   if (f==='po') { const pa=document.getElementById('po-addr'); if(pa) pa.value='EIPD Plant, Unit 2'; }
+  if (f==='qc') renderQCTestList();
 };

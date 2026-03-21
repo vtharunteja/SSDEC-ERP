@@ -125,8 +125,12 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
   background:rgba(255,255,255,.02);
 }
 .test-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
-.test-row input[type="checkbox"] { width:auto; }
-.test-name { font-size:13px; font-weight:600; color:var(--t2); }
+.test-row input[type="checkbox"] {
+  appearance:auto; -webkit-appearance:checkbox; width:16px; height:16px;
+  min-width:16px; padding:0; margin:0; border:none; box-shadow:none;
+  accent-color:var(--ac); flex:0 0 auto; cursor:pointer;
+}
+.test-name { font-size:13px; font-weight:600; color:var(--t2); cursor:pointer; }
 .test-help { font-size:11px; color:var(--mu); margin-top:6px; }
 .test-remarks { min-height:54px; }
 
