@@ -119,6 +119,17 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .ff { padding:0 18px 18px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
 .ferr { color:var(--rd); font-family:var(--fm); font-size:12px; margin-top:6px; display:none; animation:fadeUp .2s; }
 
+.test-list { display:grid; gap:10px; margin-top:4px; }
+.test-item {
+  border:1px solid var(--br); border-radius:var(--r); padding:10px 12px;
+  background:rgba(255,255,255,.02);
+}
+.test-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.test-row input[type="checkbox"] { width:auto; }
+.test-name { font-size:13px; font-weight:600; color:var(--t2); }
+.test-help { font-size:11px; color:var(--mu); margin-top:6px; }
+.test-remarks { min-height:54px; }
+
 /*  ALERTS  */
 .al  { display:flex; align-items:flex-start; gap:9px; padding:11px 14px; border-radius:var(--r); margin-bottom:10px; font-size:12px; line-height:1.6; }
 .al-i{ flex-shrink:0; font-size:14px; }

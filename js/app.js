@@ -119,6 +119,53 @@ const fmtApprD = d => {
     return `${datePart}, ${timePart}`;
   } catch(e) { return d; }
 };
+const QC_TESTS = [
+  'Visual Inspection',
+  'Dimensional Check',
+  'Creepage Verification',
+  'HV Puncture Test',
+  'Thermal Cycling',
+  'Mechanical Load Test'
+];
+function qcTestId(name){ return name.toLowerCase().replace(/[^a-z0-9]+/g,'-'); }
+function renderQCTestList(selected=[], remarksMap={}) {
+  const wrap = document.getElementById('qc-test-list');
+  if (!wrap) return;
+  wrap.innerHTML = QC_TESTS.map(name => {
+    const id = qcTestId(name);
+    const checked = selected.length ? selected.includes(name) : true;
+    const remarks = remarksMap[name] || '';
+    return `<div class="test-item">
+      <div class="test-row">
+        <input type="checkbox" id="qc-test-${id}" data-qc-test="${esc(name)}" ${checked?'checked':''}/>
+        <label class="test-name" for="qc-test-${id}">${name}</label>
+      </div>
+      <textarea id="qc-remark-${id}" class="test-remarks" placeholder="Remarks for ${name}...">${esc(remarks)}</textarea>
+    </div>`;
+  }).join('');
+}
+function getSelectedQCTests() {
+  const items = [...document.querySelectorAll('[data-qc-test]')];
+  return items
+    .filter(el => el.checked)
+    .map(el => {
+      const name = el.getAttribute('data-qc-test');
+      const remarks = document.getElementById(`qc-remark-${qcTestId(name)}`)?.value.trim() || '';
+      return { name, remarks };
+    });
+}
+function parseQCTests(q) {
+  if (q.notes && String(q.notes).trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(q.notes);
+      if (Array.isArray(parsed.tests)) return parsed;
+    } catch(e) {}
+  }
+  return {
+    tests: q.test ? String(q.test).split(',').map(s => ({ name:s.trim(), remarks:'' })).filter(x=>x.name) : QC_TESTS.map(name => ({ name, remarks:'' })),
+    general_notes: q.notes || ''
+  };
+}
 
 function pill(s) {
   const m = {
@@ -640,6 +687,7 @@ function renderQC() {
   const del = canDelete();
   const roEl = document.getElementById('qc-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('qc-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  renderQCTestList();
   fillProdDDs();
   const sel = document.getElementById('qc-wo');
   if(sel) sel.innerHTML = DB.work_orders.map(w => `<option value="${w.wono}">${w.wono}  ${w.product}</option>`).join('');
@@ -659,23 +707,39 @@ function renderQC() {
       const canCert = parseFloat(pct)>=80;
       const certBtn = canCert ? `<button class="btn bG sm" onclick="generateCert('${q.id}')">Cert</button>` : '';
       const acts = ed ? `<button class="btn bO sm" onclick="editQC('${q.id}')">Edit</button>${certBtn}${del?`<button class="btn bD sm" onclick="delRec('qc_records','${q.id}')">Del</button>`:''}` : certBtn;
-      return `<tr><td class="mn" style="color:var(--ac)">${q.batchid||q.id.slice(-8)}</td><td>${q.product}</td><td class="mn">${q.wo||'--'}</td><td>${q.sample}</td><td style="color:var(--gn)">${q.pass}</td><td style="color:var(--rd)">${fail}</td><td class="mn">${pct}%</td><td>${q.test}</td><td>${q.inspector||'--'}</td><td>${pill(res)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+      return `<tr><td class="mn" style="color:var(--ac)">${q.batchid||q.id.slice(-8)}</td><td>${q.product}</td><td class="mn">${q.wo||'--'}</td><td>${q.sample}</td><td style="color:var(--gn)">${q.pass}</td><td style="color:var(--rd)">${fail}</td><td class="mn">${pct}%</td><td>${esc(q.test||'--')}</td><td>${q.inspector||'--'}</td><td>${pill(res)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="11"><div class="empty"><div class="empty-ic">QC</div><div class="empty-tt">No QC Records</div></div></td></tr>';
 }
 window.saveQC = async () => {
   const eid = V('qc-eid'), sample = parseFloat(V('qc-sample')), pass = parseFloat(V('qc-pass'));
   if (!sample||isNaN(pass)) { toast('Sample size and pieces passed required','e'); return; }
   if (pass > sample) { toast('Pass count cannot exceed sample size','e'); return; }
+  const tests = getSelectedQCTests();
+  if (!tests.length) { toast('Select at least one QC test','e'); return; }
   const today = new Date().toISOString().slice(0,10);
-  const data = { wo:V('qc-wo'), product:V('qc-prod'), sample, pass, test:V('qc-test'), inspector:V('qc-insp')||CU.name, notes:V('qc-notes'), date:today };
+  const generalNotes = V('qc-notes');
+  const data = {
+    wo:V('qc-wo'),
+    product:V('qc-prod'),
+    sample,
+    pass,
+    test:tests.map(t=>t.name).join(', '),
+    inspector:V('qc-insp')||CU.name,
+    notes:JSON.stringify({ tests, general_notes: generalNotes }),
+    date:today
+  };
   if (eid) { if(await dbUpdate('qc_records',eid,data)) toast('QC record updated'); }
   else { data.batchid = 'QC-'+today.replace(/-/g,'').slice(2)+'-'+String(DB.qc_records.length+1).padStart(2,'0'); if(await dbInsert('qc_records',data)) toast(data.batchid+' submitted'); }
   clrForm('qc');
 };
 window.editQC = id => {
   const q = DB.qc_records.find(x=>x.id===id); if(!q) return;
+  const parsed = parseQCTests(q);
+  const selected = parsed.tests.map(t => t.name);
+  const remarksMap = Object.fromEntries(parsed.tests.map(t => [t.name, t.remarks || '']));
   SV('qc-eid',id); SV('qc-wo',q.wo); SV('qc-prod',q.product); SV('qc-sample',q.sample);
-  SV('qc-pass',q.pass); SV('qc-test',q.test); SV('qc-insp',q.inspector); SV('qc-notes',q.notes);
+  SV('qc-pass',q.pass); SV('qc-insp',q.inspector); SV('qc-notes',parsed.general_notes || '');
+  renderQCTestList(selected, remarksMap);
   document.getElementById('qc-ft').textContent = 'Edit  ' + (q.batchid||q.id);
   document.getElementById('qc-fc').scrollIntoView({behavior:'smooth'});
 };

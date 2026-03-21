@@ -168,9 +168,13 @@
             <div class="fr"><label>Product</label><select id="qc-prod"></select></div>
             <div class="fr"><label>Sample Size</label><input type="number" id="qc-sample" min="1"/></div>
             <div class="fr"><label>Pieces Passed</label><input type="number" id="qc-pass" min="0"/></div>
-            <div class="fr"><label>Test Type</label><select id="qc-test"><option>Visual Inspection</option><option>Dimensional Check</option><option>Creepage Verification</option><option>HV Puncture Test</option><option>Thermal Cycling</option><option>Mechanical Load Test</option></select></div>
+            <div class="fr full">
+              <label>Required Tests</label>
+              <div id="qc-test-list" class="test-list"></div>
+              <div class="test-help">Default tests are pre-selected. QC user can add/remove product-specific tests where required.</div>
+            </div>
             <div class="fr"><label>Inspector</label><input type="text" id="qc-insp"/></div>
-            <div class="fr full"><label>Observations</label><textarea id="qc-notes" rows="2"></textarea></div>
+            <div class="fr full"><label>General Observations</label><textarea id="qc-notes" rows="2"></textarea></div>
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('qc')">Clear</button><button class="btn bP" id="qc-sb" onclick="saveQC()">Submit QC Entry</button></div>
         </div>
