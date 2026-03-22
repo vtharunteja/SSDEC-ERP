@@ -1387,6 +1387,14 @@ window.printInv2 = id => {
   td{border-bottom:1px solid #e5e7eb;padding:9px;vertical-align:top}.totals{margin-top:18px;margin-left:auto;width:320px}
   .totals td{border:none;padding:6px 0}.totals .grand td{font-size:15px;font-weight:700;border-top:1px solid #111;padding-top:10px}
   .note{margin-top:20px;border-top:1px dashed #d1d5db;padding-top:12px;color:#555;line-height:1.6}
+  .footer-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:24px;margin-top:26px;align-items:end}
+  .terms-box{border-top:1px solid #d1d5db;padding-top:12px;color:#444}
+  .terms-title{font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:8px}
+  .terms-body{font-size:11px;line-height:1.7;white-space:pre-line}
+  .sign-wrap{text-align:right;border-top:1px solid #d1d5db;padding-top:12px}
+  .sign-space{height:56px}
+  .sign-title{font-size:12px;font-weight:700;text-transform:uppercase}
+  .sign-sub{font-size:11px;color:#666;margin-top:6px}
   @media print{body{padding:16px}}
   </style></head><body>
   <div class="head">
@@ -1434,6 +1442,17 @@ window.printInv2 = id => {
     </div>
   </div>
   <div class="note">Reference: ${esc(inv.ref || '--')}<br>${esc(inv.notes || '')}</div>
+  <div class="footer-grid">
+    <div class="terms-box">
+      <div class="terms-title">Terms and Conditions</div>
+      <div class="terms-body">${esc(company.notes || '1. Goods once sold will not be taken back.\n2. Payment to be made as per agreed terms.\n3. Subject to local jurisdiction only.')}</div>
+    </div>
+    <div class="sign-wrap">
+      <div class="sign-space"></div>
+      <div class="sign-title">Authorised Signature</div>
+      <div class="sign-sub">For ${esc(company.name || company.short_name || 'Company')}</div>
+    </div>
+  </div>
   </body></html>`;
   const win = window.open('', '_blank', 'width=980,height=780');
   if (!win) return toast('Allow pop-ups and try again', 'e');
