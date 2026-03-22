@@ -336,16 +336,24 @@ function fillPartyDDs() {
 
 function hydrateInvoiceForm() {
   fillPartyDDs();
-  syncInvoiceShipping();
   const same = document.getElementById('inv2-same');
   const ship = document.getElementById('inv2-shipaddr');
   const bill = document.getElementById('inv2-billaddr');
+  if (same && !same.dataset.bound) {
+    same.addEventListener('change', syncInvoiceShipping);
+    same.dataset.bound = '1';
+  }
+  if (bill && !bill.dataset.bound) {
+    bill.addEventListener('input', syncInvoiceShipping);
+    bill.dataset.bound = '1';
+  }
   if (same) {
     same.style.cursor = 'pointer';
     same.title = same.checked ? 'Shipping follows billing address' : 'Shipping can be entered separately';
   }
   if (ship) ship.placeholder = same?.checked ? 'Auto-filled from billing address' : 'Enter shipping address';
   if (bill) bill.placeholder = 'Buyer billing address';
+  syncInvoiceShipping();
 }
 
 function toggleWOServiceFields() {
@@ -394,10 +402,13 @@ function syncInvoiceShipping() {
   if (!same || !ship || !bill) return;
   if (same.checked) {
     ship.value = bill.value;
+    ship.dataset.syncedFromBilling = '1';
     ship.setAttribute('readonly', 'readonly');
     ship.classList.add('is-locked');
     ship.placeholder = 'Auto-filled from billing address';
   } else {
+    if (ship.dataset.syncedFromBilling === '1') ship.value = '';
+    delete ship.dataset.syncedFromBilling;
     ship.removeAttribute('readonly');
     ship.classList.remove('is-locked');
     ship.placeholder = 'Enter shipping address';
@@ -564,7 +575,7 @@ window.autofillInvoiceSO = () => {
   if (so.customer) SV('inv2-party', so.customer);
   if (so.gst) SV('inv2-cgst', so.gst);
   if (so.addr) {
-    if (!V('inv2-billaddr')) SV('inv2-billaddr', soAddress(so));
+    SV('inv2-billaddr', so.addr || '');
     if (!document.getElementById('inv2-same')?.checked) SV('inv2-shipaddr', soAddress(so));
   }
   syncInvoiceShipping();
