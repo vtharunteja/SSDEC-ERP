@@ -77,6 +77,12 @@ create table if not exists company_details (
   epfo_no text,
   cin_no text,
   iec_code text,
+  bank_name text,
+  account_name text,
+  account_number text,
+  ifsc_code text,
+  branch_name text,
+  upi_id text,
   other_registrations text,
   address text,
   status text default 'Active',
@@ -93,6 +99,12 @@ alter table if exists company_details
   add column if not exists epfo_no text,
   add column if not exists cin_no text,
   add column if not exists iec_code text,
+  add column if not exists bank_name text,
+  add column if not exists account_name text,
+  add column if not exists account_number text,
+  add column if not exists ifsc_code text,
+  add column if not exists branch_name text,
+  add column if not exists upi_id text,
   add column if not exists other_registrations text;
 
 alter table buyers enable row level security;

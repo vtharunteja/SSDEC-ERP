@@ -1390,6 +1390,24 @@ window.printInv2 = id => {
     <tr><td>GST</td><td style="text-align:right">${fmtM(gstValue)}</td></tr>
     <tr class="grand"><td>Grand Total</td><td style="text-align:right">${fmtM(total)}</td></tr>
   </table>
+  <div class="grid" style="margin-top:18px">
+    <div class="box">
+      <h4>Bank Details</h4>
+      <div><strong>Bank</strong>: ${esc(company.bank_name || '--')}</div>
+      <div><strong>Account Name</strong>: ${esc(company.account_name || '--')}</div>
+      <div><strong>Account Number</strong>: ${esc(company.account_number || '--')}</div>
+      <div><strong>IFSC</strong>: ${esc(company.ifsc_code || '--')}</div>
+      <div><strong>Branch</strong>: ${esc(company.branch_name || '--')}</div>
+      <div><strong>UPI</strong>: ${esc(company.upi_id || '--')}</div>
+    </div>
+    <div class="box">
+      <h4>Company Compliance</h4>
+      <div><strong>PAN</strong>: ${esc(company.pan || '--')}</div>
+      <div><strong>MSME</strong>: ${esc(company.msme || '--')}</div>
+      <div><strong>ESI</strong>: ${esc(company.esi_no || '--')}</div>
+      <div><strong>EPFO</strong>: ${esc(company.epfo_no || '--')}</div>
+    </div>
+  </div>
   <div class="note">Reference: ${esc(inv.ref || '--')}<br>${esc(inv.notes || '')}</div>
   </body></html>`;
   const win = window.open('', '_blank', 'width=980,height=780');
@@ -1535,6 +1553,12 @@ window.saveCompany = async () => {
     epfo_no:V('cmp-epfo'),
     cin_no:V('cmp-cin'),
     iec_code:V('cmp-iec'),
+    bank_name:V('cmp-bank'),
+    account_name:V('cmp-bank-name'),
+    account_number:V('cmp-bank-ac'),
+    ifsc_code:V('cmp-ifsc'),
+    branch_name:V('cmp-branch'),
+    upi_id:V('cmp-upi'),
     other_registrations:V('cmp-other'),
     address:V('cmp-address'),
     status:V('cmp-status'),
@@ -1546,7 +1570,7 @@ window.saveCompany = async () => {
 };
 window.editCompany = id => {
   const c = DB.company_details.find(x => x.id === id); if (!c) return;
-  SV('cmp-eid', id); SV('cmp-name', c.name); SV('cmp-short', c.short_name); SV('cmp-gst', c.gst); SV('cmp-pan', c.pan); SV('cmp-msme', c.msme); SV('cmp-contact', c.contact); SV('cmp-phone', c.phone); SV('cmp-email', c.email); SV('cmp-state', c.state_code); SV('cmp-esi', c.esi_no); SV('cmp-epfo', c.epfo_no); SV('cmp-cin', c.cin_no); SV('cmp-iec', c.iec_code); SV('cmp-other', c.other_registrations); SV('cmp-address', c.address); SV('cmp-status', c.status); SV('cmp-notes', c.notes);
+  SV('cmp-eid', id); SV('cmp-name', c.name); SV('cmp-short', c.short_name); SV('cmp-gst', c.gst); SV('cmp-pan', c.pan); SV('cmp-msme', c.msme); SV('cmp-contact', c.contact); SV('cmp-phone', c.phone); SV('cmp-email', c.email); SV('cmp-state', c.state_code); SV('cmp-esi', c.esi_no); SV('cmp-epfo', c.epfo_no); SV('cmp-cin', c.cin_no); SV('cmp-iec', c.iec_code); SV('cmp-bank', c.bank_name); SV('cmp-bank-name', c.account_name); SV('cmp-bank-ac', c.account_number); SV('cmp-ifsc', c.ifsc_code); SV('cmp-branch', c.branch_name); SV('cmp-upi', c.upi_id); SV('cmp-other', c.other_registrations); SV('cmp-address', c.address); SV('cmp-status', c.status); SV('cmp-notes', c.notes);
   document.getElementById('cmp-ft').textContent = 'Edit ' + c.name;
   document.getElementById('cmp-fc').scrollIntoView({behavior:'smooth'});
 };
@@ -2091,7 +2115,7 @@ const FORM_FIELDS = {
   inv2: ['inv2-eid','inv2-no','inv2-company','inv2-buyer','inv2-party','inv2-cgst','inv2-so','inv2-date','inv2-due','inv2-terms','inv2-ref','inv2-status','inv2-billaddr','inv2-shipaddr','inv2-notes'],
   ib:   ['ib-eid','ib-no','ib-date','ib-vendor','ib-po','ib-gst','ib-amt','ib-gstpct','ib-total','ib-due','ib-status','ib-notes'],
   buy:  ['buy-eid','buy-name','buy-code','buy-contact','buy-phone','buy-email','buy-gst','buy-terms','buy-address','buy-notes'],
-  cmp:  ['cmp-eid','cmp-name','cmp-short','cmp-gst','cmp-pan','cmp-msme','cmp-contact','cmp-phone','cmp-email','cmp-state','cmp-esi','cmp-epfo','cmp-cin','cmp-iec','cmp-other','cmp-address','cmp-notes'],
+  cmp:  ['cmp-eid','cmp-name','cmp-short','cmp-gst','cmp-pan','cmp-msme','cmp-contact','cmp-phone','cmp-email','cmp-state','cmp-esi','cmp-epfo','cmp-cin','cmp-iec','cmp-bank','cmp-bank-name','cmp-bank-ac','cmp-ifsc','cmp-branch','cmp-upi','cmp-other','cmp-address','cmp-notes'],
   vnd:  ['vnd-eid','vnd-name','vnd-code','vnd-contact','vnd-phone','vnd-email','vnd-gst','vnd-address','vnd-materials'],
   prod: ['prod-eid','prod-name','prod-code','prod-desc','prod-price','prod-hsn','prod-notes']
 };
