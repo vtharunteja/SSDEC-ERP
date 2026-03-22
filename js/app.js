@@ -336,12 +336,17 @@ function fillPartyDDs() {
 
 function hydrateInvoiceForm() {
   fillPartyDDs();
-  const same = document.getElementById('inv2-same');
+  const same = document.getElementById('inv2-addr-same');
+  const separate = document.getElementById('inv2-addr-separate');
   const ship = document.getElementById('inv2-shipaddr');
   const bill = document.getElementById('inv2-billaddr');
   if (same && !same.dataset.bound) {
     same.addEventListener('change', syncInvoiceShipping);
     same.dataset.bound = '1';
+  }
+  if (separate && !separate.dataset.bound) {
+    separate.addEventListener('change', syncInvoiceShipping);
+    separate.dataset.bound = '1';
   }
   if (bill && !bill.dataset.bound) {
     bill.addEventListener('input', syncInvoiceShipping);
@@ -351,6 +356,7 @@ function hydrateInvoiceForm() {
     same.style.cursor = 'pointer';
     same.title = same.checked ? 'Shipping follows billing address' : 'Shipping can be entered separately';
   }
+  if (separate) separate.title = separate.checked ? 'Shipping can be entered separately' : 'Shipping follows billing address';
   if (ship) ship.placeholder = same?.checked ? 'Auto-filled from billing address' : 'Enter shipping address';
   if (bill) bill.placeholder = 'Buyer billing address';
   syncInvoiceShipping();
@@ -396,7 +402,8 @@ function applyBranding() {
 }
 
 function syncInvoiceShipping() {
-  const same = document.getElementById('inv2-same');
+  const same = document.getElementById('inv2-addr-same');
+  const separate = document.getElementById('inv2-addr-separate');
   const bill = document.getElementById('inv2-billaddr');
   const ship = document.getElementById('inv2-shipaddr');
   if (!same || !ship || !bill) return;
@@ -414,6 +421,7 @@ function syncInvoiceShipping() {
     ship.placeholder = 'Enter shipping address';
   }
   same.title = same.checked ? 'Shipping follows billing address' : 'Shipping can be entered separately';
+  if (separate) separate.title = separate.checked ? 'Shipping can be entered separately' : 'Shipping follows billing address';
 }
 
 function autofillInvoiceBuyer() {
@@ -576,7 +584,7 @@ window.autofillInvoiceSO = () => {
   if (so.gst) SV('inv2-cgst', so.gst);
   if (so.addr) {
     SV('inv2-billaddr', so.addr || '');
-    if (!document.getElementById('inv2-same')?.checked) SV('inv2-shipaddr', soAddress(so));
+    if (!document.getElementById('inv2-addr-same')?.checked) SV('inv2-shipaddr', soAddress(so));
   }
   syncInvoiceShipping();
   renderInvoiceLines([{
@@ -1445,7 +1453,7 @@ window.saveInv2 = async () => {
     buyer:V('inv2-buyer'),
     company:V('inv2-company'),
     customer_gst:V('inv2-cgst'),
-    bill_to_same:document.getElementById('inv2-same')?.checked || false,
+    bill_to_same:document.getElementById('inv2-addr-same')?.checked || false,
     billing_addr:V('inv2-billaddr'),
     shipping_addr:V('inv2-shipaddr'),
     soref:V('inv2-so'),
@@ -1472,7 +1480,10 @@ window.editInv2 = id => {
   SV('inv2-eid',id); SV('inv2-no',i.invno); SV('inv2-company',i.company); SV('inv2-buyer',i.buyer); SV('inv2-party',i.party); SV('inv2-cgst',i.customer_gst); SV('inv2-so',i.soref);
   SV('inv2-date',i.date); SV('inv2-due',i.due); SV('inv2-terms',i.terms); SV('inv2-ref',i.ref); SV('inv2-status',i.status); SV('inv2-notes',i.notes);
   SV('inv2-billaddr',i.billing_addr || ''); SV('inv2-shipaddr',i.shipping_addr || '');
-  const same = document.getElementById('inv2-same'); if (same) same.checked = !!i.bill_to_same;
+  const same = document.getElementById('inv2-addr-same');
+  const separate = document.getElementById('inv2-addr-separate');
+  if (same) same.checked = !!i.bill_to_same;
+  if (separate) separate.checked = !i.bill_to_same;
   renderInvoiceLines(getInvoiceItems(i));
   syncInvoiceShipping();
   document.getElementById('inv2-ft').textContent = 'Edit '+(i.invno||'Invoice');
@@ -2304,8 +2315,10 @@ window.clrForm = f => {
   if (f==='qc') renderQCTestList();
   if (f==='wo') { SV('wo-type','In-house'); toggleWOServiceFields(); }
   if (f==='inv2') {
-    const same = document.getElementById('inv2-same');
+    const same = document.getElementById('inv2-addr-same');
+    const separate = document.getElementById('inv2-addr-separate');
     if (same) same.checked = true;
+    if (separate) separate.checked = false;
     renderInvoiceLines();
     syncInvoiceShipping();
   }

@@ -353,9 +353,13 @@
             <div class="fr full">
               <div class="addr-block">
                 <div class="checkpanel">
-                  <label class="checkline" for="inv2-same">
-                    <input type="checkbox" id="inv2-same" checked onchange="syncInvoiceShipping()"/>
-                    <span>Billing and shipping address are same</span>
+                  <label class="checkline" for="inv2-addr-same">
+                    <input type="radio" id="inv2-addr-same" name="inv2-addrmode" value="same" checked onchange="syncInvoiceShipping()"/>
+                    <span>Same as billing address</span>
+                  </label>
+                  <label class="checkline" for="inv2-addr-separate">
+                    <input type="radio" id="inv2-addr-separate" name="inv2-addrmode" value="separate" onchange="syncInvoiceShipping()"/>
+                    <span>Use separate shipping address</span>
                   </label>
                 </div>
                 <div class="addr-stack">
