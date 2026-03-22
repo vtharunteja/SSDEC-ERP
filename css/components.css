@@ -199,15 +199,22 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .checkline input[type="checkbox"] { width:16px; height:16px; flex:0 0 16px; margin:0; accent-color:var(--ac); cursor:pointer; }
 .checkline span { line-height:1.4; }
 .is-locked { opacity:.85; border-style:dashed; background:rgba(255,255,255,.03); }
+.addr-block { display:grid; gap:10px; }
+.addr-stack { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.addr-field label { display:block; font-family:var(--fm); font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--mu); margin-bottom:6px; }
 .line-card { border:1px solid var(--br); border-radius:var(--r); background:var(--bg); padding:14px; }
 .line-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .line-title { font-size:14px; font-weight:700; color:var(--t2); }
 .line-sub { font-size:11px; color:var(--mu); margin-top:2px; }
 .line-item { border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:12px; background:rgba(255,255,255,.02); margin-bottom:10px; }
-.line-grid { display:grid; grid-template-columns:1.15fr 1.4fr .7fr .8fr .7fr .8fr auto; gap:10px; align-items:end; }
+.line-grid { display:grid; grid-template-columns:1.15fr .8fr 1.4fr .7fr .8fr .7fr .8fr auto; gap:10px; align-items:end; }
 .line-col label { display:block; font-family:var(--fm); font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--mu); margin-bottom:6px; }
 .line-total { min-width:90px; font-family:var(--fm); font-size:12px; color:var(--gn); font-weight:700; padding:10px 0; }
 .line-totals { display:flex; justify-content:flex-end; gap:18px; flex-wrap:wrap; border-top:1px dashed var(--br); margin-top:12px; padding-top:12px; font-size:12px; color:var(--t2); }
+@media (max-width: 900px) {
+  .addr-stack { grid-template-columns:1fr; }
+  .line-grid { grid-template-columns:1fr 1fr; }
+}
 .line-totals strong { color:var(--gn); font-size:14px; }
 .addr-stack { display:grid; gap:10px; }
 .muted-help { font-size:11px; color:var(--mu); margin-top:4px; }
