@@ -301,6 +301,7 @@ function setOptions(id, items, valueKey='name', labelFn=null, placeholder='-- Se
 }
 function fillPartyDDs() {
   setOptions('wo-vendor', DB.vendors.filter(v => entityType(v) === 'Vendor' && (!v.category || v.category === 'Services' || v.category === 'Logistics' || v.category === 'Machinery' || v.category === 'Consumables' || v.category === 'Raw Material')), 'name', v => `${v.name}${v.category ? ' - ' + v.category : ''}`, '-- Select service vendor --');
+  setOptions('po-sup', DB.vendors.filter(v => entityType(v) === 'Vendor' && (v.status || 'Active') !== 'Blacklisted'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select supplier --');
   setOptions('so-buyer', DB.buyers.filter(v => (v.status || 'Active') === 'Active'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select buyer --');
   setOptions('inv2-buyer', DB.buyers.filter(v => (v.status || 'Active') === 'Active'), 'name', v => `${v.name}${v.gst ? ' - ' + v.gst : ''}`, '-- Select buyer --');
   setOptions('inv2-company', DB.company_details.filter(v => (v.status || 'Active') === 'Active'), 'name', v => v.name, '-- Select company --');
@@ -1190,7 +1191,7 @@ function renderPO() {
     .filter(p => !flt || p.status===flt)
     .map(p => {
       const apprBadge2 = approvalBadge(p.id,'purchase_orders',p.pono||p.id,ed);
-      const acts = ed ? `<button class="btn bO sm" onclick="editPO('${p.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('purchase_orders','${p.id}','po')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('purchase_orders','${p.id}')">Del</button>`:''}` : '';
+      const acts = `<button class="btn bG sm" onclick="printPO('${p.id}')">Print</button>` + (ed ? `<button class="btn bO sm" onclick="editPO('${p.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('purchase_orders','${p.id}','po')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('purchase_orders','${p.id}')">Del</button>`:''}` : '');
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${p.pono||p.id.slice(-8)}</td><td>${p.material}</td><td>${p.supplier}</td><td class="mn">${p.qty}</td><td class="mn">${fmtM(parseFloat(p.qty||0)*parseFloat(p.price||0))}</td><td>${fmtD(p.date)}</td><td>${pill(p.status)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${apprBadge2}${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">PO</div><div class="empty-tt">No Purchase Orders</div></div></td></tr>';
 }
@@ -1214,6 +1215,109 @@ window.editPO = id => {
   SV('po-price',p.price); SV('po-date',p.date); SV('po-addr',p.addr); SV('po-notes',p.notes);
   document.getElementById('po-ft').textContent = 'Edit '+(p.pono||'PO');
   document.getElementById('po-fc').scrollIntoView({behavior:'smooth'});
+};
+window.printPO = id => {
+  const po = DB.purchase_orders.find(x => x.id === id); if (!po) return;
+  const company = getActiveCompany() || DB.company_details[0] || {};
+  const vendor = getVendorByName(po.supplier) || {};
+  const item = DB.inventory.find(i => i.name === po.material) || {};
+  const qty = parseFloat(po.qty || 0);
+  const price = parseFloat(po.price || 0);
+  const amount = qty * price;
+  const terms = vendor.payment_terms || vendor.terms || 'As agreed';
+  const html = `<!DOCTYPE html><html><head><title>Purchase Order ${esc(po.pono || '')}</title>
+  <style>
+  *{box-sizing:border-box} body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:12px}
+  .head{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #f97316;padding-bottom:16px;margin-bottom:16px}
+  .brand{font-size:22px;font-weight:700;color:#f97316}.sub{font-size:11px;color:#666;margin-top:4px;line-height:1.6}
+  .title{font-size:20px;font-weight:700;text-transform:uppercase}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  .box{border:1px solid #e5e7eb;border-radius:8px;padding:12px}.box h4{margin:0 0 8px 0;font-size:12px;text-transform:uppercase;color:#666;letter-spacing:1px}
+  table{width:100%;border-collapse:collapse;margin-top:14px} th{background:#f97316;color:#fff;padding:9px;font-size:11px;text-align:left}
+  td{border-bottom:1px solid #e5e7eb;padding:9px;vertical-align:top}
+  .meta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  .meta .box{padding:10px}
+  .footer-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:24px;margin-top:26px;align-items:end}
+  .terms-box{border-top:1px solid #d1d5db;padding-top:12px;color:#444}
+  .terms-title{font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:8px}
+  .terms-body{font-size:11px;line-height:1.7;white-space:pre-line}
+  .sign-wrap{text-align:right;border-top:1px solid #d1d5db;padding-top:12px}
+  .sign-space{height:56px}
+  .sign-title{font-size:12px;font-weight:700;text-transform:uppercase}
+  .sign-sub{font-size:11px;color:#666;margin-top:6px}
+  @media print{body{padding:16px}}
+  </style></head><body>
+  <div class="head">
+    <div>
+      <div class="brand">${esc(company.name || company.short_name || 'EIPD ERP')}</div>
+      <div class="sub">${esc(company.address || 'Company address not set')}<br>GST: ${esc(company.gst || '--')} ${company.pan ? '<br>PAN: ' + esc(company.pan) : ''}${company.phone ? '<br>Phone: ' + esc(company.phone) : ''}${company.email ? '<br>Email: ' + esc(company.email) : ''}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="title">Purchase Order</div>
+      <div style="margin-top:8px">PO No: <strong>${esc(po.pono || '--')}</strong></div>
+      <div>Required By: <strong>${esc(fmtD(po.date))}</strong></div>
+      <div>Status: <strong>${esc(po.status || 'Pending Approval')}</strong></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="box">
+      <h4>Supplier</h4>
+      <div><strong>${esc(po.supplier || vendor.name || '--')}</strong></div>
+      <div>Contact: ${esc(vendor.contact || '--')}</div>
+      <div>Phone: ${esc(vendor.phone || '--')}</div>
+      <div>Email: ${esc(vendor.email || '--')}</div>
+      <div>GST: ${esc(vendor.gst || '--')}</div>
+      <div style="white-space:pre-line">${esc(vendor.address || '--')}</div>
+    </div>
+    <div class="box">
+      <h4>Deliver To</h4>
+      <div><strong>${esc(company.name || company.short_name || '--')}</strong></div>
+      <div style="white-space:pre-line">${esc(po.addr || company.address || '--')}</div>
+      <div style="margin-top:8px">Kindly supply the following item(s) as per this purchase order.</div>
+    </div>
+  </div>
+  <div class="meta">
+    <div class="box"><strong>Payment Terms</strong><br>${esc(terms)}</div>
+    <div class="box"><strong>Vendor Category</strong><br>${esc(vendor.category || '--')}</div>
+    <div class="box"><strong>PO Value</strong><br>${fmtM(amount)}</div>
+    <div class="box"><strong>Delivery Date</strong><br>${esc(fmtD(po.date))}</div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Material / Service</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>${esc(po.material || '--')}</td>
+        <td>${esc(item.notes || item.description || vendor.materials || po.notes || '--')}</td>
+        <td>${esc(item.unit || '--')}</td>
+        <td>${qty}</td>
+        <td>${fmtM(price)}</td>
+        <td>${fmtM(amount)}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="footer-grid">
+    <div class="terms-box">
+      <div class="terms-title">Terms and Conditions</div>
+      <div class="terms-body">1. Please mention PO No. on invoice and delivery documents.
+2. Delivery to be completed on or before ${esc(fmtD(po.date))}.
+3. Material / service should match agreed specifications and quality.
+4. Payment terms: ${esc(terms)}.
+${esc(po.notes || company.notes || '')}</div>
+    </div>
+    <div class="sign-wrap">
+      <div class="sign-space"></div>
+      <div class="sign-title">Authorised Signatory</div>
+      <div class="sign-sub">For ${esc(company.name || company.short_name || 'Company')}</div>
+    </div>
+  </div>
+  </body></html>`;
+  const win = window.open('', '_blank');
+  if (!win) return toast('Allow pop-ups and try again', 'e');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.print();
 };
 
 // ---
