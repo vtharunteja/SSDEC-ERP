@@ -196,7 +196,13 @@ textarea { resize:vertical; min-height:68px; line-height:1.5; }
 .pw-title{ font-family:var(--fm); font-size:10px; color:var(--mu); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; }
 .checkline { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; color:var(--t2); cursor:pointer; user-select:none; width:100%; }
 .checkpanel { border:1px solid var(--br); border-radius:var(--r); background:var(--bg); padding:12px 14px; min-height:48px; display:grid; gap:10px; }
-.checkline input[type="checkbox"], .checkline input[type="radio"] { width:16px; height:16px; flex:0 0 16px; margin:0; accent-color:var(--ac); cursor:pointer; }
+.checkline input[type="checkbox"], .checkline input[type="radio"] {
+  width:16px; height:16px; flex:0 0 16px; margin:0; accent-color:var(--ac); cursor:pointer;
+  padding:0; border:none; box-shadow:none; background:transparent;
+}
+.checkline input[type="radio"] {
+  appearance:auto; -webkit-appearance:radio;
+}
 .checkline span { line-height:1.4; }
 .is-locked { opacity:.85; border-style:dashed; background:rgba(255,255,255,.03); }
 .addr-block { display:grid; gap:10px; }
