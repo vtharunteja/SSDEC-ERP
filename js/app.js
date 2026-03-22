@@ -44,7 +44,7 @@ const NAV_ACCESS = {
   production: ['dashboard','production','machines','quality','fg'],
   storekeeper:['dashboard','inventory','fg','purchase','vendors'],
   qc:         ['dashboard','quality'],
-  dispatch:   ['dashboard','sales','dispatch','invoices','ibill','buyers','company','fg'],
+  dispatch:   ['dashboard','sales','dispatch','invoices','ibill','buyers','fg'],
   viewer:     ['dashboard','reports']
 };
 const CAN_EDIT = {
@@ -53,7 +53,7 @@ const CAN_EDIT = {
   production: ['production','machines','quality','fg'],
   storekeeper:['inventory','fg','purchase','vendors'],
   qc:         ['quality'],
-  dispatch:   ['dispatch','invoices','ibill','buyers','company','fg'],
+  dispatch:   ['dispatch','invoices','ibill','buyers','fg'],
   viewer:     []
 };
 const STATUSES = {
