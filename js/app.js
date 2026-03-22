@@ -649,12 +649,16 @@ window.doLogout = async () => {
 let isInitialized = false;
 let activeSessionKey = null;
 let erpBooted = false;
+let sessionInitPromise = null;
+let erpDataLoaded = false;
 
 async function initSession(session) {
   const sessionKey = session?.access_token || session?.user?.id || '';
   if (!session?.user) {
     isInitialized = false;
     activeSessionKey = null;
+    sessionInitPromise = null;
+    erpDataLoaded = false;
     CU = null;
     if (typeof stopIdleDetection === 'function') stopIdleDetection();
     document.getElementById('erp').style.display = 'none';
@@ -664,46 +668,56 @@ async function initSession(session) {
     if (b) { b.disabled = false; b.textContent = 'SIGN IN'; }
     return;
   }
-  if (isInitialized && activeSessionKey === sessionKey) return;
+  if (sessionInitPromise) return sessionInitPromise;
+  if (isInitialized && activeSessionKey === sessionKey && erpBooted) return;
 
-  isInitialized = true;
-  activeSessionKey = sessionKey;
-  showLoader('Loading your profile...');
+  sessionInitPromise = (async () => {
+    isInitialized = true;
+    activeSessionKey = sessionKey;
+    showLoader('Loading your profile...');
 
-  const fallbackProfile = {
-    id: session.user.id,
-    email: session.user.email,
-    name: session.user.email,
-    role: 'viewer',
-    dept: 'Management',
-    active: true
-  };
+    const fallbackProfile = {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.email,
+      role: 'viewer',
+      dept: 'Management',
+      active: true
+    };
+
+    try {
+      const profilePromise = sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+      const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ timedOut:true }), 15000));
+      const result = await Promise.race([profilePromise, timeoutPromise]);
+
+      if (result?.timedOut) {
+        CU = fallbackProfile;
+        toast('Profile load is slow. Continuing with saved session...', 'i');
+      } else if (result?.data) {
+        CU = result.data;
+      } else {
+        await sb.from('profiles').upsert(fallbackProfile);
+        CU = fallbackProfile;
+      }
+    } catch (err) {
+      CU = fallbackProfile;
+      toast('Profile check failed. Continuing with saved session...', 'w');
+    }
+
+    document.getElementById('login').classList.remove('show');
+    document.getElementById('erp').style.display = 'flex';
+    if (!erpBooted) {
+      erpBooted = true;
+      await initERP();
+    }
+    hideLoader();
+  })();
 
   try {
-    const profilePromise = sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ timedOut:true }), 15000));
-    const result = await Promise.race([profilePromise, timeoutPromise]);
-
-    if (result?.timedOut) {
-      CU = fallbackProfile;
-      toast('Profile load is slow. Continuing with saved session...', 'i');
-    } else if (result?.data) {
-      CU = result.data;
-    } else {
-      await sb.from('profiles').upsert(fallbackProfile);
-      CU = fallbackProfile;
-    }
-  } catch (err) {
-    CU = fallbackProfile;
-    toast('Profile check failed. Continuing with saved session...', 'w');
+    await sessionInitPromise;
+  } finally {
+    sessionInitPromise = null;
   }
-
-  document.getElementById('login').classList.remove('show');
-  document.getElementById('erp').style.display = 'flex';
-  hideLoader();
-  if (erpBooted) return;
-  erpBooted = true;
-  initERP();
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
@@ -714,6 +728,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
     isInitialized = false;
     activeSessionKey = null;
     erpBooted = false;
+    sessionInitPromise = null;
+    erpDataLoaded = false;
     CU = null;
     if (typeof stopIdleDetection === 'function') stopIdleDetection();
     document.getElementById('loader').style.display  = 'none';
@@ -737,13 +753,13 @@ window.addEventListener('load', async () => {
 // LOAD ALL DATA + REALTIME
 // ---
 async function loadAllData() {
-  showLoader('Loading ERP data...');
+  if (!erpDataLoaded) showLoader('Loading ERP data...');
   const tables = Object.keys(DB);
   await Promise.all(tables.map(async tbl => {
     const { data } = await sb.from(tbl).select('*').order('created_at', { ascending: false });
     DB[tbl] = data || [];
   }));
-  hideLoader();
+  erpDataLoaded = true;
   applyBranding();
   fillProdDDs();
   renderDash();
@@ -812,7 +828,7 @@ async function refreshTable(tbl) {
 // ---
 // ERP INIT
 // ---
-function initERP() {
+async function initERP() {
   const r = ROLES[CU.role] || ROLES.viewer;
   const av = document.getElementById('hav');
   av.textContent = ini(CU.name || CU.email || '?');
@@ -828,7 +844,7 @@ function initERP() {
 
   setInterval(tick, 1000); tick();
   buildSB();
-  loadAllData();
+  await loadAllData();
   goTab('dashboard');
   setTimeout(()=>logAudit('LOGIN','auth',CU?.id||'',CU?.email||''),2000);
 }
