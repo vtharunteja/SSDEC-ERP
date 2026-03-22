@@ -330,6 +330,20 @@ function fillPartyDDs() {
   syncInvoiceShipping();
 }
 
+function hydrateInvoiceForm() {
+  fillPartyDDs();
+  syncInvoiceShipping();
+  const same = document.getElementById('inv2-same');
+  const ship = document.getElementById('inv2-shipaddr');
+  const bill = document.getElementById('inv2-billaddr');
+  if (same) {
+    same.style.cursor = 'pointer';
+    same.title = same.checked ? 'Shipping follows billing address' : 'Shipping can be entered separately';
+  }
+  if (ship) ship.placeholder = same?.checked ? 'Auto-filled from billing address' : 'Enter shipping address';
+  if (bill) bill.placeholder = 'Buyer billing address';
+}
+
 function toggleWOServiceFields() {
   const isExternal = V('wo-type') === 'External Service';
   const vendor = document.getElementById('wo-vendor');
@@ -359,10 +373,13 @@ function syncInvoiceShipping() {
     ship.value = bill.value;
     ship.setAttribute('readonly', 'readonly');
     ship.classList.add('is-locked');
+    ship.placeholder = 'Auto-filled from billing address';
   } else {
     ship.removeAttribute('readonly');
     ship.classList.remove('is-locked');
+    ship.placeholder = 'Enter shipping address';
   }
+  same.title = same.checked ? 'Shipping follows billing address' : 'Shipping can be entered separately';
 }
 
 function autofillInvoiceBuyer() {
@@ -532,6 +549,7 @@ window.autofillSalesBuyer = autofillSalesBuyer;
 window.syncInvoiceShipping = syncInvoiceShipping;
 window.autofillInvoiceBuyer = autofillInvoiceBuyer;
 window.autofillInvoiceCompany = autofillInvoiceCompany;
+window.hydrateInvoiceForm = hydrateInvoiceForm;
 
 // ---
 // AUTH
@@ -1249,6 +1267,7 @@ function renderInv2() {
   const roEl = document.getElementById('inv2-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('inv2-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
   if (document.getElementById('inv2-lines') && !document.querySelector('[data-inv2-line]')) renderInvoiceLines();
+  hydrateInvoiceForm();
   let alerts = '';
   DB.invoices.filter(i=>i.status==='Overdue').forEach(i=>alerts+=`<div class="al ald"><span class="al-i">!!</span>Overdue: <strong>${i.invno||'Invoice'}</strong>  ${i.party}  ${fmtM(i.total)}</div>`);
   const a2El = document.getElementById('inv2-alerts'); if(a2El) a2El.innerHTML = alerts;
