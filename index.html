@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>EIPD ERP</title>
+<title id="doc-title">EIPD ERP</title>
 <meta name="description" content="EIPD ERP - Polymer Insulator Manufacturing"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/layout.css"/>
@@ -14,8 +14,8 @@
 
 <!-- LOADER -->
 <div id="loader" style="display:none!important;visibility:hidden">
-  <div class="loader-logo">EIPD ERP</div>
-  <div class="loader-sub">// POLYMER INSULATOR MANUFACTURING</div>
+  <div class="loader-logo" id="brand-loader-name">EIPD ERP</div>
+  <div class="loader-sub" id="brand-loader-sub">// POLYMER INSULATOR MANUFACTURING</div>
   <div class="spin"></div>
   <div class="loader-msg" id="loader-msg">Initializing...</div>
 </div>
@@ -28,10 +28,10 @@
   <div class="login-dots"></div>
   <div class="login-card">
     <div class="login-brand">
-      <div class="brand-icon">E</div>
+      <div class="brand-icon" id="brand-login-icon">E</div>
       <div>
-        <div class="brand-name">EIPD ERP</div>
-        <div class="brand-sub">Polymer Insulator Manufacturing</div>
+        <div class="brand-name" id="brand-login-name">EIPD ERP</div>
+        <div class="brand-sub" id="brand-login-sub">Polymer Insulator Manufacturing</div>
       </div>
     </div>
     <div class="login-secure">
@@ -58,9 +58,9 @@
     <div class="h-left">
       <button class="hburger" onclick="toggleSB()">&#9776;</button>
       <div class="hlogo">
-        <div class="hlogo-icon">E</div>
+        <div class="hlogo-icon" id="brand-header-icon">E</div>
         <div>
-          <span class="hlogo-name">EIPD ERP</span>
+          <span class="hlogo-name" id="brand-header-name">EIPD ERP</span>
           <span class="hlogo-mod" id="hmod">// Dashboard</span>
         </div>
       </div>

@@ -275,6 +275,9 @@ function getBuyerByName(name) {
 function getCompanyByName(name) {
   return DB.company_details.find(v => v.name === name) || getEntities('Our Company').find(v => v.name === name) || null;
 }
+function getActiveCompany() {
+  return DB.company_details.find(v => (v.status || 'Active') === 'Active') || DB.company_details[0] || null;
+}
 function getVendorByName(name) {
   return DB.vendors.find(v => v.name === name) || null;
 }
@@ -361,7 +364,26 @@ function autofillSalesBuyer() {
 }
 
 function invoiceDefaultCompany() {
-  return getCompanyByName(V('inv2-company')) || DB.company_details.find(v => (v.status || 'Active') === 'Active') || getEntities('Our Company')[0] || null;
+  return getCompanyByName(V('inv2-company')) || getActiveCompany() || getEntities('Our Company')[0] || null;
+}
+
+function applyBranding() {
+  const company = getActiveCompany();
+  const name = company?.short_name || company?.name || 'EIPD ERP';
+  const subtitle = company?.name && company?.short_name ? company.name : 'Polymer Insulator Manufacturing';
+  const icon = ini(name).slice(0,1) || 'E';
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  setText('brand-loader-name', name);
+  setText('brand-loader-sub', `// ${subtitle.toUpperCase()}`);
+  setText('brand-login-name', name);
+  setText('brand-login-sub', subtitle);
+  setText('brand-header-name', name);
+  setText('brand-login-icon', icon);
+  setText('brand-header-icon', icon);
+  document.title = name;
 }
 
 function syncInvoiceShipping() {
@@ -693,6 +715,7 @@ async function loadAllData() {
     DB[tbl] = data || [];
   }));
   hideLoader();
+  applyBranding();
   fillProdDDs();
   renderDash();
   buildSB();
@@ -703,6 +726,7 @@ async function loadAllData() {
       .on('postgres_changes', { event: '*', schema: 'public', table: tbl }, async () => {
         const { data } = await sb.from(tbl).select('*').order('created_at', { ascending: false });
         DB[tbl] = data || [];
+        applyBranding();
         fillProdDDs();
         buildSB();
         const cur = document.querySelector('.tc.on');
@@ -748,6 +772,7 @@ async function refreshTable(tbl) {
   const { data, error } = await sb.from(tbl).select('*').order('created_at', { ascending: false });
   if (error) return;
   DB[tbl] = data || [];
+  applyBranding();
   fillProdDDs();
   buildSB();
   const cur = document.querySelector('.tc.on');
@@ -2045,6 +2070,9 @@ window.editFG = id => {
 
 window.generateCert = async (qcId) => {
   const q = DB.qc_records.find(x=>x.id===qcId); if(!q) return;
+  const company = getActiveCompany();
+  const certBrand = company?.short_name || company?.name || 'EIPD ERP';
+  const certSub = company?.name || 'Electrical Insulator Products Division';
   const pct = parseFloat(q.sample)>0?((parseFloat(q.pass||0)/parseFloat(q.sample))*100).toFixed(1):'0';
   const result = pct>=95?'PASSED':pct>=80?'CONDITIONAL':'FAILED';
   if(result==='FAILED'){toast('Cannot issue certificate for Failed batch','e');return;}
@@ -2077,7 +2105,7 @@ td{padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;}tr:nth-child
 .stamp{border:2px solid #F97316;border-radius:50%;width:80px;height:80px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:9px;font-weight:700;color:#F97316;text-align:center;padding:8px;}
 .notice{font-size:10px;color:#9ca3af;margin-top:16px;border-top:1px solid #e5e7eb;padding-top:10px;text-align:center;}
 @media print{body{padding:15px;}}</style></head><body>
-<div class="header"><div><div class="brand">EIPD ERP</div><div class="brand-sub">Electrical Insulator Products Division<br>Polymer Pin Insulator Manufacturing</div></div>
+<div class="header"><div><div class="brand">${esc(certBrand)}</div><div class="brand-sub">${esc(certSub)}<br>Polymer Pin Insulator Manufacturing</div></div>
 <div class="cert-no"><strong>${certNo}</strong>Quality Test Certificate</div></div>
 <div class="title">Certificate of Conformity</div>
 <div class="result-box"><div class="result-text">${result}</div><div class="result-pct">Pass Rate: ${pct}% | Standard: IEC 61952 / IS 14772</div></div>
@@ -2092,9 +2120,9 @@ td{padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;}tr:nth-child
 <tr><td><strong>Valid Until</strong></td><td>${valid}</td><td><strong>Issued By</strong></td><td>${CU?.name||CU?.email||'--'}</td></tr>
 ${obsHtml?`<tr><td><strong>Observations</strong></td><td colspan="3">${obsHtml}</td></tr>`:''}</table>
 <div class="footer">
-<div class="sign-box"><div class="stamp">EIPD QUALITY</div><div class="sign-line">QC Inspector<br>${q.inspector||'--'}</div></div>
-<div class="sign-box"><div class="stamp">EIPD APPROVED</div><div class="sign-line">QC Manager<br>EIPD Plant</div></div>
-<div class="sign-box"><div class="stamp">EIPD CERTIFIED</div><div class="sign-line">Plant Head<br>EIPD Division</div></div>
+<div class="sign-box"><div class="stamp">${esc(certBrand)} QUALITY</div><div class="sign-line">QC Inspector<br>${q.inspector||'--'}</div></div>
+<div class="sign-box"><div class="stamp">${esc(certBrand)} APPROVED</div><div class="sign-line">QC Manager<br>${esc(certBrand)}</div></div>
+<div class="sign-box"><div class="stamp">${esc(certBrand)} CERTIFIED</div><div class="sign-line">Plant Head<br>${esc(certBrand)}</div></div>
 </div>
 <div class="notice">Generated by EIPD ERP. Valid one year from issue date. Alteration renders this certificate invalid.</div>
 </body></html>`;
