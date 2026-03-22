@@ -447,11 +447,17 @@ function getInvoiceItems(inv) {
 
 function invoiceLineMarkup(item={}, idx=0) {
   const lineTotal = (parseFloat(item.qty || 0) * parseFloat(item.price || 0));
+  const product = getProductByName(item.product || '');
+  const hsn = item.hsn || product?.hsn || '';
   return `<div class="line-item" data-inv2-line="${idx}">
     <div class="line-grid">
       <div class="line-col">
         <label>Product</label>
         <select data-inv2-line-product onchange="autofillInvoiceLine(${idx})"></select>
+      </div>
+      <div class="line-col">
+        <label>HSN Code</label>
+        <input type="text" id="inv2-hsn-${idx}" value="${esc(hsn)}" placeholder="Auto from Product Master"/>
       </div>
       <div class="line-col">
         <label>Description</label>
@@ -500,17 +506,18 @@ function renderInvoiceLines(items=null) {
 function collectInvoiceLines() {
   return [...document.querySelectorAll('[data-inv2-line]')].map((row, idx) => {
     const product = row.querySelector('[data-inv2-line-product]')?.value || '';
+    const hsn = V(`inv2-hsn-${idx}`);
     const description = V(`inv2-desc-${idx}`);
     const qty = parseFloat(V(`inv2-qty-${idx}`) || '0');
     const price = parseFloat(V(`inv2-price-${idx}`) || '0');
     const gst = parseFloat(V(`inv2-gst-${idx}`) || '0');
-    return { product, description, qty, price, gst, line_total: qty * price };
-  }).filter(item => item.product || item.description || item.qty || item.price);
+    return { product, hsn, description, qty, price, gst, line_total: qty * price };
+  }).filter(item => item.product || item.hsn || item.description || item.qty || item.price);
 }
 
 window.addInvoiceLine = () => {
   const items = collectInvoiceLines();
-  items.push({ product:'', description:'', qty:1, price:0, gst:18 });
+  items.push({ product:'', hsn:'', description:'', qty:1, price:0, gst:18 });
   renderInvoiceLines(items);
 };
 window.removeInvoiceLine = idx => {
@@ -522,9 +529,11 @@ window.autofillInvoiceLine = idx => {
   if (!row) return;
   const product = getProductByName(row.querySelector('[data-inv2-line-product]')?.value || '');
   if (!product) { updateInvoiceTotals(); return; }
+  const hsn = document.getElementById(`inv2-hsn-${idx}`);
   const desc = document.getElementById(`inv2-desc-${idx}`);
   const price = document.getElementById(`inv2-price-${idx}`);
   const gst = document.getElementById(`inv2-gst-${idx}`);
+  if (hsn && !hsn.value) hsn.value = product.hsn || '';
   if (desc && !desc.value) desc.value = product.description || product.name;
   if (price && (!price.value || parseFloat(price.value) === 0)) price.value = product.price || 0;
   if (gst) gst.value = String(product.gst ?? 18);
@@ -1360,11 +1369,14 @@ window.printInv2 = id => {
   const buyer = getBuyerByName(inv.buyer) || getVendorByName(inv.party) || {};
   const items = getInvoiceItems(inv);
   const rows = items.map((item, idx) => {
+    const product = getProductByName(item.product || '');
+    const hsn = item.hsn || product?.hsn || '--';
     const base = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
     const tax = base * (parseFloat(item.gst || 0) / 100);
     return `<tr>
       <td>${idx + 1}</td>
       <td>${esc(item.product || '--')}</td>
+      <td>${esc(hsn)}</td>
       <td>${esc(item.description || item.product || '--')}</td>
       <td>${parseFloat(item.qty || 0)}</td>
       <td>${fmtM(item.price || 0)}</td>
@@ -1415,7 +1427,7 @@ window.printInv2 = id => {
     <div class="box"><h4>Ship To</h4><div style="white-space:pre-line">${esc(inv.shipping_addr || inv.billing_addr || buyer.address || '--')}</div><div style="margin-top:8px">Sales Order: ${esc(inv.soref || '--')}</div><div>Payment Terms: ${esc(inv.terms || '--')}</div></div>
   </div>
   <table>
-    <thead><tr><th>#</th><th>Product</th><th>Description</th><th>Qty</th><th>Rate</th><th>GST</th><th>Total</th></tr></thead>
+    <thead><tr><th>#</th><th>Product</th><th>HSN</th><th>Description</th><th>Qty</th><th>Rate</th><th>GST</th><th>Total</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
   <table class="totals">
