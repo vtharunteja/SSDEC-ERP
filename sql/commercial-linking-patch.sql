@@ -67,10 +67,17 @@ create table if not exists company_details (
   name text not null,
   short_name text,
   gst text,
+  pan text,
+  msme text,
   contact text,
   phone text,
   email text,
   state_code text,
+  esi_no text,
+  epfo_no text,
+  cin_no text,
+  iec_code text,
+  other_registrations text,
   address text,
   status text default 'Active',
   notes text,
@@ -78,6 +85,15 @@ create table if not exists company_details (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+alter table if exists company_details
+  add column if not exists pan text,
+  add column if not exists msme text,
+  add column if not exists esi_no text,
+  add column if not exists epfo_no text,
+  add column if not exists cin_no text,
+  add column if not exists iec_code text,
+  add column if not exists other_registrations text;
 
 alter table buyers enable row level security;
 alter table company_details enable row level security;

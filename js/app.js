@@ -1521,14 +1521,32 @@ function renderCompany() {
 window.saveCompany = async () => {
   const eid = V('cmp-eid'), name = V('cmp-name');
   if (!name) { toast('Company name required','e'); return; }
-  const data = { name, short_name:V('cmp-short'), gst:V('cmp-gst'), contact:V('cmp-contact'), phone:V('cmp-phone'), email:V('cmp-email'), state_code:V('cmp-state'), address:V('cmp-address'), status:V('cmp-status'), notes:V('cmp-notes') };
+  const data = {
+    name,
+    short_name:V('cmp-short'),
+    gst:V('cmp-gst'),
+    pan:V('cmp-pan'),
+    msme:V('cmp-msme'),
+    contact:V('cmp-contact'),
+    phone:V('cmp-phone'),
+    email:V('cmp-email'),
+    state_code:V('cmp-state'),
+    esi_no:V('cmp-esi'),
+    epfo_no:V('cmp-epfo'),
+    cin_no:V('cmp-cin'),
+    iec_code:V('cmp-iec'),
+    other_registrations:V('cmp-other'),
+    address:V('cmp-address'),
+    status:V('cmp-status'),
+    notes:V('cmp-notes')
+  };
   if (eid) { if (await dbUpdate('company_details', eid, data)) toast('Company details updated'); }
   else { if (await dbInsert('company_details', data)) toast(name + ' added'); }
   clrForm('cmp');
 };
 window.editCompany = id => {
   const c = DB.company_details.find(x => x.id === id); if (!c) return;
-  SV('cmp-eid', id); SV('cmp-name', c.name); SV('cmp-short', c.short_name); SV('cmp-gst', c.gst); SV('cmp-contact', c.contact); SV('cmp-phone', c.phone); SV('cmp-email', c.email); SV('cmp-state', c.state_code); SV('cmp-address', c.address); SV('cmp-status', c.status); SV('cmp-notes', c.notes);
+  SV('cmp-eid', id); SV('cmp-name', c.name); SV('cmp-short', c.short_name); SV('cmp-gst', c.gst); SV('cmp-pan', c.pan); SV('cmp-msme', c.msme); SV('cmp-contact', c.contact); SV('cmp-phone', c.phone); SV('cmp-email', c.email); SV('cmp-state', c.state_code); SV('cmp-esi', c.esi_no); SV('cmp-epfo', c.epfo_no); SV('cmp-cin', c.cin_no); SV('cmp-iec', c.iec_code); SV('cmp-other', c.other_registrations); SV('cmp-address', c.address); SV('cmp-status', c.status); SV('cmp-notes', c.notes);
   document.getElementById('cmp-ft').textContent = 'Edit ' + c.name;
   document.getElementById('cmp-fc').scrollIntoView({behavior:'smooth'});
 };
@@ -2073,7 +2091,7 @@ const FORM_FIELDS = {
   inv2: ['inv2-eid','inv2-no','inv2-company','inv2-buyer','inv2-party','inv2-cgst','inv2-so','inv2-date','inv2-due','inv2-terms','inv2-ref','inv2-status','inv2-billaddr','inv2-shipaddr','inv2-notes'],
   ib:   ['ib-eid','ib-no','ib-date','ib-vendor','ib-po','ib-gst','ib-amt','ib-gstpct','ib-total','ib-due','ib-status','ib-notes'],
   buy:  ['buy-eid','buy-name','buy-code','buy-contact','buy-phone','buy-email','buy-gst','buy-terms','buy-address','buy-notes'],
-  cmp:  ['cmp-eid','cmp-name','cmp-short','cmp-gst','cmp-contact','cmp-phone','cmp-email','cmp-state','cmp-address','cmp-notes'],
+  cmp:  ['cmp-eid','cmp-name','cmp-short','cmp-gst','cmp-pan','cmp-msme','cmp-contact','cmp-phone','cmp-email','cmp-state','cmp-esi','cmp-epfo','cmp-cin','cmp-iec','cmp-other','cmp-address','cmp-notes'],
   vnd:  ['vnd-eid','vnd-name','vnd-code','vnd-contact','vnd-phone','vnd-email','vnd-gst','vnd-address','vnd-materials'],
   prod: ['prod-eid','prod-name','prod-code','prod-desc','prod-price','prod-hsn','prod-notes']
 };
