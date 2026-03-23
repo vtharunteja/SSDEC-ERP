@@ -1,10 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title id="doc-title">EIPD ERP</title>
 <meta name="description" content="EIPD ERP - Polymer Insulator Manufacturing"/>
+<meta name="theme-color" content="#0D1117"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="EIPD ERP"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<script>
+(function(){
+  try {
+    var theme = localStorage.getItem('eipd-theme');
+    if (theme === 'light' || theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#F4F7FB' : '#0D1117');
+    }
+  } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/layout.css"/>
 <link rel="stylesheet" href="css/components.css"/>
@@ -68,6 +85,10 @@
     <div class="h-right">
       <span class="hclock" id="hclock"></span>
       <span class="hsync idle" id="hsync">Synced</span>
+      <button class="htheme" id="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme" title="Switch theme">
+        <span class="htheme-ic" id="theme-ic">☾</span>
+        <span class="htheme-tx" id="theme-tx">Dark</span>
+      </button>
       <div class="huser" id="huser">
         <div class="hav" id="hav"></div>
         <span class="hnm" id="hnm"></span>

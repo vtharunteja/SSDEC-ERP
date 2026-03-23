@@ -9,6 +9,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 let CU   = null;   // current user profile
 let SUBS = [];     // realtime subscriptions
+const THEME_KEY = 'eipd-theme';
+const THEME_META_COLOR = { dark:'#0D1117', light:'#F4F7FB' };
 
 // --- DATA CACHE ---
 const DB = {
@@ -108,6 +110,30 @@ const fmtD = d => { if(!d) return '--'; try { return new Date(d).toLocaleDateStr
 const fmtM = n => 'Rs ' + (parseFloat(n)||0).toLocaleString('en-IN',{maximumFractionDigits:0});
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const jParse = (v, fb) => { try { return v ? JSON.parse(v) : fb; } catch(e) { return fb; } };
+function applyTheme(theme, persist = true) {
+  const next = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  const tx = document.getElementById('theme-tx');
+  const ic = document.getElementById('theme-ic');
+  if (tx) tx.textContent = next === 'light' ? 'Light' : 'Dark';
+  if (ic) ic.textContent = next === 'light' ? '☀' : '☾';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', THEME_META_COLOR[next]);
+  if (persist) {
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+  }
+}
+function initTheme() {
+  let saved = document.documentElement.getAttribute('data-theme') || 'dark';
+  try { saved = localStorage.getItem(THEME_KEY) || saved; } catch (e) {}
+  applyTheme(saved, false);
+}
+window.toggleTheme = () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  toast(`Switched to ${next} mode`, 'i');
+};
 const fmtApprD = d => {
   if (!d) return '--';
   try {
@@ -745,6 +771,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 window.addEventListener('load', async () => {
+  initTheme();
   try {
     const { data } = await sb.auth.getSession();
     if (data?.session?.user) await initSession(data.session);
@@ -829,6 +856,7 @@ async function refreshTable(tbl) {
 // ERP INIT
 // ---
 async function initERP() {
+  initTheme();
   const r = ROLES[CU.role] || ROLES.viewer;
   const av = document.getElementById('hav');
   av.textContent = ini(CU.name || CU.email || '?');

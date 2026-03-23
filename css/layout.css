@@ -110,6 +110,27 @@
 .h-left  { display:flex; align-items:center; gap:12px; }
 .h-right { display:flex; align-items:center; gap:8px; }
 
+.htheme {
+  display:flex; align-items:center; gap:8px;
+  background:var(--s2); border:1px solid var(--br); color:var(--tx);
+  padding:6px 12px; border-radius:20px; transition:all .2s ease;
+  box-shadow:0 0 0 0 var(--shadow-ac);
+}
+.htheme:hover {
+  border-color:var(--ac);
+  color:var(--ac);
+  box-shadow:0 0 0 3px var(--shadow-ac);
+}
+.htheme-ic {
+  width:20px; height:20px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-family:var(--fm);
+  background:color-mix(in srgb, var(--ac) 14%, var(--sf));
+}
+.htheme-tx {
+  font-family:var(--fm); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+}
+
 .hburger {
   display:none; background:none; border:1px solid var(--br); color:var(--t2);
   padding:7px 11px; border-radius:var(--r); font-size:16px; line-height:1; transition:all .2s;
@@ -213,6 +234,8 @@
   .hburger  { display:block; }
   .hclock   { display:none; }
   .hsync    { display:none; }
+  .htheme-tx{ display:none; }
+  .htheme   { padding:6px 9px; }
   .hnm,.hrb { display:none; }
   .hlogo-mod{ display:none; }
   .hlogo-name{ font-size:15px; }
