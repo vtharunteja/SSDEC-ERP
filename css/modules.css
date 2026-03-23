@@ -5,7 +5,7 @@
 /*  MACHINE GRID  */
 .mg { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; padding:18px; }
 .mc {
-  background:var(--bg); border:1px solid var(--br); border-radius:var(--r);
+  background:linear-gradient(180deg, rgba(17,23,34,.96), rgba(11,15,22,.96)); border:1px solid rgba(255,255,255,.06); border-radius:var(--r);
   padding:15px; transition:all .2s;
 }
 .mc:hover { box-shadow:var(--sh); }
@@ -22,7 +22,7 @@
 .pulse.r { background:var(--rd); }
 
 /*  QC STATS  */
-.qbig { text-align:center; padding:22px 16px; }
+.qbig { text-align:center; padding:22px 16px; background:rgba(255,255,255,.015); }
 .qnum { font-size:48px; font-weight:800; line-height:1; }
 .qlbl { font-family:var(--fm); font-size:10px; color:var(--mu); margin-top:6px; text-transform:uppercase; letter-spacing:1.5px; }
 
@@ -63,8 +63,12 @@
   .mg { grid-template-columns:1fr 1fr; gap:10px; padding:12px; }
   .mca .btn { flex:1; text-align:center; }
   .qnum { font-size:36px; }
+  .qbig { padding:18px 12px; }
+  .abh { font-size:12px; gap:8px; }
+  .abv { font-size:11px; }
 }
 @media (max-width:480px) {
   .mg   { grid-template-columns:1fr; }
   .qnum { font-size:30px; }
+  .qbig { padding:16px 10px; }
 }
