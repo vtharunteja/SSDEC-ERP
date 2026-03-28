@@ -1,105 +1,129 @@
-/* 
+/*
    base.css  Design Tokens & Reset
-   Edit :root variables to change the theme
- */
+*/
 :root {
-  /* Backgrounds */
-  --bg:  #07090F;
-  --sf:  #0D1117;
-  --s2:  #111722;
-  --br:  #1C2433;
-  --sf-soft: #0F1521;
-  --br-soft: rgba(255,255,255,.06);
+  --bg: #07111f;
+  --bg2: #0a1628;
+  --sf: rgba(10, 18, 32, 0.92);
+  --sf-2: rgba(15, 26, 44, 0.94);
+  --sf-soft: rgba(20, 32, 53, 0.72);
+  --s2: #111f35;
+  --br: rgba(160, 179, 208, 0.18);
+  --br-soft: rgba(255, 255, 255, 0.06);
 
-  /* Brand */
-  --ac:  #F97316;
-  --ac2: #EA6C10;
-  --a2:  #FBBF24;
+  --ac: #ff7a18;
+  --ac2: #f25f17;
+  --a2: #f7b538;
+  --gn: #22c55e;
+  --rd: #ef4444;
+  --bl: #3b82f6;
+  --pu: #8b5cf6;
+  --cy: #06b6d4;
 
-  /* Semantic */
-  --gn:  #22C55E;
-  --rd:  #EF4444;
-  --bl:  #3B82F6;
-  --pu:  #A855F7;
-  --cy:  #06B6D4;
+  --tx: #edf4ff;
+  --t2: #a8b7d1;
+  --mu: #6f86ab;
 
-  /* Text */
-  --tx:  #EDF2F7;
-  --t2:  #94A3B8;
-  --mu:  #4A5568;
+  --fn: "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --fm: "Consolas", "SFMono-Regular", "Cascadia Code", monospace;
 
-  /* Typography */
-  --fn: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --fm: 'Consolas', 'Courier New', monospace;
+  --r: 10px;
+  --rl: 18px;
+  --rx: 26px;
 
-  /* Shape */
-  --r:   8px;
-  --rl:  12px;
-  --rx:  18px;
-
-  /* Shadow */
-  --sh:  0 4px 20px rgba(0,0,0,.4);
-  --sh2: 0 8px 40px rgba(0,0,0,.6);
-  --shadow-ac: rgba(249,115,22,.18);
+  --sh: 0 18px 38px rgba(2, 8, 18, 0.28);
+  --sh2: 0 28px 68px rgba(2, 8, 18, 0.42);
+  --shadow-ac: rgba(255, 122, 24, 0.18);
 }
 
 [data-theme="light"] {
-  --bg:  #F4F7FB;
-  --sf:  #FFFFFF;
-  --s2:  #EEF2F8;
-  --br:  #D8E1EE;
-  --sf-soft: #F8FAFD;
-  --br-soft: rgba(15,23,42,.08);
+  --bg: #eef4fb;
+  --bg2: #f8fbff;
+  --sf: rgba(255, 255, 255, 0.95);
+  --sf-2: rgba(246, 249, 253, 0.98);
+  --sf-soft: rgba(233, 240, 249, 0.92);
+  --s2: #eef3f9;
+  --br: rgba(30, 41, 59, 0.12);
+  --br-soft: rgba(15, 23, 42, 0.06);
 
-  --ac:  #EA580C;
-  --ac2: #C2410C;
-  --a2:  #D97706;
+  --ac: #ea580c;
+  --ac2: #c2410c;
+  --a2: #d97706;
+  --gn: #16a34a;
+  --rd: #dc2626;
+  --bl: #2563eb;
+  --pu: #7c3aed;
+  --cy: #0891b2;
 
-  --gn:  #16A34A;
-  --rd:  #DC2626;
-  --bl:  #2563EB;
-  --pu:  #9333EA;
-  --cy:  #0891B2;
+  --tx: #0f172a;
+  --t2: #475569;
+  --mu: #64748b;
 
-  --tx:  #0F172A;
-  --t2:  #475569;
-  --mu:  #64748B;
-
-  --sh:  0 12px 32px rgba(15,23,42,.08);
-  --sh2: 0 24px 64px rgba(15,23,42,.14);
-  --shadow-ac: rgba(234,88,12,.12);
+  --sh: 0 18px 38px rgba(15, 23, 42, 0.08);
+  --sh2: 0 24px 56px rgba(15, 23, 42, 0.12);
+  --shadow-ac: rgba(234, 88, 12, 0.12);
 }
 
-/*  RESET  */
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-html { font-size: 14px; scroll-behavior: smooth; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  font-size: 14px;
+  scroll-behavior: smooth;
+}
+
 body {
+  min-height: 100vh;
+  font-family: var(--fn);
+  color: var(--tx);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--ac) 12%, transparent), transparent 24%),
-    radial-gradient(circle at top right, color-mix(in srgb, var(--bl) 10%, transparent), transparent 20%),
-    var(--bg);
-  color:var(--tx); font-family:var(--fn); min-height:100vh; -webkit-font-smoothing:antialiased;
-  transition: background .25s ease, color .25s ease;
+    radial-gradient(circle at 8% 12%, color-mix(in srgb, var(--ac) 15%, transparent), transparent 26%),
+    radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--bl) 12%, transparent), transparent 24%),
+    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--pu) 8%, transparent), transparent 30%),
+    linear-gradient(180deg, var(--bg2), var(--bg));
+  transition: background .28s ease, color .28s ease;
 }
-a { color:inherit; text-decoration:none; }
-button { cursor:pointer; font-family:var(--fn); }
-img { display:block; max-width:100%; }
 
-/* Removed manual safe-area padding as it's handled by Android MainActivity */
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: var(--fn); }
+img { display: block; max-width: 100%; }
+
 #login, #erp {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/*  SCROLLBAR  */
-::-webkit-scrollbar { width:4px; height:4px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--br); border-radius:4px; }
-::-webkit-scrollbar-thumb:hover { background:var(--mu); }
+::selection {
+  background: color-mix(in srgb, var(--ac) 34%, transparent);
+  color: #fff;
+}
 
-/*  ANIMATIONS  */
-@keyframes fadeUp   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-@keyframes fadeIn   { from{opacity:0} to{opacity:1} }
-@keyframes slideIn  { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
-@keyframes spin     { to{transform:rotate(360deg)} }
-@keyframes pulse    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
-@keyframes gradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--mu) 46%, transparent);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ac) 36%, var(--mu));
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .45; transform: scale(1.35); }
+}
