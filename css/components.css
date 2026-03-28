@@ -6,7 +6,7 @@
 .card {
   position: relative;
   overflow: hidden;
-  border-radius: var(--rl);
+  border-radius: 14px;
   border: 1px solid var(--br);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--sf) 96%, transparent), color-mix(in srgb, var(--sf-2) 98%, transparent));
@@ -26,9 +26,9 @@
   transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 }
 .kc:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--ac) 20%, var(--br));
-  box-shadow: var(--sh2);
+  box-shadow: var(--sh);
 }
 .kc-stripe {
   position: absolute;
@@ -51,7 +51,7 @@
 }
 .kv {
   margin-top: 8px;
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 800;
   line-height: 1.06;
 }
@@ -74,9 +74,9 @@
   border-bottom: 1px solid var(--br-soft);
 }
 .ct {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: -.01em;
+  letter-spacing: 0;
 }
 .ch-r {
   display: flex;
@@ -147,7 +147,7 @@ tbody td {
   flex-direction: column;
   gap: 8px;
   padding: 11px 12px;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid var(--br);
   background: color-mix(in srgb, var(--sf-soft) 74%, transparent);
 }
@@ -204,7 +204,7 @@ tbody td {
   justify-content: center;
   gap: 6px;
   padding: 9px 16px;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid transparent;
   font-family: var(--fm);
   font-size: 11px;
@@ -217,9 +217,9 @@ tbody td {
 .bP {
   background: linear-gradient(135deg, var(--ac), var(--ac2));
   color: #fff;
-  box-shadow: 0 12px 24px rgba(255, 122, 24, .18);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, .12);
 }
-.bP:hover { transform: translateY(-1px); box-shadow: 0 18px 30px rgba(255, 122, 24, .24); }
+.bP:hover { transform: translateY(-1px); box-shadow: 0 12px 22px rgba(37, 99, 235, .16); }
 .bO {
   background: color-mix(in srgb, var(--sf-soft) 82%, transparent);
   border-color: var(--br);
@@ -272,7 +272,7 @@ textarea {
   width: 100%;
   min-height: 42px;
   padding: 11px 13px;
-  border-radius: 14px;
+  border-radius: 10px;
   border: 1px solid var(--br);
   background: color-mix(in srgb, var(--s2) 92%, transparent);
   color: var(--tx);
@@ -379,7 +379,7 @@ select option { background: var(--sf); }
 .ibox {
   margin-bottom: 12px;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 10px;
   font-size: 12px;
   line-height: 1.55;
 }
@@ -503,7 +503,7 @@ select option { background: var(--sf); }
 .line-item,
 .rolec,
 .checkpanel,
-.prof-header { border-radius: 16px; }
+.prof-header { border-radius: 12px; }
 .ap-flow { padding: 12px 14px; margin-bottom: 12px; }
 .ap-flow-t,
 .pw-title,

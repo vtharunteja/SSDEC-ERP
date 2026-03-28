@@ -2,27 +2,27 @@
    base.css  Design Tokens & Reset
 */
 :root {
-  --bg: #07111f;
-  --bg2: #0a1628;
-  --sf: rgba(10, 18, 32, 0.92);
-  --sf-2: rgba(15, 26, 44, 0.94);
-  --sf-soft: rgba(20, 32, 53, 0.72);
-  --s2: #111f35;
-  --br: rgba(160, 179, 208, 0.18);
+  --bg: #0b1220;
+  --bg2: #10192b;
+  --sf: rgba(16, 25, 43, 0.96);
+  --sf-2: rgba(21, 32, 52, 0.98);
+  --sf-soft: rgba(24, 37, 60, 0.88);
+  --s2: #16233a;
+  --br: rgba(148, 163, 184, 0.16);
   --br-soft: rgba(255, 255, 255, 0.06);
 
-  --ac: #ff7a18;
-  --ac2: #f25f17;
-  --a2: #f7b538;
+  --ac: #2563eb;
+  --ac2: #1d4ed8;
+  --a2: #0f766e;
   --gn: #22c55e;
   --rd: #ef4444;
   --bl: #3b82f6;
-  --pu: #8b5cf6;
+  --pu: #6366f1;
   --cy: #06b6d4;
 
-  --tx: #edf4ff;
-  --t2: #a8b7d1;
-  --mu: #6f86ab;
+  --tx: #e5edf8;
+  --t2: #b3c0d4;
+  --mu: #7f90aa;
 
   --fn: "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   --fm: "Consolas", "SFMono-Regular", "Cascadia Code", monospace;
@@ -31,9 +31,9 @@
   --rl: 18px;
   --rx: 26px;
 
-  --sh: 0 18px 38px rgba(2, 8, 18, 0.28);
-  --sh2: 0 28px 68px rgba(2, 8, 18, 0.42);
-  --shadow-ac: rgba(255, 122, 24, 0.18);
+  --sh: 0 14px 28px rgba(2, 8, 18, 0.18);
+  --sh2: 0 22px 48px rgba(2, 8, 18, 0.24);
+  --shadow-ac: rgba(37, 99, 235, 0.12);
 }
 
 [data-theme="light"] {
@@ -46,9 +46,9 @@
   --br: rgba(30, 41, 59, 0.12);
   --br-soft: rgba(15, 23, 42, 0.06);
 
-  --ac: #ea580c;
-  --ac2: #c2410c;
-  --a2: #d97706;
+  --ac: #2563eb;
+  --ac2: #1d4ed8;
+  --a2: #0f766e;
   --gn: #16a34a;
   --rd: #dc2626;
   --bl: #2563eb;
@@ -59,9 +59,9 @@
   --t2: #475569;
   --mu: #64748b;
 
-  --sh: 0 18px 38px rgba(15, 23, 42, 0.08);
-  --sh2: 0 24px 56px rgba(15, 23, 42, 0.12);
-  --shadow-ac: rgba(234, 88, 12, 0.12);
+  --sh: 0 14px 28px rgba(15, 23, 42, 0.07);
+  --sh2: 0 20px 40px rgba(15, 23, 42, 0.1);
+  --shadow-ac: rgba(37, 99, 235, 0.1);
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -78,9 +78,9 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   background:
-    radial-gradient(circle at 8% 12%, color-mix(in srgb, var(--ac) 15%, transparent), transparent 26%),
-    radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--bl) 12%, transparent), transparent 24%),
-    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--pu) 8%, transparent), transparent 30%),
+    radial-gradient(circle at 8% 12%, color-mix(in srgb, var(--ac) 8%, transparent), transparent 24%),
+    radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--bl) 7%, transparent), transparent 22%),
+    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--pu) 4%, transparent), transparent 26%),
     linear-gradient(180deg, var(--bg2), var(--bg));
   transition: background .28s ease, color .28s ease;
 }
@@ -94,7 +94,7 @@ img { display: block; max-width: 100%; }
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--ac) 34%, transparent);
+  background: color-mix(in srgb, var(--ac) 24%, transparent);
   color: #fff;
 }
 
