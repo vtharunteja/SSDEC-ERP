@@ -1409,7 +1409,7 @@ function renderQuotes() {
   tbl.innerHTML = DB.quotations
     .filter(q => (!flt || q.status === flt) && (!srch || ((q.quoteno || '') + (q.party || '') + (q.product || '') + (q.enquiry_ref || '')).toLowerCase().includes(srch)))
     .map(q => {
-      const acts = ed ? `<button class="btn bO sm" onclick="editQuote('${q.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('quotations','${q.id}','qt')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('quotations','${q.id}')">Del</button>`:''}` : '';
+      const acts = `<button class="btn bG sm" onclick="printQuote('${q.id}')">Print</button>` + (ed ? `<button class="btn bO sm" onclick="editQuote('${q.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('quotations','${q.id}','qt')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('quotations','${q.id}')">Del</button>`:''}` : '');
       const amount = parseFloat(q.qty||0) * parseFloat(q.price||0);
       const submitted = [fmtD(q.submission_date), q.submission_mode].filter(Boolean).join(' / ') || '--';
       const follow = [fmtD(q.followup_date), q.followup_owner].filter(Boolean).join(' / ') || '--';
@@ -1453,6 +1453,111 @@ window.editQuote = id => {
   SV('qt-subnotes',q.submission_notes); SV('qt-follownotes',q.followup_notes); SV('qt-notes',q.notes);
   document.getElementById('qt-ft').textContent = 'Edit ' + (q.quoteno || 'Quotation');
   document.getElementById('qt-fc').scrollIntoView({behavior:'smooth'});
+};
+window.printQuote = id => {
+  const q = DB.quotations.find(x => x.id === id); if (!q) return;
+  const company = getActiveCompany() || DB.company_details[0] || {};
+  const buyer = getBuyerByName(q.buyer) || getVendorByName(q.party) || {};
+  const product = getProductByName(q.product || '');
+  const qty = parseFloat(q.qty || 0);
+  const price = parseFloat(q.price || 0);
+  const amount = qty * price;
+  const gstRate = parseFloat(product?.gst || 18);
+  const gstValue = amount * gstRate / 100;
+  const total = amount + gstValue;
+  const validity = q.valid_until ? fmtD(q.valid_until) : 'Until further notice';
+  const html = `<!DOCTYPE html><html><head><title>Quotation ${esc(q.quoteno || '')}</title>
+  <style>
+  *{box-sizing:border-box} body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:12px}
+  .head{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #f97316;padding-bottom:16px;margin-bottom:16px}
+  .brand{font-size:22px;font-weight:700;color:#f97316}.sub{font-size:11px;color:#666;margin-top:4px;line-height:1.5}
+  .title{font-size:20px;font-weight:700;text-transform:uppercase}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  .box{border:1px solid #e5e7eb;border-radius:8px;padding:12px}.box h4{margin:0 0 8px 0;font-size:12px;text-transform:uppercase;color:#666;letter-spacing:1px}
+  table{width:100%;border-collapse:collapse;margin-top:14px} th{background:#f97316;color:#fff;padding:9px;font-size:11px;text-align:left}
+  td{border-bottom:1px solid #e5e7eb;padding:9px;vertical-align:top}.totals{margin-top:18px;margin-left:auto;width:320px}
+  .totals td{border:none;padding:6px 0}.totals .grand td{font-size:15px;font-weight:700;border-top:1px solid #111;padding-top:10px}
+  .note{margin-top:20px;border-top:1px dashed #d1d5db;padding-top:12px;color:#555;line-height:1.7;white-space:pre-line}
+  .footer-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:24px;margin-top:26px;align-items:end}
+  .terms-box{border-top:1px solid #d1d5db;padding-top:12px;color:#444}
+  .terms-title{font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:8px}
+  .terms-body{font-size:11px;line-height:1.7;white-space:pre-line}
+  .sign-wrap{text-align:right;border-top:1px solid #d1d5db;padding-top:12px}
+  .sign-space{height:56px}
+  .sign-title{font-size:12px;font-weight:700;text-transform:uppercase}
+  .sign-sub{font-size:11px;color:#666;margin-top:6px}
+  @media print{body{padding:16px}}
+  </style></head><body>
+  <div class="head">
+    <div>
+      <div class="brand">${esc(company.name || 'EIPD ERP')}</div>
+      <div class="sub">${esc(company.address || 'Company address not set')}<br>GST: ${esc(company.gst || '--')}<br>${esc(company.contact || '')}${company.phone ? ' | ' + esc(company.phone) : ''}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="title">Quotation</div>
+      <div style="margin-top:8px">Quotation No: <strong>${esc(q.quoteno || '--')}</strong></div>
+      <div>Date: <strong>${esc(fmtD(q.date))}</strong></div>
+      <div>Valid Until: <strong>${esc(validity)}</strong></div>
+      <div>Status: <strong>${esc(q.status || 'Draft')}</strong></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="box">
+      <h4>Customer</h4>
+      <div><strong>${esc(q.party || buyer.name || '--')}</strong></div>
+      <div>Contact: ${esc(buyer.contact || '--')}</div>
+      <div>Phone: ${esc(buyer.phone || '--')}</div>
+      <div>Email: ${esc(buyer.email || '--')}</div>
+      <div>GST: ${esc(buyer.gst || '--')}</div>
+      <div style="white-space:pre-line">${esc(buyer.address || '--')}</div>
+    </div>
+    <div class="box">
+      <h4>Submission & Reference</h4>
+      <div><strong>RFQ / Enquiry Ref</strong>: ${esc(q.enquiry_ref || '--')}</div>
+      <div><strong>Submission Date</strong>: ${esc(fmtD(q.submission_date))}</div>
+      <div><strong>Submission Mode</strong>: ${esc(q.submission_mode || '--')}</div>
+      <div><strong>Follow-up Date</strong>: ${esc(fmtD(q.followup_date))}</div>
+      <div><strong>Follow-up Owner</strong>: ${esc(q.followup_owner || '--')}</div>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Product / Service</th><th>Description</th><th>HSN</th><th>Qty</th><th>Rate</th><th>GST</th><th>Total</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>${esc(q.product || '--')}</td>
+        <td>${esc(product?.description || q.notes || '--')}</td>
+        <td>${esc(product?.hsn || '--')}</td>
+        <td>${qty}</td>
+        <td>${fmtM(price)}</td>
+        <td>${gstRate}%</td>
+        <td>${fmtM(total)}</td>
+      </tr>
+    </tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Base Amount</td><td style="text-align:right">${fmtM(amount)}</td></tr>
+    <tr><td>GST</td><td style="text-align:right">${fmtM(gstValue)}</td></tr>
+    <tr class="grand"><td>Quoted Total</td><td style="text-align:right">${fmtM(total)}</td></tr>
+  </table>
+  <div class="note">Submission Details: ${esc(q.submission_notes || '--')}<br>Follow-up Notes: ${esc(q.followup_notes || '--')}<br>Remarks: ${esc(q.notes || '--')}</div>
+  <div class="footer-grid">
+    <div class="terms-box">
+      <div class="terms-title">Terms and Conditions</div>
+      <div class="terms-body">${esc(company.notes || '1. Prices are subject to applicable taxes.\n2. Validity is as mentioned above unless revised.\n3. Delivery and commercial terms are subject to final order confirmation.\n4. Please contact us for any clarification on this quotation.')}</div>
+    </div>
+    <div class="sign-wrap">
+      <div class="sign-space"></div>
+      <div class="sign-title">Authorised Signature</div>
+      <div class="sign-sub">For ${esc(company.name || company.short_name || 'Company')}</div>
+    </div>
+  </div>
+  </body></html>`;
+  const win = window.open('', '_blank', 'width=980,height=780');
+  if (!win) return toast('Allow pop-ups and try again', 'e');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
 };
 
 // ---
