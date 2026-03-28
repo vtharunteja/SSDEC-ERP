@@ -325,6 +325,43 @@
         </div>
       </div>
 
+      <!-- QUOTATIONS -->
+      <div class="tc" id="tab-quotes">
+        <div class="ph"><div><div class="pt">Quotations</div><div class="pst">// quotations, submissions and follow-up tracking</div></div></div>
+        <div id="qt-ro"></div>
+        <div class="card" id="qt-fc">
+          <div class="ch"><div class="ct" id="qt-ft">Create Quotation</div></div>
+          <div class="fg">
+            <input type="hidden" id="qt-eid"/>
+            <div class="fr"><label>Quotation No.</label><input type="text" id="qt-no" placeholder="QT-2026-001"/></div>
+            <div class="fr"><label>Buyer</label><select id="qt-buyer"><option value="">-- Select buyer --</option></select></div>
+            <div class="fr"><label>Customer / Party</label><input type="text" id="qt-party" placeholder="TSSPDCL, APTRANSCO..."/></div>
+            <div class="fr"><label>Product / Service</label><select id="qt-prod"></select></div>
+            <div class="fr"><label>Qty</label><input type="number" id="qt-qty" min="1"/></div>
+            <div class="fr"><label>Quoted Price (Rs)</label><input type="number" id="qt-price" min="0"/></div>
+            <div class="fr"><label>Enquiry / RFQ Ref</label><input type="text" id="qt-enquiry" placeholder="RFQ / tender / enquiry ref"/></div>
+            <div class="fr"><label>Quote Date</label><input type="date" id="qt-date"/></div>
+            <div class="fr"><label>Valid Until</label><input type="date" id="qt-valid"/></div>
+            <div class="fr"><label>Submission Date</label><input type="date" id="qt-subdate"/></div>
+            <div class="fr"><label>Submission Mode</label><select id="qt-submode"><option>Email</option><option>Portal</option><option>Courier</option><option>Hand Delivery</option><option>WhatsApp</option><option>Other</option></select></div>
+            <div class="fr"><label>Status</label><select id="qt-status"><option>Draft</option><option>Submitted</option><option>Follow-up Due</option><option>Under Review</option><option>Won</option><option>Lost</option><option>Cancelled</option></select></div>
+            <div class="fr"><label>Follow-up Date</label><input type="date" id="qt-follow"/></div>
+            <div class="fr"><label>Follow-up Owner</label><input type="text" id="qt-owner" placeholder="Sales coordinator / manager"/></div>
+            <div class="fr full"><label>Submission Details</label><textarea id="qt-subnotes" rows="2" placeholder="Portal name, mail subject, contact person, etc."></textarea></div>
+            <div class="fr full"><label>Follow-up Notes</label><textarea id="qt-follownotes" rows="2" placeholder="Response received, next action, customer feedback..."></textarea></div>
+            <div class="fr full"><label>Remarks</label><textarea id="qt-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('qt')">Clear</button><button class="btn bP" id="qt-sb" onclick="saveQuote()">Save Quotation</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Quotation Register</div><div class="ch-r">
+            <input type="text" id="qt-srch" placeholder="Search..." oninput="renderQuotes()"/>
+            <select id="qt-flt" onchange="renderQuotes()"><option value="">All Status</option><option>Draft</option><option>Submitted</option><option>Follow-up Due</option><option>Under Review</option><option>Won</option><option>Lost</option><option>Cancelled</option></select>
+          </div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Quote No.</th><th>Customer</th><th>Product / Service</th><th>Value</th><th>Submitted</th><th>Follow-up</th><th>Status</th><th>Actions</th></tr></thead><tbody id="qt-tbl"></tbody></table></div>
+        </div>
+      </div>
+
       <!-- DISPATCH -->
       <div class="tc" id="tab-dispatch">
         <div class="ph"><div><div class="pt">Dispatch</div><div class="pst">// delivery challans & outward movement</div></div></div>

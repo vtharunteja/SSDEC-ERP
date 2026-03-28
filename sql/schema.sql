@@ -215,6 +215,31 @@ create table if not exists sales_orders (
   updated_at  timestamptz default now()
 );
 
+-- -- QUOTATIONS -------------------------------------------
+create table if not exists quotations (
+  id          uuid default gen_random_uuid() primary key,
+  quoteno     text unique,
+  buyer       text,
+  party       text,
+  product     text,
+  qty         numeric default 0,
+  price       numeric default 0,
+  enquiry_ref text,
+  date        date,
+  valid_until date,
+  submission_date date,
+  submission_mode text,
+  submission_notes text,
+  followup_date date,
+  followup_owner text,
+  followup_notes text,
+  notes       text,
+  status      text default 'Draft',
+  created_by  uuid references auth.users(id),
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+
 -- ── DISPATCHES ──────────────────────────────────────────
 create table if not exists dispatches (
   id          uuid default gen_random_uuid() primary key,
@@ -294,6 +319,7 @@ alter table purchase_orders enable row level security;
 alter table vendors        enable row level security;
 alter table buyers         enable row level security;
 alter table company_details enable row level security;
+alter table quotations     enable row level security;
 alter table sales_orders   enable row level security;
 alter table dispatches     enable row level security;
 alter table invoices       enable row level security;
@@ -310,6 +336,7 @@ create policy "auth_all" on purchase_orders for all using (auth.role() = 'authen
 create policy "auth_all" on vendors         for all using (auth.role() = 'authenticated');
 create policy "auth_all" on buyers          for all using (auth.role() = 'authenticated');
 create policy "auth_all" on company_details for all using (auth.role() = 'authenticated');
+create policy "auth_all" on quotations      for all using (auth.role() = 'authenticated');
 create policy "auth_all" on sales_orders    for all using (auth.role() = 'authenticated');
 create policy "auth_all" on dispatches      for all using (auth.role() = 'authenticated');
 create policy "auth_all" on invoices        for all using (auth.role() = 'authenticated');

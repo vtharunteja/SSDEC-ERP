@@ -16,7 +16,7 @@ const THEME_META_COLOR = { dark:'#0D1117', light:'#F4F7FB' };
 const DB = {
   profiles:[], products:[], machines:[], inventory:[],
   work_orders:[], qc_records:[], purchase_orders:[],
-  vendors:[], buyers:[], company_details:[], sales_orders:[], dispatches:[], invoices:[], inward_bills:[],
+  vendors:[], buyers:[], company_details:[], quotations:[], sales_orders:[], dispatches:[], invoices:[], inward_bills:[],
   audit_logs:[], approvals:[], finished_goods:[], qc_certificates:[]
 };
 
@@ -24,7 +24,7 @@ const DB = {
 const TBL = {
   production:'work_orders', quality:'qc_records',
   inventory:'inventory', purchase:'purchase_orders',
-  sales:'sales_orders', dispatch:'dispatches',
+  quotes:'quotations', sales:'sales_orders', dispatch:'dispatches',
   invoices:'invoices', ibill:'inward_bills', vendors:'vendors', buyers:'buyers', company:'company_details',
   machines:'machines', products:'products',
   users:'profiles'
@@ -41,27 +41,28 @@ const ROLES = {
   viewer:     {label:'Read-Only',        color:'var(--mu)',bg:'rgba(74,85,104,.12)'}
 };
 const NAV_ACCESS = {
-  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','ibill','vendors','buyers','company','products','reports','audit','users'],
-  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','sales','dispatch','invoices','ibill','vendors','buyers','company','products','reports'],
+  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','reports','audit','users'],
+  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','reports'],
   production: ['dashboard','production','machines','quality','fg'],
   storekeeper:['dashboard','inventory','fg','purchase','vendors'],
   qc:         ['dashboard','quality'],
-  dispatch:   ['dashboard','sales','dispatch','invoices','ibill','buyers','fg'],
+  dispatch:   ['dashboard','quotes','sales','dispatch','invoices','ibill','buyers','fg'],
   viewer:     ['dashboard','reports']
 };
 const CAN_EDIT = {
-  admin:      ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','ibill','vendors','buyers','company','products','users','audit'],
-  manager:    ['production','machines','quality','inventory','fg','purchase','sales','dispatch','invoices','ibill','vendors','buyers','company','products'],
+  admin:      ['production','machines','quality','inventory','fg','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','users','audit'],
+  manager:    ['production','machines','quality','inventory','fg','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products'],
   production: ['production','machines','quality','fg'],
   storekeeper:['inventory','fg','purchase','vendors'],
   qc:         ['quality'],
-  dispatch:   ['dispatch','invoices','ibill','buyers','fg'],
+  dispatch:   ['quotes','dispatch','invoices','ibill','buyers','fg'],
   viewer:     []
 };
 const STATUSES = {
   work_orders:    ['Pending Approval','Queued','In Progress','On Track','Delayed','Completed'],
   finished_goods: ['Available','Reserved','Dispatched'],
   purchase_orders:['Pending Approval','Raised','In Transit','Delivered','Cancelled'],
+  quotations:     ['Draft','Submitted','Follow-up Due','Under Review','Won','Lost','Cancelled'],
   sales_orders:   ['Pending','In Production','Ready','Dispatched','Delivered'],
   dispatches:     ['In Transit','Delivered'],
   machines:       ['Running','Idle','Maintenance'],
@@ -79,6 +80,7 @@ const NAVDEF = [
   {id:'inventory',   ic:'&#9723;',  lb:'Inventory',      binv:1},
   {id:'purchase',    ic:'&#9782;',  lb:'Purchase Orders'},
   {s:'Commercial'},
+  {id:'quotes',      ic:'&#9998;',  lb:'Quotations'},
   {id:'sales',       ic:'&#9741;',  lb:'Sales Orders'},
   {id:'dispatch',    ic:'&#9194;',  lb:'Dispatch'},
   {s:'Finance'},
@@ -268,11 +270,12 @@ function fillProdDDs() {
     .map(p => `<option value="${p.name}">${p.name}</option>`)
     .join('');
   const woOpts = prodOpts + WO_SERVICE_OPTIONS.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-  ['qc-prod','so-prod'].forEach(id => {
+  ['qc-prod','so-prod','qt-prod'].forEach(id => {
     const e = document.getElementById(id);
     if (!e) return;
     const cur = e.value;
-    e.innerHTML = prodOpts || '<option>No products  add in Product Master</option>';
+    const src = id === 'qt-prod' ? woOpts : prodOpts;
+    e.innerHTML = (id === 'qt-prod' ? '<option value="">-- Select product / service --</option>' : '') + (src || '<option>No products  add in Product Master</option>');
     if (cur) e.value = cur;
   });
   const woEl = document.getElementById('wo-prod');
@@ -911,7 +914,7 @@ window.goTab = id => {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const tab = document.getElementById('tab-' + id); if (tab) tab.classList.add('on');
   const nav = document.getElementById('nav-' + id); if (nav) nav.classList.add('on');
-  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',buyers:'Buyer Master',company:'Our Company',products:'Product Master',reports:'Analytics',audit:'Audit Log',users:'User Management'};
+  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',quotes:'Quotations',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',buyers:'Buyer Master',company:'Our Company',products:'Product Master',reports:'Analytics',audit:'Audit Log',users:'User Management'};
   document.getElementById('hmod').textContent = '// ' + (L[id] || id);
   renderMod(id);
 };
@@ -919,7 +922,7 @@ window.goTab = id => {
 function renderMod(id) {
   const fns = {
     dashboard:renderDash, production:renderWO, machines:renderMach, quality:renderQC,
-    inventory:renderInv,  purchase:renderPO,   sales:renderSO,      dispatch:renderDC,
+    inventory:renderInv,  purchase:renderPO,   quotes:renderQuotes, sales:renderSO,      dispatch:renderDC,
     invoices:renderInv2,  ibill:renderIB,      vendors:renderVnd,   buyers:renderBuyers, company:renderCompany, products:renderProducts,
     reports:renderRep,    users:renderUsers,   fg:renderFG,
     audit:renderAudit
@@ -1381,6 +1384,75 @@ ${esc(po.notes || company.notes || '')}</div>
   win.document.close();
   win.focus();
   win.print();
+};
+
+// ---
+// QUOTATIONS
+// ---
+function renderQuotes() {
+  const ed = canEdit('quotes');
+  const del = canDelete();
+  const roEl = document.getElementById('qt-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('qt-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  fillProdDDs();
+  const buyerSel = document.getElementById('qt-buyer');
+  if (buyerSel) {
+    const cur = buyerSel.value;
+    buyerSel.innerHTML = '<option value="">-- Select buyer --</option>' + DB.buyers
+      .filter(b => (b.status || 'Active') === 'Active')
+      .map(b => `<option value="${esc(b.name)}">${esc(b.name)}</option>`)
+      .join('');
+    if (cur) buyerSel.value = cur;
+  }
+  const srch = (V('qt-srch')||'').toLowerCase(), flt = V('qt-flt');
+  const tbl  = document.getElementById('qt-tbl'); if(!tbl) return;
+  tbl.innerHTML = DB.quotations
+    .filter(q => (!flt || q.status === flt) && (!srch || ((q.quoteno || '') + (q.party || '') + (q.product || '') + (q.enquiry_ref || '')).toLowerCase().includes(srch)))
+    .map(q => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editQuote('${q.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('quotations','${q.id}','qt')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('quotations','${q.id}')">Del</button>`:''}` : '';
+      const amount = parseFloat(q.qty||0) * parseFloat(q.price||0);
+      const submitted = [fmtD(q.submission_date), q.submission_mode].filter(Boolean).join(' / ') || '--';
+      const follow = [fmtD(q.followup_date), q.followup_owner].filter(Boolean).join(' / ') || '--';
+      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${esc(q.quoteno||q.id.slice(-8))}</td><td>${esc(q.party||'--')}${q.enquiry_ref?`<div class="muted-help">RFQ: ${esc(q.enquiry_ref)}</div>`:''}</td><td>${esc(q.product||'--')}</td><td class="mn">${fmtM(amount)}</td><td>${esc(submitted)}</td><td>${esc(follow)}</td><td>${pill(q.status||'Draft')}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">QT</div><div class="empty-tt">No Quotations</div><div class="empty-st">Track quote submission and follow-up here.</div></div></td></tr>';
+}
+window.saveQuote = async () => {
+  const eid = V('qt-eid'), party = V('qt-party'), qty = parseFloat(V('qt-qty')), price = parseFloat(V('qt-price'));
+  if (!party || !qty || isNaN(price)) { toast('Customer, qty and quoted price required','e'); return; }
+  const data = {
+    buyer:V('qt-buyer'),
+    party,
+    product:V('qt-prod'),
+    qty,
+    price,
+    enquiry_ref:V('qt-enquiry'),
+    date:V('qt-date'),
+    valid_until:V('qt-valid'),
+    submission_date:V('qt-subdate'),
+    submission_mode:V('qt-submode'),
+    submission_notes:V('qt-subnotes'),
+    followup_date:V('qt-follow'),
+    followup_owner:V('qt-owner'),
+    followup_notes:V('qt-follownotes'),
+    notes:V('qt-notes'),
+    status:V('qt-status') || 'Draft'
+  };
+  if (eid) { if(await dbUpdate('quotations',eid,data)) toast('Quotation updated'); }
+  else {
+    const mx = DB.quotations.reduce((m,q) => Math.max(m,parseInt((q.quoteno||'QT-0').split('-').pop())||0), 0);
+    data.quoteno = V('qt-no') || ('QT-' + new Date().getFullYear() + '-' + String(mx+1).padStart(3,'0'));
+    if(await dbInsert('quotations',data)) toast(data.quoteno+' created');
+  }
+  clrForm('qt');
+};
+window.editQuote = id => {
+  const q = DB.quotations.find(x=>x.id===id); if(!q) return;
+  SV('qt-eid',id); SV('qt-no',q.quoteno); SV('qt-buyer',q.buyer); SV('qt-party',q.party); SV('qt-prod',q.product); SV('qt-qty',q.qty);
+  SV('qt-price',q.price); SV('qt-enquiry',q.enquiry_ref); SV('qt-date',q.date); SV('qt-valid',q.valid_until); SV('qt-subdate',q.submission_date);
+  SV('qt-submode',q.submission_mode); SV('qt-status',q.status); SV('qt-follow',q.followup_date); SV('qt-owner',q.followup_owner);
+  SV('qt-subnotes',q.submission_notes); SV('qt-follownotes',q.followup_notes); SV('qt-notes',q.notes);
+  document.getElementById('qt-ft').textContent = 'Edit ' + (q.quoteno || 'Quotation');
+  document.getElementById('qt-fc').scrollIntoView({behavior:'smooth'});
 };
 
 // ---
@@ -2048,7 +2120,7 @@ window.openUpd = (tbl, id, type) => {
   sel.innerHTML = (STATUSES[tbl]||[]).map(s=>`<option${rec.status===s?' selected':''}>${s}</option>`).join('');
   const pw = document.getElementById('upd-prod-wrap');
   if (type==='wo') { pw.style.display='block'; document.getElementById('upd-prod').value=rec.produced||0; } else pw.style.display='none';
-  document.getElementById('mo-upd-t').textContent = 'Update  '+(rec.wono||rec.pono||rec.sono||rec.dcno||rec.invno||rec.bill_no||rec.name||'Record');
+  document.getElementById('mo-upd-t').textContent = 'Update  '+(rec.wono||rec.pono||rec.quoteno||rec.sono||rec.dcno||rec.invno||rec.bill_no||rec.name||'Record');
   document.getElementById('upd-info').textContent = 'Current status: ' + rec.status;
   document.getElementById('upd-note').value = '';
   openMo('mo-upd');
@@ -2075,7 +2147,7 @@ window.saveUpd = async () => {
 // ---
 window.delRec = async (tbl, id) => {
   if (!canDelete()) { toast('Only Plant Admin or Plant Manager can delete records','e'); return; }
-  const names = { work_orders:'work order', qc_records:'QC record', inventory:'material', purchase_orders:'purchase order', sales_orders:'sales order', dispatches:'dispatch', machines:'machine', invoices:'invoice', inward_bills:'inward bill', vendors:'vendor', buyers:'buyer', company_details:'company record', products:'product' };
+  const names = { work_orders:'work order', qc_records:'QC record', inventory:'material', purchase_orders:'purchase order', quotations:'quotation', sales_orders:'sales order', dispatches:'dispatch', machines:'machine', invoices:'invoice', inward_bills:'inward bill', vendors:'vendor', buyers:'buyer', company_details:'company record', products:'product' };
   if (!confirm('Delete this '+(names[tbl]||'record')+'? This cannot be undone.')) return;
   if (await dbDelete(tbl, id)) toast('Record deleted');
 };
@@ -2339,6 +2411,7 @@ const FORM_FIELDS = {
   qc:   ['qc-eid','qc-sample','qc-pass','qc-insp','qc-notes'],
   inv:  ['inv-eid','inv-name','inv-code','inv-stock','inv-reorder','inv-min','inv-cost','inv-sup'],
   po:   ['po-eid','po-qty','po-price','po-date','po-notes'],
+  qt:   ['qt-eid','qt-no','qt-buyer','qt-party','qt-prod','qt-qty','qt-price','qt-enquiry','qt-date','qt-valid','qt-subdate','qt-submode','qt-status','qt-follow','qt-owner','qt-subnotes','qt-follownotes','qt-notes'],
   so:   ['so-eid','so-buyer','so-cust','so-qty','so-price','so-date','so-dl','so-ref','so-addr','so-gst'],
   dc:   ['dc-eid','dc-qty','dc-date','dc-veh','dc-trans','dc-lr','dc-notes'],
   inv2: ['inv2-eid','inv2-no','inv2-company','inv2-buyer','inv2-party','inv2-cgst','inv2-so','inv2-date','inv2-due','inv2-terms','inv2-ref','inv2-status','inv2-billaddr','inv2-shipaddr','inv2-notes'],
@@ -2348,14 +2421,15 @@ const FORM_FIELDS = {
   vnd:  ['vnd-eid','vnd-name','vnd-code','vnd-contact','vnd-phone','vnd-email','vnd-gst','vnd-address','vnd-materials'],
   prod: ['prod-eid','prod-name','prod-code','prod-desc','prod-price','prod-hsn','prod-notes']
 };
-const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', ib:'Add Inward Bill', buy:'Add Buyer', cmp:'Add Company Details', vnd:'Add Vendor', prod:'Add New Product' };
-const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', ib:'Save Inward Bill', buy:'Save Buyer', cmp:'Save Company', vnd:'Save Vendor', prod:'Add Product' };
+const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', qt:'Create Quotation', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', ib:'Add Inward Bill', buy:'Add Buyer', cmp:'Add Company Details', vnd:'Add Vendor', prod:'Add New Product' };
+const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', qt:'Save Quotation', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', ib:'Save Inward Bill', buy:'Save Buyer', cmp:'Save Company', vnd:'Save Vendor', prod:'Add Product' };
 
 window.clrForm = f => {
   (FORM_FIELDS[f]||[]).forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
   const tEl = document.getElementById(f+'-ft'); if(tEl) tEl.textContent = FORM_TITLES[f]||'';
   const bEl = document.getElementById(f+'-sb'); if(bEl) bEl.textContent = FORM_BTNS[f]||'Save';
   if (f==='po') { const pa=document.getElementById('po-addr'); if(pa) pa.value='EIPD Plant, Unit 2'; }
+  if (f==='qt') { SV('qt-status','Draft'); SV('qt-submode','Email'); }
   if (f==='qc') renderQCTestList();
   if (f==='wo') { SV('wo-type','In-house'); toggleWOServiceFields(); }
   if (f==='inv2') {
