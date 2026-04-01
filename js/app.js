@@ -42,8 +42,8 @@ const ROLES = {
   viewer:     {label:'Read-Only',        color:'var(--mu)',bg:'rgba(74,85,104,.12)'}
 };
 const NAV_ACCESS = {
-  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','reports','audit','users'],
-  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','reports'],
+  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','backup','reports','audit','users'],
+  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','backup','reports'],
   production: ['dashboard','production','machines','quality','fg','ops','planning','tasks','maintenance'],
   storekeeper:['dashboard','inventory','fg','purchase','vendors','tasks','maintenance'],
   qc:         ['dashboard','quality','ops','workforce'],
@@ -101,6 +101,7 @@ const NAVDEF = [
   {id:'tasks',       ic:'&#128221;', lb:'Task Center'},
   {id:'maintenance', ic:'&#128736;', lb:'Maintenance Control'},
   {id:'workforce',   ic:'&#127891;', lb:'Workforce Matrix'},
+  {id:'backup',      ic:'&#128190;', lb:'Backup & Restore'},
   {s:'Reports'},
   {id:'reports',     ic:'&#9650;',  lb:'Analytics'},
   {s:'Admin'},
@@ -1154,7 +1155,7 @@ window.goTab = id => {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const tab = document.getElementById('tab-' + id); if (tab) tab.classList.add('on');
   const nav = document.getElementById('nav-' + id); if (nav) nav.classList.add('on');
-  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',quotes:'Quotations',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',buyers:'Buyer Master',company:'Our Company',products:'Product Master',ops:'Operations Manuals',planning:'Planning Control',costing:'Cost Control',tasks:'Task Center',maintenance:'Maintenance Control',workforce:'Workforce Matrix',reports:'Analytics',audit:'Audit Log',users:'User Management'};
+  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',quotes:'Quotations',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',buyers:'Buyer Master',company:'Our Company',products:'Product Master',ops:'Operations Manuals',planning:'Planning Control',costing:'Cost Control',tasks:'Task Center',maintenance:'Maintenance Control',workforce:'Workforce Matrix',backup:'Backup & Restore',reports:'Analytics',audit:'Audit Log',users:'User Management'};
   document.getElementById('hmod').textContent = '// ' + (L[id] || id);
   renderMod(id);
 };
@@ -1164,7 +1165,7 @@ function renderMod(id) {
     dashboard:renderDash, production:renderWO, machines:renderMach, quality:renderQC,
     inventory:renderInv,  purchase:renderPO,   quotes:renderQuotes, sales:renderSO,      dispatch:renderDC,
     invoices:renderInv2,  ibill:renderIB,      vendors:renderVnd,   buyers:renderBuyers, company:renderCompany, products:renderProducts,
-    ops:renderOps, planning:renderPlanning, costing:renderCosting, tasks:renderTasks, maintenance:renderMaintenance, workforce:renderWorkforce,
+    ops:renderOps, planning:renderPlanning, costing:renderCosting, tasks:renderTasks, maintenance:renderMaintenance, workforce:renderWorkforce, backup:renderBackup,
     reports:renderRep,    users:renderUsers,   fg:renderFG,
     audit:renderAudit
   };
@@ -2560,6 +2561,79 @@ window.editWorkforce = id => {
   document.getElementById('workforce-ft').textContent = 'Edit Workforce Record';
   document.getElementById('workforce-sb').textContent = 'Update Workforce';
   document.getElementById('workforce-fc').scrollIntoView({behavior:'smooth'});
+};
+
+const BACKUP_GROUPS = {
+  masters: ['profiles','products','inventory','vendors','buyers','company_details','machines'],
+  transactions: ['work_orders','qc_records','purchase_orders','quotations','sales_orders','dispatches','invoices','inward_bills','finished_goods','approvals','audit_logs','qc_certificates'],
+  controls: ['ops_manuals','planning_records','cost_records','task_records','maintenance_logs','workforce_records']
+};
+const BACKUP_LABELS = {
+  profiles:'User Profiles', products:'Products', inventory:'Inventory', vendors:'Vendors', buyers:'Buyers', company_details:'Company Details', machines:'Machines',
+  work_orders:'Work Orders', qc_records:'QC Records', purchase_orders:'Purchase Orders', quotations:'Quotations', sales_orders:'Sales Orders', dispatches:'Dispatches', invoices:'Invoices', inward_bills:'Inward Bills', finished_goods:'Finished Goods', approvals:'Approvals', audit_logs:'Audit Logs', qc_certificates:'QC Certificates',
+  ops_manuals:'Operations Manuals', planning_records:'Planning Records', cost_records:'Cost Records', task_records:'Task Records', maintenance_logs:'Maintenance Logs', workforce_records:'Workforce Records'
+};
+const ALL_BACKUP_TABLES = [...BACKUP_GROUPS.masters, ...BACKUP_GROUPS.transactions, ...BACKUP_GROUPS.controls];
+function getBackupPayload(group = 'all') {
+  const tables = group === 'all' ? ALL_BACKUP_TABLES : (BACKUP_GROUPS[group] || []);
+  return Object.fromEntries(tables.map(tbl => [tbl, DB[tbl] || []]));
+}
+function csvEsc(v) {
+  const s = String(v ?? '');
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function toCSV(rows) {
+  if (!rows?.length) return 'No data\n';
+  const cols = [...new Set(rows.flatMap(r => Object.keys(r || {})))];
+  return [cols.join(','), ...rows.map(r => cols.map(c => csvEsc(r?.[c])).join(','))].join('\n');
+}
+function dlFile(name, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function renderBackup() {
+  const totalRows = ALL_BACKUP_TABLES.reduce((sum, tbl) => sum + (DB[tbl]?.length || 0), 0);
+  const kpi = document.getElementById('backup-kpi');
+  if (kpi) kpi.innerHTML =
+    `<div class="kc b"><div class="kc-stripe"></div><div class="kl">Tables Covered</div><div class="kv">${ALL_BACKUP_TABLES.length}</div><div class="ks">master, transactional and control tables</div></div>` +
+    `<div class="kc g"><div class="kc-stripe"></div><div class="kl">Rows Loaded</div><div class="kv" style="color:var(--gn)">${totalRows.toLocaleString()}</div><div class="ks">current exportable records</div></div>` +
+    `<div class="kc o"><div class="kc-stripe"></div><div class="kl">Master Data Tables</div><div class="kv" style="color:var(--ac)">${BACKUP_GROUPS.masters.length}</div><div class="ks">products, users, company and buyers</div></div>` +
+    `<div class="kc p"><div class="kc-stripe"></div><div class="kl">Transaction Tables</div><div class="kv" style="color:var(--pu)">${BACKUP_GROUPS.transactions.length}</div><div class="ks">orders, invoices, dispatch and approvals</div></div>`;
+  const guidance = document.getElementById('backup-guidance');
+  if (guidance) guidance.innerHTML = `
+    <div class="ibox green" style="margin-bottom:12px"><div class="ibox-t">Recommended Frequency</div>Take a daily transactional backup, a weekly office archive, and a full backup before any deployment or schema change.</div>
+    <div class="ibox orange" style="margin-bottom:12px"><div class="ibox-t">Before Major Changes</div>Export full JSON from this screen, export Supabase tables, and confirm the latest GitHub commit is available.</div>
+    <div class="ibox yellow"><div class="ibox-t">Restore Rule</div>Use Supabase backup/restore for production recovery. Use browser exports for audit retention, office backup, and controlled data re-import planning.</div>
+  `;
+  const tbl = document.getElementById('backup-tbl');
+  if (!tbl) return;
+  tbl.innerHTML = ALL_BACKUP_TABLES.map(name => {
+    const count = DB[name]?.length || 0;
+    const group = Object.entries(BACKUP_GROUPS).find(([, tables]) => tables.includes(name))?.[0] || '--';
+    return `<tr><td>${esc(BACKUP_LABELS[name] || name)}</td><td class="mn">${count}</td><td>${esc(group)}</td><td>${count > 0 ? pill('Ready') : pill('Empty')}</td></tr>`;
+  }).join('');
+}
+window.exportBackupJSON = group => {
+  const payload = {
+    exported_at: new Date().toISOString(),
+    exported_by: CU?.email || CU?.name || 'unknown',
+    group,
+    data: getBackupPayload(group)
+  };
+  dlFile(`ssdec-${group}-backup-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(payload, null, 2), 'application/json');
+  toast(`Exported ${group} backup`, 's');
+};
+window.exportBackupCSVs = () => {
+  const stamp = new Date().toISOString().slice(0,10);
+  ALL_BACKUP_TABLES.forEach(tbl => dlFile(`ssdec-${tbl}-${stamp}.csv`, toCSV(DB[tbl] || []), 'text/csv;charset=utf-8'));
+  toast('CSV exports started for all backup tables', 's');
 };
 
 // ---

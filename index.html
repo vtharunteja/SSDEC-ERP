@@ -811,6 +811,38 @@
         </div>
       </div>
 
+      <!-- BACKUP & RESTORE -->
+      <div class="tc" id="tab-backup">
+        <div class="ph"><div><div class="pt">Backup & Restore</div><div class="pst">// export business data, verify backup coverage and follow restore SOP</div></div></div>
+        <div class="g4" id="backup-kpi"></div>
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div class="ct">Quick Backups</div></div>
+            <div style="padding:18px" id="backup-actions">
+              <div class="line-sub" style="margin-bottom:14px">Use JSON for full-fidelity backup and CSV for office-side sharing.</div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn bP" onclick="exportBackupJSON('all')">Export Full JSON Backup</button>
+                <button class="btn bO" onclick="exportBackupJSON('masters')">Export Master Data JSON</button>
+                <button class="btn bO" onclick="exportBackupJSON('transactions')">Export Transaction Data JSON</button>
+                <button class="btn bG" onclick="exportBackupCSVs()">Export All CSV Files</button>
+              </div>
+              <div class="ibox yellow" style="margin-top:16px">
+                <div class="ibox-t">Restore Guidance</div>
+                Use exported files for archival and controlled restore. Database restore should be done from Supabase backup/export procedures, not by direct browser overwrite.
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">Backup Discipline</div></div>
+            <div style="padding:18px" id="backup-guidance"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Table Coverage</div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Table</th><th>Records Loaded</th><th>Backup Group</th><th>Status</th></tr></thead><tbody id="backup-tbl"></tbody></table></div>
+        </div>
+      </div>
+
       <!-- ANALYTICS -->
       <div class="tc" id="tab-reports">
         <div class="ph"><div><div class="pt">Analytics</div><div class="pst">// live business intelligence</div></div><div class="ph-r"><button class="btn bO sm" onclick="refreshAll()">Refresh</button></div></div>
