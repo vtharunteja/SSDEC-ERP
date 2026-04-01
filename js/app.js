@@ -804,22 +804,38 @@ window.addEventListener('load', async () => {
 async function loadAllData() {
   if (!erpDataLoaded) showLoader('Loading ERP data...');
   const tables = Object.keys(DB);
-  await Promise.all(tables.map(async tbl => {
-    const { data } = await sb.from(tbl).select('*').order('created_at', { ascending: false });
+  const tableLoads = await Promise.allSettled(tables.map(async tbl => {
+    const queryPromise = sb.from(tbl).select('*').order('created_at', { ascending: false });
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout loading ${tbl}`)), 12000));
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+    if (error) throw error;
     DB[tbl] = data || [];
   }));
+  const failedTables = tableLoads
+    .map((result, idx) => result.status === 'rejected' ? tables[idx] : null)
+    .filter(Boolean);
   erpDataLoaded = true;
   applyBranding();
   fillProdDDs();
   renderDash();
   buildSB();
+  if (failedTables.length) {
+    console.warn('Some tables failed to load during startup:', failedTables);
+    toast(`Loaded ERP with partial data: ${failedTables.join(', ')}`, 'w');
+  }
 
   // Realtime subscriptions for all tables
   tables.forEach(tbl => {
     const sub = sb.channel(tbl)
       .on('postgres_changes', { event: '*', schema: 'public', table: tbl }, async () => {
-        const { data } = await sb.from(tbl).select('*').order('created_at', { ascending: false });
-        DB[tbl] = data || [];
+        try {
+          const { data, error } = await sb.from(tbl).select('*').order('created_at', { ascending: false });
+          if (error) throw error;
+          DB[tbl] = data || [];
+        } catch (err) {
+          console.warn(`Realtime refresh failed for ${tbl}`, err);
+          return;
+        }
         applyBranding();
         fillProdDDs();
         buildSB();

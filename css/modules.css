@@ -28,11 +28,12 @@
   font-size: 15px;
   font-weight: 800;
   margin-bottom: 3px;
+  color: var(--tx);
 }
 .mci {
   font-family: var(--fm);
   font-size: 10px;
-  color: var(--mu);
+  color: var(--t2);
 }
 .mcr {
   display: flex;
@@ -40,7 +41,7 @@
   gap: 12px;
   margin-top: 10px;
   font-size: 12px;
-  color: var(--t2);
+  color: var(--tx);
 }
 .mca {
   display: flex;
@@ -78,7 +79,7 @@
   margin-top: 7px;
   font-family: var(--fm);
   font-size: 10px;
-  color: var(--mu);
+  color: var(--t2);
   text-transform: uppercase;
   letter-spacing: .18em;
   text-align: center;
@@ -96,7 +97,7 @@
 .abv {
   font-family: var(--fm);
   font-size: 12px;
-  color: var(--t2);
+  color: var(--tx);
 }
 
 @media (max-width: 768px) {

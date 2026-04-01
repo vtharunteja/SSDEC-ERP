@@ -54,6 +54,7 @@
   font-size: 30px;
   font-weight: 800;
   line-height: 1.06;
+  color: var(--tx);
 }
 .ks {
   margin-top: 6px;
@@ -77,6 +78,7 @@
   font-size: 15px;
   font-weight: 800;
   letter-spacing: 0;
+  color: var(--tx);
 }
 .ch-r {
   display: flex;
@@ -116,6 +118,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--sf-soft) 72%, transparent)
 tbody td {
   padding: 13px 14px;
   vertical-align: top;
+  color: var(--t2);
 }
 .mn { font-family: var(--fm); }
 
@@ -675,7 +678,7 @@ select option { background: var(--sf); }
 .muted-help {
   margin-top: 4px;
   font-size: 11px;
-  color: var(--mu);
+  color: var(--t2);
 }
 
 .empty {
@@ -691,11 +694,11 @@ select option { background: var(--sf); }
   margin-bottom: 5px;
   font-size: 16px;
   font-weight: 800;
-  color: var(--t2);
+  color: var(--tx);
 }
 .empty-st {
   font-size: 12px;
-  color: var(--mu);
+  color: var(--t2);
 }
 
 .ir,
