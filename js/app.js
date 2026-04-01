@@ -861,8 +861,12 @@ async function loadAllData() {
 // ---
 async function dbInsert(tbl, data) {
   setSyncB('saving');
-  data.created_by = CU?.id;
-  const { error } = await sb.from(tbl).insert(data);
+  const payload = { ...data, created_by: CU?.id };
+  let { error } = await sb.from(tbl).insert(payload);
+  if (error && /created_by/i.test(error.message || '')) {
+    const retry = await sb.from(tbl).insert(data);
+    error = retry.error;
+  }
   if (error) { setSyncB('err'); toast('Save error: ' + error.message, 'e'); return false; }
   await refreshTable(tbl);
   setSyncB('idle');

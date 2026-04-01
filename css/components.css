@@ -724,7 +724,11 @@ select option { background: var(--sf); }
   font-weight: 800;
 }
 .uinf { flex: 1; min-width: 0; }
-.unl { font-size: 13px; font-weight: 800; }
+.unl {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tx);
+}
 .uel {
   margin-top: 2px;
   white-space: nowrap;
@@ -732,12 +736,12 @@ select option { background: var(--sf); }
   text-overflow: ellipsis;
   font-family: var(--fm);
   font-size: 10px;
-  color: var(--mu);
+  color: var(--t2);
 }
 .ucnt {
   font-family: var(--fm);
   font-size: 11px;
-  color: var(--mu);
+  color: var(--t2);
 }
 
 .roles-grid {
@@ -750,6 +754,7 @@ select option { background: var(--sf); }
   position: relative;
   overflow: hidden;
   padding: 14px 14px 14px 16px;
+  background: color-mix(in srgb, var(--sf) 92%, transparent);
 }
 .rolec::before {
   content: "";
@@ -766,8 +771,18 @@ select option { background: var(--sf); }
 .rolec.qc::before { background: var(--pu); }
 .rolec.dispatch::before { background: var(--cy); }
 .rolec.viewer::before { background: var(--mu); }
-.rn { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
-.rd2 { font-size: 11px; color: var(--mu); margin-bottom: 8px; line-height: 1.45; }
+.rn {
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  color: var(--tx);
+}
+.rd2 {
+  font-size: 11px;
+  color: var(--t2);
+  margin-bottom: 8px;
+  line-height: 1.45;
+}
 .at {
   display: inline-flex;
   margin: 2px;
@@ -777,9 +792,9 @@ select option { background: var(--sf); }
   font-size: 10px;
 }
 .at.a {
-  background: color-mix(in srgb, var(--gn) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gn) 18%, transparent);
-  color: var(--gn);
+  background: color-mix(in srgb, var(--ac) 12%, var(--sf));
+  border: 1px solid color-mix(in srgb, var(--ac) 24%, transparent);
+  color: var(--ac);
 }
 
 @media (max-width: 900px) {
