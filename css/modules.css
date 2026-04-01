@@ -93,6 +93,7 @@
   margin-bottom: 7px;
   font-size: 13px;
   font-weight: 600;
+  color: var(--tx);
 }
 .abv {
   font-family: var(--fm);
