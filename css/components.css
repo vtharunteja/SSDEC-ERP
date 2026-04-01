@@ -395,10 +395,10 @@ select option { background: var(--sf); }
   flex-shrink: 0;
   font-size: 14px;
 }
-.alw { background: color-mix(in srgb, var(--a2) 10%, transparent); border: 1px solid color-mix(in srgb, var(--a2) 20%, transparent); color: var(--a2); }
-.ald { background: color-mix(in srgb, var(--rd) 10%, transparent); border: 1px solid color-mix(in srgb, var(--rd) 20%, transparent); color: var(--rd); }
-.ali { background: color-mix(in srgb, var(--bl) 10%, transparent); border: 1px solid color-mix(in srgb, var(--bl) 20%, transparent); color: var(--bl); }
-.als { background: color-mix(in srgb, var(--gn) 10%, transparent); border: 1px solid color-mix(in srgb, var(--gn) 20%, transparent); color: var(--gn); }
+.alw { background: color-mix(in srgb, var(--or) 10%, transparent); border: 1px solid color-mix(in srgb, var(--or) 22%, transparent); color: var(--or); }
+.ald { background: color-mix(in srgb, var(--rd) 10%, transparent); border: 1px solid color-mix(in srgb, var(--rd) 22%, transparent); color: var(--rd); }
+.ali { background: color-mix(in srgb, var(--yl) 12%, transparent); border: 1px solid color-mix(in srgb, var(--yl) 24%, transparent); color: var(--yl); }
+.als { background: color-mix(in srgb, var(--gn) 10%, transparent); border: 1px solid color-mix(in srgb, var(--gn) 22%, transparent); color: var(--gn); }
 
 .ibox { border: 1px solid var(--br); }
 .ibox.blue { background: color-mix(in srgb, var(--bl) 8%, transparent); }

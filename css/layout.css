@@ -69,8 +69,8 @@
 }
 .toast.s { background: color-mix(in srgb, var(--gn) 12%, var(--sf)); color: var(--gn); }
 .toast.e { background: color-mix(in srgb, var(--rd) 12%, var(--sf)); color: var(--rd); }
-.toast.i { background: color-mix(in srgb, var(--bl) 12%, var(--sf)); color: var(--bl); }
-.toast.w { background: color-mix(in srgb, var(--a2) 12%, var(--sf)); color: var(--a2); }
+.toast.i { background: color-mix(in srgb, var(--yl) 14%, var(--sf)); color: var(--yl); }
+.toast.w { background: color-mix(in srgb, var(--or) 14%, var(--sf)); color: var(--or); }
 .toast-ic { font-size: 16px; flex-shrink: 0; }
 
 #login {
