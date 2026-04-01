@@ -3,9 +3,11 @@ create table if not exists quotations (
   quoteno text unique,
   buyer text,
   party text,
+  quote_kind text,
   product text,
   qty numeric default 0,
   price numeric default 0,
+  items_json text,
   enquiry_ref text,
   date date,
   valid_until date,
@@ -21,6 +23,10 @@ create table if not exists quotations (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+alter table if exists quotations
+  add column if not exists quote_kind text,
+  add column if not exists items_json text;
 
 alter table quotations enable row level security;
 

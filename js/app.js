@@ -186,6 +186,7 @@ const QUOTE_OTHER_OPTIONS = [
   'Annual Service Contract',
   'Custom Scope'
 ];
+let QT_LINES = [];
 function qcTestId(name){ return name.toLowerCase().replace(/[^a-z0-9]+/g,'-'); }
 function renderQCTestList(selected=[], remarksMap={}) {
   const wrap = document.getElementById('qc-test-list');
@@ -325,6 +326,138 @@ function renderQuoteItemOptions(selectedValue = null) {
   if (otherWrap) otherWrap.style.display = kind === 'Other' ? 'block' : 'none';
   if (otherInput && kind !== 'Other') otherInput.value = '';
 }
+window.renderQuoteItemOptions = renderQuoteItemOptions;
+
+function getQuoteItems(q) {
+  if (q?.items_json) {
+    const parsed = jParse(q.items_json, []);
+    if (Array.isArray(parsed) && parsed.length) return parsed;
+  }
+  if (q?.product || q?.qty || q?.price) {
+    const product = getProductByName(q.product || '');
+    const kind = q.quote_kind || (WO_SERVICE_OPTIONS.includes(q.product) ? 'Service' : product ? 'Product' : 'Other');
+    return [{
+      kind,
+      item: q.product || '',
+      description: product?.description || q.notes || '',
+      hsn: product?.hsn || '',
+      qty: parseFloat(q.qty || 0),
+      price: parseFloat(q.price || 0),
+      gst: parseFloat(product?.gst ?? 18)
+    }];
+  }
+  return [];
+}
+
+function getCurrentQuoteLine(showErrors = true) {
+  const kind = V('qt-kind') || 'Product';
+  const item = kind === 'Other' ? (V('qt-other') || V('qt-prod')) : V('qt-prod');
+  const qty = parseFloat(V('qt-qty') || '0');
+  const price = parseFloat(V('qt-price') || '0');
+  const description = V('qt-desc');
+  if (!item && !qty && !price && !description) return null;
+  if (!item) {
+    if (showErrors) toast('Select or enter product / service / other item', 'e');
+    return null;
+  }
+  if (!qty || Number.isNaN(qty) || price < 0 || Number.isNaN(price)) {
+    if (showErrors) toast('Valid qty and quoted price required', 'e');
+    return null;
+  }
+  const product = getProductByName(item);
+  return {
+    kind,
+    item,
+    description: description || product?.description || item,
+    hsn: product?.hsn || '',
+    qty,
+    price,
+    gst: parseFloat(product?.gst ?? 18)
+  };
+}
+
+function quoteLineMarkup(item = {}, idx = 0) {
+  const lineBase = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
+  const gstRate = parseFloat(item.gst || 0);
+  const lineTotal = lineBase + (lineBase * gstRate / 100);
+  return `<div class="line-item" data-qt-line="${idx}">
+    <div class="line-grid quote-line-grid">
+      <div class="line-col">
+        <label>Type</label>
+        <div class="line-note">${esc(item.kind || '--')}</div>
+      </div>
+      <div class="line-col">
+        <label>Item</label>
+        <div class="line-note">${esc(item.item || '--')}</div>
+      </div>
+      <div class="line-col">
+        <label>Description</label>
+        <div class="line-note">${esc(item.description || '--')}</div>
+      </div>
+      <div class="line-col">
+        <label>Qty</label>
+        <div class="line-note">${parseFloat(item.qty || 0)}</div>
+      </div>
+      <div class="line-col">
+        <label>Rate</label>
+        <div class="line-note">${fmtM(item.price || 0)}</div>
+      </div>
+      <div class="line-col">
+        <label>GST</label>
+        <div class="line-note">${gstRate}%</div>
+      </div>
+      <div class="line-total">
+        <div>Total</div>
+        <strong>${fmtM(lineTotal)}</strong>
+      </div>
+      <div class="line-col">
+        <button type="button" class="btn bD sm" onclick="removeQuoteLine(${idx})">Remove</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderQuoteLines(items = null) {
+  const wrap = document.getElementById('qt-lines');
+  if (!wrap) return;
+  if (Array.isArray(items)) QT_LINES = items;
+  wrap.innerHTML = QT_LINES.map((item, idx) => quoteLineMarkup(item, idx)).join('') || '<div class="empty"><div class="empty-tt">No quotation items added</div><div class="empty-st">Use the item selector above, then click Add Item.</div></div>';
+  updateQuoteTotals();
+}
+
+window.addQuoteLine = () => {
+  const item = getCurrentQuoteLine(true);
+  if (!item) return;
+  QT_LINES.push(item);
+  renderQuoteLines(QT_LINES);
+  SV('qt-prod', '');
+  SV('qt-other', '');
+  SV('qt-qty', '');
+  SV('qt-price', '');
+  SV('qt-desc', '');
+  renderQuoteItemOptions();
+};
+
+window.removeQuoteLine = idx => {
+  QT_LINES = QT_LINES.filter((_, i) => i !== idx);
+  renderQuoteLines(QT_LINES);
+};
+
+window.updateQuoteTotals = () => {
+  const box = document.getElementById('qt-totals');
+  if (!box) return;
+  let base = 0, tax = 0;
+  QT_LINES.forEach(item => {
+    const lineBase = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
+    const lineTax = lineBase * (parseFloat(item.gst || 0) / 100);
+    base += lineBase;
+    tax += lineTax;
+  });
+  const total = base + tax;
+  box.innerHTML = QT_LINES.length
+    ? `<div>Base Amount<br><strong>${fmtM(base)}</strong></div><div>Total GST<br><strong>${fmtM(tax)}</strong></div><div>Quoted Total<br><strong>${fmtM(total)}</strong></div>`
+    : '';
+};
 
 function entityType(v) {
   return v?.entity_type || (v?.category === 'Buyer' ? 'Buyer' : 'Vendor');
@@ -1479,31 +1612,41 @@ function renderQuotes() {
     if (cur) buyerSel.value = cur;
   }
   renderQuoteItemOptions();
+  renderQuoteLines();
   const srch = (V('qt-srch')||'').toLowerCase(), flt = V('qt-flt');
   const tbl  = document.getElementById('qt-tbl'); if(!tbl) return;
   tbl.innerHTML = DB.quotations
     .filter(q => (!flt || q.status === flt) && (!srch || ((q.quoteno || '') + (q.party || '') + (q.product || '') + (q.enquiry_ref || '')).toLowerCase().includes(srch)))
     .map(q => {
       const acts = `<button class="btn bG sm" onclick="printQuote('${q.id}')">Print</button>` + (ed ? `<button class="btn bO sm" onclick="editQuote('${q.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('quotations','${q.id}','qt')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('quotations','${q.id}')">Del</button>`:''}` : '');
-      const amount = parseFloat(q.qty||0) * parseFloat(q.price||0);
+      const items = getQuoteItems(q);
+      const amount = items.reduce((sum, item) => {
+        const base = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
+        return sum + base + (base * (parseFloat(item.gst || 0) / 100));
+      }, 0);
+      const itemLabel = items.length > 1 ? `${esc(items[0]?.item || q.product || '--')} + ${items.length - 1} more` : esc(items[0]?.item || q.product || '--');
       const submitted = [fmtD(q.submission_date), q.submission_mode].filter(Boolean).join(' / ') || '--';
       const follow = [fmtD(q.followup_date), q.followup_owner].filter(Boolean).join(' / ') || '--';
-      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${esc(q.quoteno||q.id.slice(-8))}</td><td>${esc(q.party||'--')}${q.enquiry_ref?`<div class="muted-help">RFQ: ${esc(q.enquiry_ref)}</div>`:''}</td><td>${esc(q.product||'--')}</td><td class="mn">${fmtM(amount)}</td><td>${esc(submitted)}</td><td>${esc(follow)}</td><td>${pill(q.status||'Draft')}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${acts}</div></td></tr>`;
+      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${esc(q.quoteno||q.id.slice(-8))}</td><td>${esc(q.party||'--')}${q.enquiry_ref?`<div class="muted-help">RFQ: ${esc(q.enquiry_ref)}</div>`:''}</td><td>${itemLabel}</td><td class="mn">${fmtM(amount)}</td><td>${esc(submitted)}</td><td>${esc(follow)}</td><td>${pill(q.status||'Draft')}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">QT</div><div class="empty-tt">No Quotations</div><div class="empty-st">Track quote submission and follow-up here.</div></div></td></tr>';
 }
 window.saveQuote = async () => {
-  const eid = V('qt-eid'), party = V('qt-party'), qty = parseFloat(V('qt-qty')), price = parseFloat(V('qt-price'));
-  if (!party || !qty || isNaN(price)) { toast('Customer, qty and quoted price required','e'); return; }
-  const kind = V('qt-kind') || 'Product';
-  const selectedItem = kind === 'Other' ? (V('qt-other') || V('qt-prod')) : V('qt-prod');
-  if (!selectedItem) { toast('Select or enter product / service / other item','e'); return; }
+  const eid = V('qt-eid'), party = V('qt-party');
+  if (!party) { toast('Customer / party required','e'); return; }
+  const draft = getCurrentQuoteLine(false);
+  const items = [...QT_LINES, ...(draft ? [draft] : [])];
+  if (!items.length) { toast('Add at least one quotation item','e'); return; }
+  const first = items[0];
+  const totalQty = items.reduce((sum, item) => sum + parseFloat(item.qty || 0), 0);
+  const totalBase = items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.price || 0)), 0);
   const data = {
-    quote_kind:kind,
+    quote_kind: items.length > 1 ? 'Multiple' : (first.kind || 'Product'),
     buyer:V('qt-buyer'),
     party,
-    product:selectedItem,
-    qty,
-    price,
+    product:first.item,
+    qty:totalQty,
+    price:totalBase,
+    items_json: JSON.stringify(items),
     enquiry_ref:V('qt-enquiry'),
     date:V('qt-date'),
     valid_until:V('qt-valid'),
@@ -1526,11 +1669,15 @@ window.saveQuote = async () => {
 };
 window.editQuote = id => {
   const q = DB.quotations.find(x=>x.id===id); if(!q) return;
-  const kind = q.quote_kind || (WO_SERVICE_OPTIONS.includes(q.product) ? 'Service' : DB.products.some(p => p.name === q.product) ? 'Product' : 'Other');
-  SV('qt-eid',id); SV('qt-no',q.quoteno); SV('qt-buyer',q.buyer); SV('qt-party',q.party); SV('qt-kind',kind); renderQuoteItemOptions(q.product); SV('qt-prod',q.product); SV('qt-other',kind==='Other'?q.product:''); SV('qt-qty',q.qty);
-  SV('qt-price',q.price); SV('qt-enquiry',q.enquiry_ref); SV('qt-date',q.date); SV('qt-valid',q.valid_until); SV('qt-subdate',q.submission_date);
+  const items = getQuoteItems(q);
+  const first = items[0] || {};
+  const kind = first.kind || q.quote_kind || (WO_SERVICE_OPTIONS.includes(q.product) ? 'Service' : DB.products.some(p => p.name === q.product) ? 'Product' : 'Other');
+  QT_LINES = items;
+  SV('qt-eid',id); SV('qt-no',q.quoteno); SV('qt-buyer',q.buyer); SV('qt-party',q.party); SV('qt-kind',kind); renderQuoteItemOptions(first.item || q.product); SV('qt-prod',''); SV('qt-other',''); SV('qt-qty','');
+  SV('qt-price',''); SV('qt-desc',''); SV('qt-enquiry',q.enquiry_ref); SV('qt-date',q.date); SV('qt-valid',q.valid_until); SV('qt-subdate',q.submission_date);
   SV('qt-submode',q.submission_mode); SV('qt-status',q.status); SV('qt-follow',q.followup_date); SV('qt-owner',q.followup_owner);
   SV('qt-subnotes',q.submission_notes); SV('qt-follownotes',q.followup_notes); SV('qt-notes',q.notes);
+  renderQuoteLines(QT_LINES);
   document.getElementById('qt-ft').textContent = 'Edit ' + (q.quoteno || 'Quotation');
   document.getElementById('qt-fc').scrollIntoView({behavior:'smooth'});
 };
@@ -1538,14 +1685,29 @@ window.printQuote = id => {
   const q = DB.quotations.find(x => x.id === id); if (!q) return;
   const company = getActiveCompany() || DB.company_details[0] || {};
   const buyer = getBuyerByName(q.buyer) || getVendorByName(q.party) || {};
-  const product = getProductByName(q.product || '');
-  const qty = parseFloat(q.qty || 0);
-  const price = parseFloat(q.price || 0);
-  const amount = qty * price;
-  const gstRate = parseFloat(product?.gst || 18);
-  const gstValue = amount * gstRate / 100;
+  const items = getQuoteItems(q);
+  const amount = items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.price || 0)), 0);
+  const gstValue = items.reduce((sum, item) => {
+    const base = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
+    return sum + (base * (parseFloat(item.gst || 0) / 100));
+  }, 0);
   const total = amount + gstValue;
   const validity = q.valid_until ? fmtD(q.valid_until) : 'Until further notice';
+  const rows = items.map((item, idx) => {
+    const base = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
+    const lineTax = base * (parseFloat(item.gst || 0) / 100);
+    return `<tr>
+        <td>${idx + 1}</td>
+        <td>${esc(item.kind || '--')}</td>
+        <td>${esc(item.item || '--')}</td>
+        <td>${esc(item.description || item.item || '--')}</td>
+        <td>${esc(item.hsn || '--')}</td>
+        <td>${parseFloat(item.qty || 0)}</td>
+        <td>${fmtM(item.price || 0)}</td>
+        <td>${parseFloat(item.gst || 0)}%</td>
+        <td>${fmtM(base + lineTax)}</td>
+      </tr>`;
+  }).join('');
   const html = `<!DOCTYPE html><html><head><title>Quotation ${esc(q.quoteno || '')}</title>
   <style>
   *{box-sizing:border-box} body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:12px}
@@ -1601,19 +1763,8 @@ window.printQuote = id => {
     </div>
   </div>
   <table>
-    <thead><tr><th>#</th><th>Product / Service</th><th>Description</th><th>HSN</th><th>Qty</th><th>Rate</th><th>GST</th><th>Total</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>${esc(q.product || '--')}</td>
-        <td>${esc(product?.description || q.notes || '--')}</td>
-        <td>${esc(product?.hsn || '--')}</td>
-        <td>${qty}</td>
-        <td>${fmtM(price)}</td>
-        <td>${gstRate}%</td>
-        <td>${fmtM(total)}</td>
-      </tr>
-    </tbody>
+    <thead><tr><th>#</th><th>Type</th><th>Product / Service</th><th>Description</th><th>HSN</th><th>Qty</th><th>Rate</th><th>GST</th><th>Total</th></tr></thead>
+    <tbody>${rows}</tbody>
   </table>
   <table class="totals">
     <tr><td>Base Amount</td><td style="text-align:right">${fmtM(amount)}</td></tr>
@@ -2840,7 +2991,7 @@ const FORM_FIELDS = {
   qc:   ['qc-eid','qc-sample','qc-pass','qc-insp','qc-notes'],
   inv:  ['inv-eid','inv-name','inv-code','inv-stock','inv-reorder','inv-min','inv-cost','inv-sup'],
   po:   ['po-eid','po-qty','po-price','po-date','po-notes'],
-  qt:   ['qt-eid','qt-no','qt-buyer','qt-party','qt-kind','qt-prod','qt-other','qt-qty','qt-price','qt-enquiry','qt-date','qt-valid','qt-subdate','qt-submode','qt-status','qt-follow','qt-owner','qt-subnotes','qt-follownotes','qt-notes'],
+  qt:   ['qt-eid','qt-no','qt-buyer','qt-party','qt-kind','qt-prod','qt-other','qt-qty','qt-price','qt-desc','qt-enquiry','qt-date','qt-valid','qt-subdate','qt-submode','qt-status','qt-follow','qt-owner','qt-subnotes','qt-follownotes','qt-notes'],
   so:   ['so-eid','so-buyer','so-cust','so-qty','so-price','so-date','so-dl','so-ref','so-addr','so-gst'],
   dc:   ['dc-eid','dc-qty','dc-date','dc-veh','dc-trans','dc-lr','dc-notes'],
   inv2: ['inv2-eid','inv2-no','inv2-company','inv2-buyer','inv2-party','inv2-cgst','inv2-so','inv2-date','inv2-due','inv2-terms','inv2-ref','inv2-status','inv2-billaddr','inv2-shipaddr','inv2-notes'],
@@ -2864,7 +3015,7 @@ window.clrForm = f => {
   const tEl = document.getElementById(f+'-ft'); if(tEl) tEl.textContent = FORM_TITLES[f]||'';
   const bEl = document.getElementById(f+'-sb'); if(bEl) bEl.textContent = FORM_BTNS[f]||'Save';
   if (f==='po') { const pa=document.getElementById('po-addr'); if(pa) pa.value='EIPD Plant, Unit 2'; }
-  if (f==='qt') { SV('qt-status','Draft'); SV('qt-submode','Email'); SV('qt-kind','Product'); renderQuoteItemOptions(); }
+  if (f==='qt') { QT_LINES = []; SV('qt-status','Draft'); SV('qt-submode','Email'); SV('qt-kind','Product'); renderQuoteItemOptions(); renderQuoteLines([]); }
   if (f==='qc') renderQCTestList();
   if (f==='wo') { SV('wo-type','In-house'); toggleWOServiceFields(); }
   if (f==='inv2') {

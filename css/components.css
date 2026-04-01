@@ -650,7 +650,22 @@ select option { background: var(--sf); }
   gap: 10px;
   align-items: end;
 }
+.quote-line-grid {
+  grid-template-columns: .8fr 1.15fr 1.5fr .6fr .8fr .6fr .8fr auto;
+}
 .line-col label { display: block; margin-bottom: 6px; }
+.line-note {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--br);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--sf) 82%, transparent);
+  color: var(--t);
+  font-size: 13px;
+  line-height: 1.45;
+}
 .line-total {
   min-width: 92px;
   padding: 10px 0;

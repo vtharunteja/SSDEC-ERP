@@ -343,6 +343,20 @@
             <div class="fr" id="qt-other-wrap" style="display:none"><label>Other Item</label><input type="text" id="qt-other" placeholder="Enter custom item / scope"/></div>
             <div class="fr"><label>Qty</label><input type="number" id="qt-qty" min="1"/></div>
             <div class="fr"><label>Quoted Price (Rs)</label><input type="number" id="qt-price" min="0"/></div>
+            <div class="fr full"><label>Line Description</label><input type="text" id="qt-desc" placeholder="Optional description for this line item"/></div>
+            <div class="fr full">
+              <div class="line-item">
+                <div class="line-head">
+                  <div>
+                    <div class="line-title">Quotation Items</div>
+                    <div class="line-sub">Add one or more products, services, or custom scopes in the same quotation.</div>
+                  </div>
+                  <button type="button" class="btn bO sm" onclick="addQuoteLine()">Add Item</button>
+                </div>
+                <div id="qt-lines"></div>
+                <div class="line-totals" id="qt-totals"></div>
+              </div>
+            </div>
             <div class="fr"><label>Enquiry / RFQ Ref</label><input type="text" id="qt-enquiry" placeholder="RFQ / tender / enquiry ref"/></div>
             <div class="fr"><label>Quote Date</label><input type="date" id="qt-date"/></div>
             <div class="fr"><label>Valid Until</label><input type="date" id="qt-valid"/></div>
