@@ -680,14 +680,16 @@ let activeSessionKey = null;
 let erpBooted = false;
 let sessionInitPromise = null;
 let erpDataLoaded = false;
+let authBootstrapDone = false;
 
 async function initSession(session) {
-  const sessionKey = session?.access_token || session?.user?.id || '';
+  const sessionKey = session?.user?.id || '';
   if (!session?.user) {
     isInitialized = false;
     activeSessionKey = null;
     sessionInitPromise = null;
     erpDataLoaded = false;
+    authBootstrapDone = false;
     CU = null;
     if (typeof stopIdleDetection === 'function') stopIdleDetection();
     document.getElementById('erp').style.display = 'none';
@@ -759,6 +761,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     erpBooted = false;
     sessionInitPromise = null;
     erpDataLoaded = false;
+    authBootstrapDone = false;
     CU = null;
     if (typeof stopIdleDetection === 'function') stopIdleDetection();
     document.getElementById('loader').style.display  = 'none';
@@ -770,13 +773,17 @@ sb.auth.onAuthStateChange(async (event, session) => {
   }
 
   if (!shouldInit) return;
+  authBootstrapDone = true;
   await initSession(session);
 });
 
 window.addEventListener('load', async () => {
   initTheme();
+  if (authBootstrapDone) return;
   try {
     const { data } = await sb.auth.getSession();
+    if (authBootstrapDone) return;
+    authBootstrapDone = true;
     if (data?.session?.user) await initSession(data.session);
   } catch(e) {}
 });// ---
