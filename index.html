@@ -338,7 +338,9 @@
             <div class="fr"><label>Quotation No.</label><input type="text" id="qt-no" placeholder="QT-2026-001"/></div>
             <div class="fr"><label>Buyer</label><select id="qt-buyer"><option value="">-- Select buyer --</option></select></div>
             <div class="fr"><label>Customer / Party</label><input type="text" id="qt-party" placeholder="TSSPDCL, APTRANSCO..."/></div>
+            <div class="fr"><label>Quotation For</label><select id="qt-kind" onchange="renderQuoteItemOptions()"><option>Product</option><option>Service</option><option>Other</option></select></div>
             <div class="fr"><label>Product / Service</label><select id="qt-prod"></select></div>
+            <div class="fr" id="qt-other-wrap" style="display:none"><label>Other Item</label><input type="text" id="qt-other" placeholder="Enter custom item / scope"/></div>
             <div class="fr"><label>Qty</label><input type="number" id="qt-qty" min="1"/></div>
             <div class="fr"><label>Quoted Price (Rs)</label><input type="number" id="qt-price" min="0"/></div>
             <div class="fr"><label>Enquiry / RFQ Ref</label><input type="text" id="qt-enquiry" placeholder="RFQ / tender / enquiry ref"/></div>

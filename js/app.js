@@ -179,6 +179,13 @@ const WO_SERVICE_OPTIONS = [
   'Packing Services',
   'Other Services'
 ];
+const QUOTE_OTHER_OPTIONS = [
+  'Turnkey Scope',
+  'Field Support',
+  'Consultancy',
+  'Annual Service Contract',
+  'Custom Scope'
+];
 function qcTestId(name){ return name.toLowerCase().replace(/[^a-z0-9]+/g,'-'); }
 function renderQCTestList(selected=[], remarksMap={}) {
   const wrap = document.getElementById('qc-test-list');
@@ -278,12 +285,12 @@ function fillProdDDs() {
     .map(p => `<option value="${p.name}">${p.name}</option>`)
     .join('');
   const woOpts = prodOpts + WO_SERVICE_OPTIONS.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-  ['qc-prod','so-prod','qt-prod'].forEach(id => {
+  ['qc-prod','so-prod'].forEach(id => {
     const e = document.getElementById(id);
     if (!e) return;
     const cur = e.value;
-    const src = id === 'qt-prod' ? woOpts : prodOpts;
-    e.innerHTML = (id === 'qt-prod' ? '<option value="">-- Select product / service --</option>' : '') + (src || '<option>No products  add in Product Master</option>');
+    const src = prodOpts;
+    e.innerHTML = (src || '<option>No products  add in Product Master</option>');
     if (cur) e.value = cur;
   });
   const woEl = document.getElementById('wo-prod');
@@ -297,7 +304,26 @@ function fillProdDDs() {
     sel.innerHTML = '<option value="">-- Select product --</option>' + prodOpts;
     if (cur) sel.value = cur;
   });
+  renderQuoteItemOptions();
   fillPartyDDs();
+}
+
+function renderQuoteItemOptions(selectedValue = null) {
+  const kind = V('qt-kind') || 'Product';
+  const sel = document.getElementById('qt-prod');
+  const otherWrap = document.getElementById('qt-other-wrap');
+  const otherInput = document.getElementById('qt-other');
+  if (!sel) return;
+  let options = [];
+  if (kind === 'Product') options = DB.products.filter(p => p.active === true).map(p => p.name);
+  else if (kind === 'Service') options = WO_SERVICE_OPTIONS.slice();
+  else options = QUOTE_OTHER_OPTIONS.slice();
+  const cur = selectedValue ?? sel.value;
+  const placeholder = kind === 'Product' ? '-- Select product --' : kind === 'Service' ? '-- Select service --' : '-- Select other scope --';
+  sel.innerHTML = `<option value="">${placeholder}</option>` + options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+  if (cur && options.includes(cur)) sel.value = cur;
+  if (otherWrap) otherWrap.style.display = kind === 'Other' ? 'block' : 'none';
+  if (otherInput && kind !== 'Other') otherInput.value = '';
 }
 
 function entityType(v) {
@@ -1452,6 +1478,7 @@ function renderQuotes() {
       .join('');
     if (cur) buyerSel.value = cur;
   }
+  renderQuoteItemOptions();
   const srch = (V('qt-srch')||'').toLowerCase(), flt = V('qt-flt');
   const tbl  = document.getElementById('qt-tbl'); if(!tbl) return;
   tbl.innerHTML = DB.quotations
@@ -1467,10 +1494,14 @@ function renderQuotes() {
 window.saveQuote = async () => {
   const eid = V('qt-eid'), party = V('qt-party'), qty = parseFloat(V('qt-qty')), price = parseFloat(V('qt-price'));
   if (!party || !qty || isNaN(price)) { toast('Customer, qty and quoted price required','e'); return; }
+  const kind = V('qt-kind') || 'Product';
+  const selectedItem = kind === 'Other' ? (V('qt-other') || V('qt-prod')) : V('qt-prod');
+  if (!selectedItem) { toast('Select or enter product / service / other item','e'); return; }
   const data = {
+    quote_kind:kind,
     buyer:V('qt-buyer'),
     party,
-    product:V('qt-prod'),
+    product:selectedItem,
     qty,
     price,
     enquiry_ref:V('qt-enquiry'),
@@ -1495,7 +1526,8 @@ window.saveQuote = async () => {
 };
 window.editQuote = id => {
   const q = DB.quotations.find(x=>x.id===id); if(!q) return;
-  SV('qt-eid',id); SV('qt-no',q.quoteno); SV('qt-buyer',q.buyer); SV('qt-party',q.party); SV('qt-prod',q.product); SV('qt-qty',q.qty);
+  const kind = q.quote_kind || (WO_SERVICE_OPTIONS.includes(q.product) ? 'Service' : DB.products.some(p => p.name === q.product) ? 'Product' : 'Other');
+  SV('qt-eid',id); SV('qt-no',q.quoteno); SV('qt-buyer',q.buyer); SV('qt-party',q.party); SV('qt-kind',kind); renderQuoteItemOptions(q.product); SV('qt-prod',q.product); SV('qt-other',kind==='Other'?q.product:''); SV('qt-qty',q.qty);
   SV('qt-price',q.price); SV('qt-enquiry',q.enquiry_ref); SV('qt-date',q.date); SV('qt-valid',q.valid_until); SV('qt-subdate',q.submission_date);
   SV('qt-submode',q.submission_mode); SV('qt-status',q.status); SV('qt-follow',q.followup_date); SV('qt-owner',q.followup_owner);
   SV('qt-subnotes',q.submission_notes); SV('qt-follownotes',q.followup_notes); SV('qt-notes',q.notes);
@@ -2808,7 +2840,7 @@ const FORM_FIELDS = {
   qc:   ['qc-eid','qc-sample','qc-pass','qc-insp','qc-notes'],
   inv:  ['inv-eid','inv-name','inv-code','inv-stock','inv-reorder','inv-min','inv-cost','inv-sup'],
   po:   ['po-eid','po-qty','po-price','po-date','po-notes'],
-  qt:   ['qt-eid','qt-no','qt-buyer','qt-party','qt-prod','qt-qty','qt-price','qt-enquiry','qt-date','qt-valid','qt-subdate','qt-submode','qt-status','qt-follow','qt-owner','qt-subnotes','qt-follownotes','qt-notes'],
+  qt:   ['qt-eid','qt-no','qt-buyer','qt-party','qt-kind','qt-prod','qt-other','qt-qty','qt-price','qt-enquiry','qt-date','qt-valid','qt-subdate','qt-submode','qt-status','qt-follow','qt-owner','qt-subnotes','qt-follownotes','qt-notes'],
   so:   ['so-eid','so-buyer','so-cust','so-qty','so-price','so-date','so-dl','so-ref','so-addr','so-gst'],
   dc:   ['dc-eid','dc-qty','dc-date','dc-veh','dc-trans','dc-lr','dc-notes'],
   inv2: ['inv2-eid','inv2-no','inv2-company','inv2-buyer','inv2-party','inv2-cgst','inv2-so','inv2-date','inv2-due','inv2-terms','inv2-ref','inv2-status','inv2-billaddr','inv2-shipaddr','inv2-notes'],
@@ -2832,7 +2864,7 @@ window.clrForm = f => {
   const tEl = document.getElementById(f+'-ft'); if(tEl) tEl.textContent = FORM_TITLES[f]||'';
   const bEl = document.getElementById(f+'-sb'); if(bEl) bEl.textContent = FORM_BTNS[f]||'Save';
   if (f==='po') { const pa=document.getElementById('po-addr'); if(pa) pa.value='EIPD Plant, Unit 2'; }
-  if (f==='qt') { SV('qt-status','Draft'); SV('qt-submode','Email'); }
+  if (f==='qt') { SV('qt-status','Draft'); SV('qt-submode','Email'); SV('qt-kind','Product'); renderQuoteItemOptions(); }
   if (f==='qc') renderQCTestList();
   if (f==='wo') { SV('wo-type','In-house'); toggleWOServiceFields(); }
   if (f==='inv2') {
