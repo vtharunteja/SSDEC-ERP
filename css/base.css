@@ -1,71 +1,73 @@
 /*
-   base.css  Design Tokens & Reset
+   base.css  Design Tokens & Reset (Redesigned)
 */
 :root {
-  --bg: #0b1220;
-  --bg2: #10192b;
-  --sf: rgba(16, 25, 43, 0.96);
-  --sf-2: rgba(21, 32, 52, 0.98);
-  --sf-soft: rgba(24, 37, 60, 0.88);
-  --s2: #16233a;
-  --br: rgba(148, 163, 184, 0.16);
-  --br-soft: rgba(255, 255, 255, 0.06);
+  /* High-end Dark Theme */
+  --bg: #030712;
+  --bg2: #090f1a;
+  --sf: rgba(15, 23, 42, 0.45);
+  --sf-2: rgba(30, 41, 59, 0.35);
+  --sf-soft: rgba(15, 23, 42, 0.25);
+  --s2: rgba(30, 41, 59, 0.3);
+  --br: rgba(255, 255, 255, 0.1);
+  --br-soft: rgba(255, 255, 255, 0.05);
 
-  --ac: #2563eb;
-  --ac2: #1d4ed8;
+  /* Vibrant Accents */
+  --ac: #3b82f6;      /* Primary Blue */
+  --ac2: #8b5cf6;     /* Purple gradient */
   --a2: #0f766e;
-  --gn: #22c55e;
-  --rd: #ef4444;
-  --yl: #eab308;
-  --or: #f97316;
-  --bl: #3b82f6;
-  --pu: #6366f1;
-  --cy: #06b6d4;
+  --gn: #10b981;      /* Emerald */
+  --rd: #ef4444;      /* Red */
+  --yl: #eab308;      /* Amber */
+  --or: #f97316;      /* Orange */
+  --bl: #0ea5e9;      /* Sky Blue */
+  --pu: #a855f7;      /* Violet */
+  --cy: #06b6d4;      /* Cyan */
 
-  --tx: #f3f7ff;
-  --t2: #d2dceb;
-  --mu: #9aa9c1;
+  --tx: #f8fafc;
+  --t2: #cbd5e1;
+  --mu: #94a3b8;
 
-  --fn: "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-  --fm: "Consolas", "SFMono-Regular", "Cascadia Code", monospace;
+  --fn: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
+  --fm: "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
 
-  --r: 10px;
-  --rl: 18px;
-  --rx: 26px;
+  --r: 16px;
+  --rl: 24px;
+  --rx: 32px;
 
-  --sh: 0 14px 28px rgba(2, 8, 18, 0.18);
-  --sh2: 0 22px 48px rgba(2, 8, 18, 0.24);
-  --shadow-ac: rgba(37, 99, 235, 0.12);
+  --sh: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  --sh2: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  --shadow-ac: rgba(59, 130, 246, 0.25);
 }
 
 [data-theme="light"] {
-  --bg: #eef4fb;
-  --bg2: #f8fbff;
-  --sf: rgba(255, 255, 255, 0.95);
-  --sf-2: rgba(246, 249, 253, 0.98);
-  --sf-soft: rgba(233, 240, 249, 0.92);
-  --s2: #eef3f9;
-  --br: rgba(30, 41, 59, 0.12);
-  --br-soft: rgba(15, 23, 42, 0.06);
+  --bg: #f8fafc;
+  --bg2: #ffffff;
+  --sf: rgba(255, 255, 255, 0.7);
+  --sf-2: rgba(248, 250, 252, 0.6);
+  --sf-soft: rgba(255, 255, 255, 0.4);
+  --s2: rgba(241, 245, 249, 0.5);
+  --br: rgba(15, 23, 42, 0.08);
+  --br-soft: rgba(15, 23, 42, 0.04);
 
   --ac: #2563eb;
-  --ac2: #1d4ed8;
+  --ac2: #7c3aed;
   --a2: #0f766e;
-  --gn: #16a34a;
+  --gn: #059669;
   --rd: #dc2626;
-  --yl: #ca8a04;
+  --yl: #d97706;
   --or: #ea580c;
-  --bl: #2563eb;
+  --bl: #0284c7;
   --pu: #7c3aed;
   --cy: #0891b2;
 
   --tx: #0f172a;
   --t2: #334155;
-  --mu: #516174;
+  --mu: #64748b;
 
-  --sh: 0 14px 28px rgba(15, 23, 42, 0.07);
-  --sh2: 0 20px 40px rgba(15, 23, 42, 0.1);
-  --shadow-ac: rgba(37, 99, 235, 0.1);
+  --sh: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+  --sh2: 0 20px 40px -10px rgba(15, 23, 42, 0.12);
+  --shadow-ac: rgba(37, 99, 235, 0.15);
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -81,11 +83,12 @@ body {
   color: var(--tx);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  background:
-    radial-gradient(circle at 8% 12%, color-mix(in srgb, var(--ac) 8%, transparent), transparent 24%),
-    radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--bl) 7%, transparent), transparent 22%),
-    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--pu) 4%, transparent), transparent 26%),
-    linear-gradient(180deg, var(--bg2), var(--bg));
+  background-color: var(--bg);
+  background-image: 
+    radial-gradient(circle at 10% 20%, color-mix(in srgb, var(--ac) 15%, transparent) 0%, transparent 60%),
+    radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--pu) 12%, transparent) 0%, transparent 60%),
+    radial-gradient(circle at 40% 90%, color-mix(in srgb, var(--cy) 10%, transparent) 0%, transparent 60%);
+  background-attachment: fixed;
   transition: background .28s ease, color .28s ease;
 }
 
@@ -102,18 +105,20 @@ img { display: block; max-width: 100%; }
   color: #fff;
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--mu) 46%, transparent);
+  background: color-mix(in srgb, var(--mu) 20%, transparent);
   border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--ac) 36%, var(--mu));
+  background-color: color-mix(in srgb, var(--mu) 40%, transparent);
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeIn {
@@ -121,7 +126,7 @@ img { display: block; max-width: 100%; }
   to { opacity: 1; }
 }
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(-10px); }
+  from { opacity: 0; transform: translateX(-16px); }
   to { opacity: 1; transform: translateX(0); }
 }
 @keyframes spin {
@@ -130,4 +135,8 @@ img { display: block; max-width: 100%; }
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: .45; transform: scale(1.35); }
+}
+@keyframes glowFade {
+  0%, 100% { box-shadow: 0 0 10px var(--shadow-ac); }
+  50% { box-shadow: 0 0 25px var(--shadow-ac); }
 }

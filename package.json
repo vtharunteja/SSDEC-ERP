@@ -1,0 +1,23 @@
+{
+  "name": "ssdec-erp-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SSDEC ERP mobile-ready wrapper using Capacitor",
+  "scripts": {
+    "prepare:web": "node scripts/prepare-web.mjs",
+    "cap:sync": "npm run prepare:web && npx cap sync",
+    "cap:copy": "npm run prepare:web && npx cap copy",
+    "cap:android:add": "npx cap add android",
+    "cap:ios:add": "npx cap add ios",
+    "cap:android": "npx cap open android",
+    "cap:ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/ios": "^7.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.0"
+  }
+}

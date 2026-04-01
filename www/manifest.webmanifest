@@ -1,0 +1,10 @@
+{
+  "name": "SSDEC ERP",
+  "short_name": "SSDEC ERP",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#07090F",
+  "theme_color": "#0D1117",
+  "description": "Polymer insulator manufacturing ERP for production, quality, inventory and commercial operations.",
+  "icons": []
+}

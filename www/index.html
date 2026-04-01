@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
@@ -10,29 +10,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="EIPD ERP"/>
 <link rel="manifest" href="manifest.webmanifest"/>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-<script>
-(function(){
-  try {
-    var theme = localStorage.getItem('eipd-theme');
-    if (theme === 'light' || theme === 'dark') {
-      document.documentElement.setAttribute('data-theme', theme);
-      var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', theme === 'light' ? '#F4F7FB' : '#0D1117');
-    }
-  } catch (e) {}
-})();
-</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/layout.css"/>
 <link rel="stylesheet" href="css/components.css"/>
 <link rel="stylesheet" href="css/modules.css"/>
 </head>
-<body class="min-vh-100">
+<body>
 
 <!-- LOADER -->
 <div id="loader" style="display:none!important;visibility:hidden">
@@ -48,15 +31,15 @@
 <!-- LOGIN -->
 <div id="login" class="screen show">
   <div class="login-dots"></div>
-  <div class="login-card shadow-sm">
-    <div class="login-brand d-flex align-items-center">
+  <div class="login-card">
+    <div class="login-brand">
       <div class="brand-icon" id="brand-login-icon">E</div>
       <div>
         <div class="brand-name" id="brand-login-name">EIPD ERP</div>
         <div class="brand-sub" id="brand-login-sub">Polymer Insulator Manufacturing</div>
       </div>
     </div>
-    <div class="login-secure d-inline-flex align-items-center">
+    <div class="login-secure">
       <div class="login-dot"></div>
       Secured by Supabase
     </div>
@@ -77,9 +60,9 @@
 <div id="erp" style="display:none">
   <div class="offline-bar" id="offline-bar">No internet. Working offline. Changes sync when reconnected.</div>
   <header class="hdr">
-    <div class="h-left d-flex align-items-center">
+    <div class="h-left">
       <button class="hburger" onclick="toggleSB()">&#9776;</button>
-      <div class="hlogo d-flex align-items-center">
+      <div class="hlogo">
         <div class="hlogo-icon" id="brand-header-icon">E</div>
         <div>
           <span class="hlogo-name" id="brand-header-name">EIPD ERP</span>
@@ -87,13 +70,9 @@
         </div>
       </div>
     </div>
-    <div class="h-right d-flex align-items-center flex-wrap">
+    <div class="h-right">
       <span class="hclock" id="hclock"></span>
       <span class="hsync idle" id="hsync">Synced</span>
-      <button class="htheme" id="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme" title="Switch theme">
-        <span class="htheme-ic" id="theme-ic">☾</span>
-        <span class="htheme-tx" id="theme-tx">Dark</span>
-      </button>
       <div class="huser" id="huser">
         <div class="hav" id="hav"></div>
         <span class="hnm" id="hnm"></span>
@@ -106,7 +85,7 @@
   <div class="layout">
     <div class="sb-overlay" id="sb-overlay" onclick="closeSB()"></div>
     <nav class="sb" id="sb"></nav>
-    <main class="main container-fluid">
+    <main class="main">
 
       <!-- DASHBOARD -->
       <div class="tc" id="tab-dashboard">
@@ -327,53 +306,6 @@
             <select id="so-flt" onchange="renderSO()"><option value="">All Status</option><option>Pending</option><option>In Production</option><option>Ready</option><option>Dispatched</option><option>Delivered</option></select>
           </div></div>
           <div class="tbl-wrap"><table><thead><tr><th>SO No.</th><th>Customer</th><th>Product</th><th>Qty</th><th>Value</th><th>Deadline</th><th>WO</th><th>Status</th><th>Actions</th></tr></thead><tbody id="so-tbl"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- QUOTATIONS -->
-      <div class="tc" id="tab-quotes">
-        <div class="ph"><div><div class="pt">Quotations</div><div class="pst">// quotations, submissions and follow-up tracking</div></div></div>
-        <div id="qt-ro"></div>
-        <div class="card" id="qt-fc">
-          <div class="ch"><div class="ct" id="qt-ft">Create Quotation</div></div>
-          <div class="fg">
-            <input type="hidden" id="qt-eid"/>
-            <div class="fr"><label>Quotation No.</label><input type="text" id="qt-no" placeholder="QT-2026-001"/></div>
-            <div class="fr"><label>Buyer</label><select id="qt-buyer"><option value="">-- Select buyer --</option></select></div>
-            <div class="fr"><label>Customer / Party</label><input type="text" id="qt-party" placeholder="TSSPDCL, APTRANSCO..."/></div>
-            <div class="fr full">
-              <div class="line-item">
-                <div class="line-head">
-                  <div>
-                    <div class="line-title">Quotation Items</div>
-                    <div class="line-sub">Add one or more products, services, or custom scopes in the same quotation.</div>
-                  </div>
-                  <button type="button" class="btn bO sm" onclick="addQuoteLine()">Add Item</button>
-                </div>
-                <div id="qt-lines"></div>
-                <div class="line-totals" id="qt-totals"></div>
-              </div>
-            </div>
-            <div class="fr"><label>Enquiry / RFQ Ref</label><input type="text" id="qt-enquiry" placeholder="RFQ / tender / enquiry ref"/></div>
-            <div class="fr"><label>Quote Date</label><input type="date" id="qt-date"/></div>
-            <div class="fr"><label>Valid Until</label><input type="date" id="qt-valid"/></div>
-            <div class="fr"><label>Submission Date</label><input type="date" id="qt-subdate"/></div>
-            <div class="fr"><label>Submission Mode</label><select id="qt-submode"><option>Email</option><option>Portal</option><option>Courier</option><option>Hand Delivery</option><option>WhatsApp</option><option>Other</option></select></div>
-            <div class="fr"><label>Status</label><select id="qt-status"><option>Draft</option><option>Submitted</option><option>Follow-up Due</option><option>Under Review</option><option>Won</option><option>Lost</option><option>Cancelled</option></select></div>
-            <div class="fr"><label>Follow-up Date</label><input type="date" id="qt-follow"/></div>
-            <div class="fr"><label>Follow-up Owner</label><input type="text" id="qt-owner" placeholder="Sales coordinator / manager"/></div>
-            <div class="fr full"><label>Submission Details</label><textarea id="qt-subnotes" rows="2" placeholder="Portal name, mail subject, contact person, etc."></textarea></div>
-            <div class="fr full"><label>Follow-up Notes</label><textarea id="qt-follownotes" rows="2" placeholder="Response received, next action, customer feedback..."></textarea></div>
-            <div class="fr full"><label>Remarks</label><textarea id="qt-notes" rows="2"></textarea></div>
-          </div>
-          <div class="ff"><button class="btn bO" onclick="clrForm('qt')">Clear</button><button class="btn bP" id="qt-sb" onclick="saveQuote()">Save Quotation</button></div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Quotation Register</div><div class="ch-r">
-            <input type="text" id="qt-srch" placeholder="Search..." oninput="renderQuotes()"/>
-            <select id="qt-flt" onchange="renderQuotes()"><option value="">All Status</option><option>Draft</option><option>Submitted</option><option>Follow-up Due</option><option>Under Review</option><option>Won</option><option>Lost</option><option>Cancelled</option></select>
-          </div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Quote No.</th><th>Customer</th><th>Product / Service</th><th>Value</th><th>Submitted</th><th>Follow-up</th><th>Status</th><th>Actions</th></tr></thead><tbody id="qt-tbl"></tbody></table></div>
         </div>
       </div>
 
@@ -632,220 +564,6 @@
         </div>
       </div>
 
-      <!-- OPERATIONS MANUALS -->
-      <div class="tc" id="tab-ops">
-        <div class="ph"><div><div class="pt">Operations Manuals</div><div class="pst">// SOPs, safety and training instructions</div></div></div>
-        <div class="g4" id="ops-kpi"></div>
-        <div id="ops-ro"></div>
-        <div class="card" id="ops-fc">
-          <div class="ch"><div class="ct" id="ops-ft">Create Operations Document</div></div>
-          <div class="fg">
-            <input type="hidden" id="ops-eid"/>
-            <div class="fr"><label>Document Type</label><select id="ops-type"><option>Production Workflow SOP</option><option>QC Checklist</option><option>Machine Operation Procedure</option><option>Shutdown Procedure</option><option>Safety Protocol</option><option>Emergency Procedure</option><option>Dispatch & Packaging Manual</option><option>New Worker Training</option></select></div>
-            <div class="fr"><label>Document No.</label><input type="text" id="ops-docno" placeholder="SOP-001"/></div>
-            <div class="fr"><label>Title</label><input type="text" id="ops-title"/></div>
-            <div class="fr"><label>Department</label><input type="text" id="ops-dept"/></div>
-            <div class="fr"><label>Owner</label><input type="text" id="ops-owner"/></div>
-            <div class="fr"><label>Review Frequency</label><select id="ops-frequency"><option>Monthly</option><option>Quarterly</option><option>Half Yearly</option><option>Yearly</option><option>As Required</option></select></div>
-            <div class="fr"><label>Effective Date</label><input type="date" id="ops-effective"/></div>
-            <div class="fr"><label>Review Date</label><input type="date" id="ops-review"/></div>
-            <div class="fr"><label>Status</label><select id="ops-status"><option>Draft</option><option selected>Active</option><option>Under Review</option><option>Archived</option></select></div>
-            <div class="fr"><label>Version</label><input type="text" id="ops-version" placeholder="v1.0"/></div>
-            <div class="fr full"><label>Procedure / Checklist Content</label><textarea id="ops-content" rows="5"></textarea></div>
-          </div>
-          <div class="ff"><button class="btn bO" onclick="clrForm('ops')">Clear</button><button class="btn bP" id="ops-sb" onclick="saveOps()">Save Document</button></div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Manual Register</div><div class="ch-r"><input type="text" id="ops-srch" placeholder="Search..." oninput="renderOps()"/><select id="ops-flt" onchange="renderOps()"><option value="">All Types</option><option>Production Workflow SOP</option><option>QC Checklist</option><option>Machine Operation Procedure</option><option>Shutdown Procedure</option><option>Safety Protocol</option><option>Emergency Procedure</option><option>Dispatch & Packaging Manual</option><option>New Worker Training</option></select></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Type</th><th>Title</th><th>Doc No.</th><th>Owner</th><th>Review</th><th>Status</th><th>Actions</th></tr></thead><tbody id="ops-tbl"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- PLANNING CONTROL -->
-      <div class="tc" id="tab-planning">
-        <div class="ph"><div><div class="pt">Planning Control</div><div class="pst">// production, capacity and deviation planning</div></div></div>
-        <div class="g4" id="plan-kpi"></div>
-        <div id="plan-ro"></div>
-        <div class="card" id="plan-fc">
-          <div class="ch"><div class="ct" id="plan-ft">Create Planning Record</div></div>
-          <div class="fg">
-            <input type="hidden" id="plan-eid"/>
-            <div class="fr"><label>Planner Type</label><select id="plan-type"><option>Daily Planner</option><option>Weekly Planner</option><option>Capacity Plan</option><option>Sprint Plan</option><option>Shift Schedule</option><option>Deviation Alert</option><option>Rescheduling Note</option><option>Annual Budget Calendar</option></select></div>
-            <div class="fr"><label>Title</label><input type="text" id="plan-title"/></div>
-            <div class="fr"><label>Start Date</label><input type="date" id="plan-start"/></div>
-            <div class="fr"><label>End Date</label><input type="date" id="plan-end"/></div>
-            <div class="fr"><label>Shift</label><select id="plan-shift"><option>General</option><option>Shift A</option><option>Shift B</option><option>Shift C</option></select></div>
-            <div class="fr"><label>Equipment / Line</label><input type="text" id="plan-equipment"/></div>
-            <div class="fr"><label>Target Output</label><input type="number" id="plan-target" min="0"/></div>
-            <div class="fr"><label>Actual Output</label><input type="number" id="plan-actual" min="0"/></div>
-            <div class="fr"><label>Downtime (hrs)</label><input type="number" id="plan-downtime" min="0" step="0.1"/></div>
-            <div class="fr"><label>Capacity Utilisation %</label><input type="number" id="plan-capacity" min="0" max="100"/></div>
-            <div class="fr"><label>Owner</label><input type="text" id="plan-owner"/></div>
-            <div class="fr"><label>Status</label><select id="plan-status"><option>Planned</option><option>On Track</option><option>Deviation</option><option>Rescheduled</option><option>Closed</option></select></div>
-            <div class="fr full"><label>Deviation / Reschedule Notes</label><textarea id="plan-deviation" rows="2"></textarea></div>
-            <div class="fr full"><label>Planning Notes</label><textarea id="plan-notes" rows="2"></textarea></div>
-          </div>
-          <div class="ff"><button class="btn bO" onclick="clrForm('plan')">Clear</button><button class="btn bP" id="plan-sb" onclick="savePlan()">Save Plan</button></div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Planner Register</div><div class="ch-r"><input type="text" id="plan-srch" placeholder="Search..." oninput="renderPlanning()"/><select id="plan-flt" onchange="renderPlanning()"><option value="">All Types</option><option>Daily Planner</option><option>Weekly Planner</option><option>Capacity Plan</option><option>Sprint Plan</option><option>Shift Schedule</option><option>Deviation Alert</option><option>Rescheduling Note</option><option>Annual Budget Calendar</option></select></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Type</th><th>Title</th><th>Period</th><th>Target / Actual</th><th>Capacity</th><th>Status</th><th>Actions</th></tr></thead><tbody id="plan-tbl"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- COST CONTROL -->
-      <div class="tc" id="tab-costing">
-        <div class="ph"><div><div class="pt">Cost Control</div><div class="pst">// cost estimation, allocation and benefit tracking</div></div></div>
-        <div class="g4" id="cost-kpi"></div>
-        <div id="cost-ro"></div>
-        <div class="card" id="cost-fc">
-          <div class="ch"><div class="ct" id="cost-ft">Create Cost Record</div></div>
-          <div class="fg">
-            <input type="hidden" id="cost-eid"/>
-            <div class="fr"><label>Cost Type</label><select id="cost-type"><option>Capital Cost</option><option>Equipment Cost</option><option>Legal & Permit Fee</option><option>Fixed Cost</option><option>Variable Cost</option><option>Project Benefit</option><option>Budget Allocation</option></select></div>
-            <div class="fr"><label>Project / Budget Head</label><input type="text" id="cost-project"/></div>
-            <div class="fr"><label>Equipment / Asset</label><input type="text" id="cost-equipment"/></div>
-            <div class="fr"><label>Category</label><input type="text" id="cost-category"/></div>
-            <div class="fr"><label>Vendor / Agency</label><input type="text" id="cost-vendor"/></div>
-            <div class="fr"><label>Amount (Rs)</label><input type="number" id="cost-amount" min="0" step="0.01"/></div>
-            <div class="fr"><label>Year</label><input type="number" id="cost-year" min="2024" max="2100"/></div>
-            <div class="fr"><label>Month</label><select id="cost-month"><option value="">--</option><option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option><option>May</option><option>Jun</option><option>Jul</option><option>Aug</option><option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option></select></div>
-            <div class="fr"><label>Benefit / Saving (Rs)</label><input type="number" id="cost-benefit" min="0" step="0.01"/></div>
-            <div class="fr"><label>Status</label><select id="cost-status"><option>Planned</option><option>Approved</option><option>Spent</option><option>Recovered</option><option>Closed</option></select></div>
-            <div class="fr full"><label>Notes</label><textarea id="cost-notes" rows="3"></textarea></div>
-          </div>
-          <div class="ff"><button class="btn bO" onclick="clrForm('cost')">Clear</button><button class="btn bP" id="cost-sb" onclick="saveCost()">Save Cost</button></div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Cost Register</div><div class="ch-r"><input type="text" id="cost-srch" placeholder="Search..." oninput="renderCosting()"/><select id="cost-flt" onchange="renderCosting()"><option value="">All Types</option><option>Capital Cost</option><option>Equipment Cost</option><option>Legal & Permit Fee</option><option>Fixed Cost</option><option>Variable Cost</option><option>Project Benefit</option><option>Budget Allocation</option></select></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Type</th><th>Project</th><th>Equipment</th><th>Category</th><th>Amount</th><th>Benefit</th><th>Status</th><th>Actions</th></tr></thead><tbody id="cost-tbl"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- TASK CENTER -->
-      <div class="tc" id="tab-tasks">
-        <div class="ph"><div><div class="pt">Task Center</div><div class="pst">// task log, RACI and kanban tracking</div></div></div>
-        <div class="g4" id="task-kpi"></div>
-        <div id="task-ro"></div>
-        <div class="card" id="task-fc">
-          <div class="ch"><div class="ct" id="task-ft">Create Task</div></div>
-          <div class="fg">
-            <input type="hidden" id="task-eid"/>
-            <div class="fr"><label>Task Title</label><input type="text" id="task-title"/></div>
-            <div class="fr"><label>Task Type</label><input type="text" id="task-type"/></div>
-            <div class="fr"><label>Owner</label><input type="text" id="task-owner"/></div>
-            <div class="fr"><label>Assigned To</label><input type="text" id="task-assigned"/></div>
-            <div class="fr"><label>Accountable</label><input type="text" id="task-accountable"/></div>
-            <div class="fr"><label>Consulted</label><input type="text" id="task-consulted"/></div>
-            <div class="fr"><label>Informed</label><input type="text" id="task-informed"/></div>
-            <div class="fr"><label>Priority</label><select id="task-priority"><option>High</option><option>Medium</option><option>Low</option></select></div>
-            <div class="fr"><label>Assigned Date</label><input type="date" id="task-start"/></div>
-            <div class="fr"><label>Deadline</label><input type="date" id="task-due"/></div>
-            <div class="fr"><label>Kanban Lane</label><select id="task-board"><option>To Do</option><option>Doing</option><option>Done</option></select></div>
-            <div class="fr"><label>Status</label><select id="task-status"><option>Open</option><option>In Progress</option><option>Blocked</option><option>Completed</option><option>Cancelled</option></select></div>
-            <div class="fr full"><label>Action Notes</label><textarea id="task-notes" rows="3"></textarea></div>
-          </div>
-          <div class="ff"><button class="btn bO" onclick="clrForm('task')">Clear</button><button class="btn bP" id="task-sb" onclick="saveTask()">Save Task</button></div>
-        </div>
-        <div class="g3" id="task-board-wrap"></div>
-        <div class="card">
-          <div class="ch"><div class="ct">Task Register</div><div class="ch-r"><input type="text" id="task-srch" placeholder="Search..." oninput="renderTasks()"/><select id="task-flt" onchange="renderTasks()"><option value="">All Priorities</option><option>High</option><option>Medium</option><option>Low</option></select></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Task</th><th>Owner</th><th>Assigned</th><th>Deadline</th><th>Priority</th><th>Board</th><th>Status</th><th>Actions</th></tr></thead><tbody id="task-tbl"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- MAINTENANCE CONTROL -->
-      <div class="tc" id="tab-maintenance">
-        <div class="ph"><div><div class="pt">Maintenance Control</div><div class="pst">// maintenance logs, follow-ups and asset tracking</div></div></div>
-        <div class="g4" id="maint-kpi"></div>
-        <div id="maint-ro"></div>
-        <div class="card" id="maint-fc">
-          <div class="ch"><div class="ct" id="maint-ft">Create Maintenance Log</div></div>
-          <div class="fg">
-            <input type="hidden" id="maint-eid"/>
-            <div class="fr"><label>Report ID</label><input type="text" id="maint-report" placeholder="MNT-001"/></div>
-            <div class="fr"><label>Asset / Equipment</label><input type="text" id="maint-asset"/></div>
-            <div class="fr"><label>Serial Number</label><input type="text" id="maint-serial"/></div>
-            <div class="fr"><label>Vendor / OEM</label><input type="text" id="maint-vendor"/></div>
-            <div class="fr"><label>Maintenance Type</label><select id="maint-type"><option>Preventive</option><option>Breakdown</option><option>Calibration</option><option>Inspection</option><option>Shutdown</option></select></div>
-            <div class="fr"><label>Technician / Owner</label><input type="text" id="maint-tech"/></div>
-            <div class="fr"><label>Schedule Date</label><input type="date" id="maint-date"/></div>
-            <div class="fr"><label>Follow-up Date</label><input type="date" id="maint-follow"/></div>
-            <div class="fr"><label>Work Order Ref</label><input type="text" id="maint-wo"/></div>
-            <div class="fr"><label>Condition</label><select id="maint-condition"><option>Good</option><option>Attention Needed</option><option>Critical</option></select></div>
-            <div class="fr"><label>Status</label><select id="maint-status"><option>Open</option><option>Scheduled</option><option>In Progress</option><option>Closed</option></select></div>
-            <div class="fr full"><label>Notes / Findings</label><textarea id="maint-notes" rows="3"></textarea></div>
-          </div>
-          <div class="ff"><button class="btn bO" onclick="clrForm('maint')">Clear</button><button class="btn bP" id="maint-sb" onclick="saveMaint()">Save Maintenance Log</button></div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Maintenance Register</div><div class="ch-r"><input type="text" id="maint-srch" placeholder="Search..." oninput="renderMaintenance()"/><select id="maint-flt" onchange="renderMaintenance()"><option value="">All Statuses</option><option>Open</option><option>Scheduled</option><option>In Progress</option><option>Closed</option></select></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Report ID</th><th>Asset</th><th>Type</th><th>Schedule</th><th>Condition</th><th>Status</th><th>Actions</th></tr></thead><tbody id="maint-tbl"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- WORKFORCE MATRIX -->
-      <div class="tc" id="tab-workforce">
-        <div class="ph"><div><div class="pt">Workforce Matrix</div><div class="pst">// training, competency and certification matrix</div></div></div>
-        <div class="g4" id="workforce-kpi"></div>
-        <div id="workforce-ro"></div>
-        <div class="card" id="workforce-fc">
-          <div class="ch"><div class="ct" id="workforce-ft">Create Workforce Record</div></div>
-          <div class="fg">
-            <input type="hidden" id="workforce-eid"/>
-            <div class="fr"><label>Employee Name</label><input type="text" id="workforce-name"/></div>
-            <div class="fr"><label>Employee Code</label><input type="text" id="workforce-code"/></div>
-            <div class="fr"><label>Role</label><input type="text" id="workforce-role"/></div>
-            <div class="fr"><label>Skill Area</label><input type="text" id="workforce-skill"/></div>
-            <div class="fr"><label>Training / Instruction</label><input type="text" id="workforce-training"/></div>
-            <div class="fr"><label>Competency Level</label><select id="workforce-level"><option>Beginner</option><option>Intermediate</option><option>Skilled</option><option>Expert</option></select></div>
-            <div class="fr"><label>Last Training Date</label><input type="date" id="workforce-last"/></div>
-            <div class="fr"><label>Next Training Date</label><input type="date" id="workforce-next"/></div>
-            <div class="fr"><label>Trainer</label><input type="text" id="workforce-trainer"/></div>
-            <div class="fr"><label>Certification Status</label><select id="workforce-cert"><option>Pending</option><option>Valid</option><option>Expired</option><option>Not Required</option></select></div>
-            <div class="fr"><label>Active Status</label><select id="workforce-status"><option>Active</option><option>Inactive</option></select></div>
-            <div class="fr full"><label>Training / Competency Notes</label><textarea id="workforce-notes" rows="3"></textarea></div>
-          </div>
-          <div class="ff"><button class="btn bO" onclick="clrForm('workforce')">Clear</button><button class="btn bP" id="workforce-sb" onclick="saveWorkforce()">Save Workforce Record</button></div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Competency Register</div><div class="ch-r"><input type="text" id="workforce-srch" placeholder="Search..." oninput="renderWorkforce()"/><select id="workforce-flt" onchange="renderWorkforce()"><option value="">All Certification</option><option>Pending</option><option>Valid</option><option>Expired</option><option>Not Required</option></select></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Employee</th><th>Role</th><th>Skill Area</th><th>Training</th><th>Level</th><th>Certification</th><th>Actions</th></tr></thead><tbody id="workforce-tbl"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- BACKUP & RESTORE -->
-      <div class="tc" id="tab-backup">
-        <div class="ph"><div><div class="pt">Backup & Restore</div><div class="pst">// export business data, verify backup coverage and follow restore SOP</div></div></div>
-        <div class="g4" id="backup-kpi"></div>
-        <div class="g2">
-          <div class="card">
-            <div class="ch"><div class="ct">Quick Backups</div></div>
-            <div style="padding:18px" id="backup-actions">
-              <div class="line-sub" style="margin-bottom:14px">Use JSON for full-fidelity backup and CSV for office-side sharing.</div>
-              <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <button class="btn bP" onclick="exportBackupJSON('all')">Export Full JSON Backup</button>
-                <button class="btn bO" onclick="exportBackupJSON('masters')">Export Master Data JSON</button>
-                <button class="btn bO" onclick="exportBackupJSON('transactions')">Export Transaction Data JSON</button>
-                <button class="btn bG" onclick="exportBackupCSVs()">Export All CSV Files</button>
-              </div>
-              <div class="ibox yellow" style="margin-top:16px">
-                <div class="ibox-t">Restore Guidance</div>
-                Use exported files for archival and controlled restore. Database restore should be done from Supabase backup/export procedures, not by direct browser overwrite.
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="ch"><div class="ct">Backup Discipline</div></div>
-            <div style="padding:18px" id="backup-guidance"></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Table Coverage</div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Table</th><th>Records Loaded</th><th>Backup Group</th><th>Status</th></tr></thead><tbody id="backup-tbl"></tbody></table></div>
-        </div>
-      </div>
-
       <!-- ANALYTICS -->
       <div class="tc" id="tab-reports">
         <div class="ph"><div><div class="pt">Analytics</div><div class="pst">// live business intelligence</div></div><div class="ph-r"><button class="btn bO sm" onclick="refreshAll()">Refresh</button></div></div>
@@ -1032,7 +750,6 @@
 })();
 </script>
 <script src="js/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

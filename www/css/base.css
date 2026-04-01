@@ -1,0 +1,78 @@
+/* 
+   base.css  Design Tokens & Reset
+   Edit :root variables to change the theme
+ */
+:root {
+  /* Backgrounds */
+  --bg:  #07090F;
+  --sf:  #0D1117;
+  --s2:  #111722;
+  --br:  #1C2433;
+  --bg-soft: rgba(255,255,255,.03);
+  --glow: rgba(249,115,22,.14);
+  --glow2: rgba(59,130,246,.1);
+
+  /* Brand */
+  --ac:  #F97316;
+  --ac2: #EA6C10;
+  --a2:  #FBBF24;
+
+  /* Semantic */
+  --gn:  #22C55E;
+  --rd:  #EF4444;
+  --bl:  #3B82F6;
+  --pu:  #A855F7;
+  --cy:  #06B6D4;
+
+  /* Text */
+  --tx:  #EDF2F7;
+  --t2:  #94A3B8;
+  --mu:  #4A5568;
+
+  /* Typography */
+  --fn: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --fm: 'Consolas', 'Courier New', monospace;
+
+  /* Shape */
+  --r:   8px;
+  --rl:  12px;
+  --rx:  18px;
+
+  /* Shadow */
+  --sh:  0 4px 20px rgba(0,0,0,.4);
+  --sh2: 0 8px 40px rgba(0,0,0,.6);
+}
+
+/*  RESET  */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size: 14px; scroll-behavior: smooth; }
+body {
+  background:
+    radial-gradient(circle at top left, var(--glow) 0, transparent 26%),
+    radial-gradient(circle at top right, var(--glow2) 0, transparent 24%),
+    linear-gradient(180deg, #09101B 0%, #07090F 58%, #06080D 100%);
+  color:var(--tx); font-family:var(--fn); min-height:100vh; -webkit-font-smoothing:antialiased;
+}
+a { color:inherit; text-decoration:none; }
+button { cursor:pointer; font-family:var(--fn); }
+img { display:block; max-width:100%; }
+::selection { background:rgba(249,115,22,.28); color:#fff; }
+
+#login, #erp {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/*  SCROLLBAR  */
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--br); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover { background:var(--mu); }
+
+/*  ANIMATIONS  */
+@keyframes fadeUp   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+@keyframes slideIn  { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+@keyframes spin     { to{transform:rotate(360deg)} }
+@keyframes pulse    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
+@keyframes gradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
