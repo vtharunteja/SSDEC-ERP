@@ -735,13 +735,25 @@ async function initSession(session) {
       toast('Profile check failed. Continuing with saved session...', 'w');
     }
 
-    document.getElementById('login').classList.remove('show');
-    document.getElementById('erp').style.display = 'flex';
-    if (!erpBooted) {
-      erpBooted = true;
-      await initERP();
+    try {
+      document.getElementById('login').classList.remove('show');
+      document.getElementById('erp').style.display = 'flex';
+      if (!erpBooted || !erpDataLoaded) {
+        await initERP();
+        erpBooted = true;
+      }
+    } catch (err) {
+      console.error('ERP boot failed', err);
+      erpBooted = false;
+      erpDataLoaded = false;
+      isInitialized = false;
+      toast('ERP startup failed. Retrying on next refresh...', 'e');
+      document.getElementById('erp').style.display = 'none';
+      document.getElementById('login').classList.add('show');
+      throw err;
+    } finally {
+      hideLoader();
     }
-    hideLoader();
   })();
 
   try {
