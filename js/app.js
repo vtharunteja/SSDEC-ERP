@@ -305,28 +305,8 @@ function fillProdDDs() {
     sel.innerHTML = '<option value="">-- Select product --</option>' + prodOpts;
     if (cur) sel.value = cur;
   });
-  renderQuoteItemOptions();
   fillPartyDDs();
 }
-
-function renderQuoteItemOptions(selectedValue = null) {
-  const kind = V('qt-kind') || 'Product';
-  const sel = document.getElementById('qt-prod');
-  const otherWrap = document.getElementById('qt-other-wrap');
-  const otherInput = document.getElementById('qt-other');
-  if (!sel) return;
-  let options = [];
-  if (kind === 'Product') options = DB.products.filter(p => p.active === true).map(p => p.name);
-  else if (kind === 'Service') options = WO_SERVICE_OPTIONS.slice();
-  else options = QUOTE_OTHER_OPTIONS.slice();
-  const cur = selectedValue ?? sel.value;
-  const placeholder = kind === 'Product' ? '-- Select product --' : kind === 'Service' ? '-- Select service --' : '-- Select other scope --';
-  sel.innerHTML = `<option value="">${placeholder}</option>` + options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
-  if (cur && options.includes(cur)) sel.value = cur;
-  if (otherWrap) otherWrap.style.display = kind === 'Other' ? 'block' : 'none';
-  if (otherInput && kind !== 'Other') otherInput.value = '';
-}
-window.renderQuoteItemOptions = renderQuoteItemOptions;
 
 function getQuoteItems(q) {
   if (q?.items_json) {
@@ -349,66 +329,56 @@ function getQuoteItems(q) {
   return [];
 }
 
-function getCurrentQuoteLine(showErrors = true) {
-  const kind = V('qt-kind') || 'Product';
-  const item = kind === 'Other' ? (V('qt-other') || V('qt-prod')) : V('qt-prod');
-  const qty = parseFloat(V('qt-qty') || '0');
-  const price = parseFloat(V('qt-price') || '0');
-  const description = V('qt-desc');
-  if (!item && !qty && !price && !description) return null;
-  if (!item) {
-    if (showErrors) toast('Select or enter product / service / other item', 'e');
-    return null;
-  }
-  if (!qty || Number.isNaN(qty) || price < 0 || Number.isNaN(price)) {
-    if (showErrors) toast('Valid qty and quoted price required', 'e');
-    return null;
-  }
-  const product = getProductByName(item);
-  return {
-    kind,
-    item,
-    description: description || product?.description || item,
-    hsn: product?.hsn || '',
-    qty,
-    price,
-    gst: parseFloat(product?.gst ?? 18)
-  };
-}
-
 function quoteLineMarkup(item = {}, idx = 0) {
+  const kind = item.kind || 'Product';
   const lineBase = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
-  const gstRate = parseFloat(item.gst || 0);
-  const lineTotal = lineBase + (lineBase * gstRate / 100);
   return `<div class="line-item" data-qt-line="${idx}">
     <div class="line-grid quote-line-grid">
       <div class="line-col">
-        <label>Type</label>
-        <div class="line-note">${esc(item.kind || '--')}</div>
+        <label>Quotation For</label>
+        <select data-qt-line-kind onchange="renderQuoteLineOptions(${idx})">
+          <option${kind === 'Product' ? ' selected' : ''}>Product</option>
+          <option${kind === 'Service' ? ' selected' : ''}>Service</option>
+          <option${kind === 'Other' ? ' selected' : ''}>Other</option>
+        </select>
       </div>
       <div class="line-col">
         <label>Item</label>
-        <div class="line-note">${esc(item.item || '--')}</div>
+        <select data-qt-line-item onchange="autofillQuoteLine(${idx})"></select>
+      </div>
+      <div class="line-col qt-other-col" style="display:${kind === 'Other' ? 'block' : 'none'}">
+        <label>Custom Item</label>
+        <input type="text" data-qt-line-other value="${esc(kind === 'Other' ? (item.other_item || item.item || '') : '')}" placeholder="Enter custom scope" oninput="updateQuoteTotals()"/>
       </div>
       <div class="line-col">
         <label>Description</label>
-        <div class="line-note">${esc(item.description || '--')}</div>
+        <input type="text" data-qt-line-desc value="${esc(item.description || '')}" placeholder="Optional description"/>
       </div>
       <div class="line-col">
         <label>Qty</label>
-        <div class="line-note">${parseFloat(item.qty || 0)}</div>
+        <input type="number" data-qt-line-qty value="${esc(item.qty ?? 1)}" min="1" oninput="updateQuoteTotals()"/>
       </div>
       <div class="line-col">
         <label>Rate</label>
-        <div class="line-note">${fmtM(item.price || 0)}</div>
+        <input type="number" data-qt-line-price value="${esc(item.price ?? 0)}" min="0" oninput="updateQuoteTotals()"/>
       </div>
       <div class="line-col">
         <label>GST</label>
-        <div class="line-note">${gstRate}%</div>
+        <select data-qt-line-gst onchange="updateQuoteTotals()">
+          <option value="0"${String(item.gst ?? 18) === '0' ? ' selected' : ''}>0%</option>
+          <option value="5"${String(item.gst ?? 18) === '5' ? ' selected' : ''}>5%</option>
+          <option value="12"${String(item.gst ?? 18) === '12' ? ' selected' : ''}>12%</option>
+          <option value="18"${String(item.gst ?? 18) === '18' ? ' selected' : ''}>18%</option>
+          <option value="28"${String(item.gst ?? 18) === '28' ? ' selected' : ''}>28%</option>
+        </select>
+      </div>
+      <div class="line-col">
+        <label>HSN</label>
+        <input type="text" data-qt-line-hsn value="${esc(item.hsn || '')}" placeholder="Auto for products"/>
       </div>
       <div class="line-total">
         <div>Total</div>
-        <strong>${fmtM(lineTotal)}</strong>
+        <strong data-qt-line-total>${fmtM(lineBase + (lineBase * (parseFloat(item.gst || 0) / 100)))}</strong>
       </div>
       <div class="line-col">
         <button type="button" class="btn bD sm" onclick="removeQuoteLine(${idx})">Remove</button>
@@ -421,40 +391,104 @@ function renderQuoteLines(items = null) {
   const wrap = document.getElementById('qt-lines');
   if (!wrap) return;
   if (Array.isArray(items)) QT_LINES = items;
-  wrap.innerHTML = QT_LINES.map((item, idx) => quoteLineMarkup(item, idx)).join('') || '<div class="empty"><div class="empty-tt">No quotation items added</div><div class="empty-st">Use the item selector above, then click Add Item.</div></div>';
+  const data = QT_LINES.length ? QT_LINES : [{ kind:'Product', item:'', description:'', hsn:'', qty:1, price:0, gst:18, other_item:'' }];
+  wrap.innerHTML = data.map((item, idx) => quoteLineMarkup(item, idx)).join('');
+  data.forEach((item, idx) => renderQuoteLineOptions(idx, item.item));
   updateQuoteTotals();
 }
 
 window.addQuoteLine = () => {
-  const item = getCurrentQuoteLine(true);
-  if (!item) return;
-  QT_LINES.push(item);
+  const items = collectQuoteLines(false);
+  QT_LINES = items.length ? items : [];
+  QT_LINES.push({ kind:'Product', item:'', description:'', hsn:'', qty:1, price:0, gst:18, other_item:'' });
   renderQuoteLines(QT_LINES);
-  SV('qt-prod', '');
-  SV('qt-other', '');
-  SV('qt-qty', '');
-  SV('qt-price', '');
-  SV('qt-desc', '');
-  renderQuoteItemOptions();
 };
 
 window.removeQuoteLine = idx => {
-  QT_LINES = QT_LINES.filter((_, i) => i !== idx);
+  const items = collectQuoteLines(false).filter((_, i) => i !== idx);
+  QT_LINES = items;
   renderQuoteLines(QT_LINES);
+};
+
+function renderQuoteLineOptions(idx, selectedValue = null) {
+  const row = document.querySelector(`[data-qt-line="${idx}"]`);
+  if (!row) return;
+  const kind = row.querySelector('[data-qt-line-kind]')?.value || 'Product';
+  const sel = row.querySelector('[data-qt-line-item]');
+  const otherCol = row.querySelector('.qt-other-col');
+  const otherInput = row.querySelector('[data-qt-line-other]');
+  if (!sel) return;
+  let options = [];
+  if (kind === 'Product') options = DB.products.filter(p => p.active === true).map(p => p.name);
+  else if (kind === 'Service') options = WO_SERVICE_OPTIONS.slice();
+  else options = QUOTE_OTHER_OPTIONS.slice();
+  const cur = selectedValue ?? sel.value;
+  const placeholder = kind === 'Product' ? '-- Select product --' : kind === 'Service' ? '-- Select service --' : '-- Select scope --';
+  sel.innerHTML = `<option value="">${placeholder}</option>` + options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+  if (cur && options.includes(cur)) sel.value = cur;
+  if (otherCol) otherCol.style.display = kind === 'Other' ? 'block' : 'none';
+  if (otherInput && kind !== 'Other') otherInput.value = '';
+  if (kind === 'Product') autofillQuoteLine(idx);
+}
+window.renderQuoteLineOptions = renderQuoteLineOptions;
+
+function collectQuoteLines(showErrors = true) {
+  return [...document.querySelectorAll('[data-qt-line]')].map((row, idx) => {
+    const kind = row.querySelector('[data-qt-line-kind]')?.value || 'Product';
+    const selected = row.querySelector('[data-qt-line-item]')?.value || '';
+    const otherItem = row.querySelector('[data-qt-line-other]')?.value?.trim() || '';
+    const item = kind === 'Other' ? (otherItem || selected) : selected;
+    const description = row.querySelector('[data-qt-line-desc]')?.value || '';
+    const qty = parseFloat(row.querySelector('[data-qt-line-qty]')?.value || '0');
+    const price = parseFloat(row.querySelector('[data-qt-line-price]')?.value || '0');
+    const gst = parseFloat(row.querySelector('[data-qt-line-gst]')?.value || '0');
+    const hsn = row.querySelector('[data-qt-line-hsn]')?.value || '';
+    if (!item && !description && !qty && !price) return null;
+    if (showErrors && !item) throw new Error(`Quotation item ${idx + 1}: select an item or enter custom scope`);
+    if (showErrors && (!qty || Number.isNaN(qty))) throw new Error(`Quotation item ${idx + 1}: valid qty required`);
+    if (showErrors && (price < 0 || Number.isNaN(price))) throw new Error(`Quotation item ${idx + 1}: valid rate required`);
+    return { kind, item, other_item: otherItem, description: description || item, qty, price, gst, hsn, line_total: qty * price };
+  }).filter(Boolean);
+}
+
+window.autofillQuoteLine = idx => {
+  const row = document.querySelector(`[data-qt-line="${idx}"]`);
+  if (!row) return;
+  const kind = row.querySelector('[data-qt-line-kind]')?.value || 'Product';
+  if (kind !== 'Product') { updateQuoteTotals(); return; }
+  const product = getProductByName(row.querySelector('[data-qt-line-item]')?.value || '');
+  if (!product) { updateQuoteTotals(); return; }
+  const hsn = row.querySelector('[data-qt-line-hsn]');
+  const desc = row.querySelector('[data-qt-line-desc]');
+  const gst = row.querySelector('[data-qt-line-gst]');
+  const price = row.querySelector('[data-qt-line-price]');
+  if (hsn && !hsn.value) hsn.value = product.hsn || '';
+  if (desc && !desc.value) desc.value = product.description || product.name;
+  if (gst) gst.value = String(product.gst ?? 18);
+  if (price && !price.value) price.value = product.price || 0;
+  updateQuoteTotals();
 };
 
 window.updateQuoteTotals = () => {
   const box = document.getElementById('qt-totals');
   if (!box) return;
+  let items = [];
+  try {
+    items = collectQuoteLines(false);
+  } catch {
+    items = [];
+  }
   let base = 0, tax = 0;
-  QT_LINES.forEach(item => {
+  items.forEach((item, idx) => {
     const lineBase = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
     const lineTax = lineBase * (parseFloat(item.gst || 0) / 100);
     base += lineBase;
     tax += lineTax;
+    const row = document.querySelector(`[data-qt-line="${idx}"] [data-qt-line-total]`);
+    if (row) row.textContent = fmtM(lineBase + lineTax);
   });
   const total = base + tax;
-  box.innerHTML = QT_LINES.length
+  box.innerHTML = items.length
     ? `<div>Base Amount<br><strong>${fmtM(base)}</strong></div><div>Total GST<br><strong>${fmtM(tax)}</strong></div><div>Quoted Total<br><strong>${fmtM(total)}</strong></div>`
     : '';
 };
@@ -1611,7 +1645,6 @@ function renderQuotes() {
       .join('');
     if (cur) buyerSel.value = cur;
   }
-  renderQuoteItemOptions();
   renderQuoteLines();
   const srch = (V('qt-srch')||'').toLowerCase(), flt = V('qt-flt');
   const tbl  = document.getElementById('qt-tbl'); if(!tbl) return;
@@ -1633,8 +1666,13 @@ function renderQuotes() {
 window.saveQuote = async () => {
   const eid = V('qt-eid'), party = V('qt-party');
   if (!party) { toast('Customer / party required','e'); return; }
-  const draft = getCurrentQuoteLine(false);
-  const items = [...QT_LINES, ...(draft ? [draft] : [])];
+  let items = [];
+  try {
+    items = collectQuoteLines(true);
+  } catch (e) {
+    toast(e.message, 'e');
+    return;
+  }
   if (!items.length) { toast('Add at least one quotation item','e'); return; }
   const first = items[0];
   const totalQty = items.reduce((sum, item) => sum + parseFloat(item.qty || 0), 0);
@@ -1673,10 +1711,10 @@ window.editQuote = id => {
   const first = items[0] || {};
   const kind = first.kind || q.quote_kind || (WO_SERVICE_OPTIONS.includes(q.product) ? 'Service' : DB.products.some(p => p.name === q.product) ? 'Product' : 'Other');
   QT_LINES = items;
-  SV('qt-eid',id); SV('qt-no',q.quoteno); SV('qt-buyer',q.buyer); SV('qt-party',q.party); SV('qt-kind',kind); renderQuoteItemOptions(first.item || q.product); SV('qt-prod',''); SV('qt-other',''); SV('qt-qty','');
-  SV('qt-price',''); SV('qt-desc',''); SV('qt-enquiry',q.enquiry_ref); SV('qt-date',q.date); SV('qt-valid',q.valid_until); SV('qt-subdate',q.submission_date);
+  SV('qt-eid',id); SV('qt-no',q.quoteno); SV('qt-buyer',q.buyer); SV('qt-party',q.party); SV('qt-enquiry',q.enquiry_ref); SV('qt-date',q.date); SV('qt-valid',q.valid_until); SV('qt-subdate',q.submission_date);
   SV('qt-submode',q.submission_mode); SV('qt-status',q.status); SV('qt-follow',q.followup_date); SV('qt-owner',q.followup_owner);
   SV('qt-subnotes',q.submission_notes); SV('qt-follownotes',q.followup_notes); SV('qt-notes',q.notes);
+  if (!QT_LINES.length) QT_LINES = [{ kind, item:first.item || q.product || '', description:first.description || '', hsn:first.hsn || '', qty:first.qty || q.qty || 1, price:first.price || q.price || 0, gst:first.gst ?? 18, other_item:first.other_item || '' }];
   renderQuoteLines(QT_LINES);
   document.getElementById('qt-ft').textContent = 'Edit ' + (q.quoteno || 'Quotation');
   document.getElementById('qt-fc').scrollIntoView({behavior:'smooth'});
@@ -2991,7 +3029,7 @@ const FORM_FIELDS = {
   qc:   ['qc-eid','qc-sample','qc-pass','qc-insp','qc-notes'],
   inv:  ['inv-eid','inv-name','inv-code','inv-stock','inv-reorder','inv-min','inv-cost','inv-sup'],
   po:   ['po-eid','po-qty','po-price','po-date','po-notes'],
-  qt:   ['qt-eid','qt-no','qt-buyer','qt-party','qt-kind','qt-prod','qt-other','qt-qty','qt-price','qt-desc','qt-enquiry','qt-date','qt-valid','qt-subdate','qt-submode','qt-status','qt-follow','qt-owner','qt-subnotes','qt-follownotes','qt-notes'],
+  qt:   ['qt-eid','qt-no','qt-buyer','qt-party','qt-enquiry','qt-date','qt-valid','qt-subdate','qt-submode','qt-status','qt-follow','qt-owner','qt-subnotes','qt-follownotes','qt-notes'],
   so:   ['so-eid','so-buyer','so-cust','so-qty','so-price','so-date','so-dl','so-ref','so-addr','so-gst'],
   dc:   ['dc-eid','dc-qty','dc-date','dc-veh','dc-trans','dc-lr','dc-notes'],
   inv2: ['inv2-eid','inv2-no','inv2-company','inv2-buyer','inv2-party','inv2-cgst','inv2-so','inv2-date','inv2-due','inv2-terms','inv2-ref','inv2-status','inv2-billaddr','inv2-shipaddr','inv2-notes'],
@@ -3015,7 +3053,7 @@ window.clrForm = f => {
   const tEl = document.getElementById(f+'-ft'); if(tEl) tEl.textContent = FORM_TITLES[f]||'';
   const bEl = document.getElementById(f+'-sb'); if(bEl) bEl.textContent = FORM_BTNS[f]||'Save';
   if (f==='po') { const pa=document.getElementById('po-addr'); if(pa) pa.value='EIPD Plant, Unit 2'; }
-  if (f==='qt') { QT_LINES = []; SV('qt-status','Draft'); SV('qt-submode','Email'); SV('qt-kind','Product'); renderQuoteItemOptions(); renderQuoteLines([]); }
+  if (f==='qt') { QT_LINES = []; SV('qt-status','Draft'); SV('qt-submode','Email'); renderQuoteLines([]); }
   if (f==='qc') renderQCTestList();
   if (f==='wo') { SV('wo-type','In-house'); toggleWOServiceFields(); }
   if (f==='inv2') {
