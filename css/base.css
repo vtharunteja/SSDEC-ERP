@@ -20,9 +20,9 @@
   --pu: #6366f1;
   --cy: #06b6d4;
 
-  --tx: #e5edf8;
-  --t2: #b3c0d4;
-  --mu: #7f90aa;
+  --tx: #f3f7ff;
+  --t2: #d2dceb;
+  --mu: #9aa9c1;
 
   --fn: "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   --fm: "Consolas", "SFMono-Regular", "Cascadia Code", monospace;
@@ -56,8 +56,8 @@
   --cy: #0891b2;
 
   --tx: #0f172a;
-  --t2: #475569;
-  --mu: #64748b;
+  --t2: #334155;
+  --mu: #516174;
 
   --sh: 0 14px 28px rgba(15, 23, 42, 0.07);
   --sh2: 0 20px 40px rgba(15, 23, 42, 0.1);
