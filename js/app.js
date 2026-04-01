@@ -17,7 +17,8 @@ const DB = {
   profiles:[], products:[], machines:[], inventory:[],
   work_orders:[], qc_records:[], purchase_orders:[],
   vendors:[], buyers:[], company_details:[], quotations:[], sales_orders:[], dispatches:[], invoices:[], inward_bills:[],
-  audit_logs:[], approvals:[], finished_goods:[], qc_certificates:[]
+  audit_logs:[], approvals:[], finished_goods:[], qc_certificates:[],
+  ops_manuals:[], planning_records:[], cost_records:[], task_records:[], maintenance_logs:[], workforce_records:[]
 };
 
 // --- TABLE MAP (camelCase id - snake_case table) ---
@@ -26,7 +27,7 @@ const TBL = {
   inventory:'inventory', purchase:'purchase_orders',
   quotes:'quotations', sales:'sales_orders', dispatch:'dispatches',
   invoices:'invoices', ibill:'inward_bills', vendors:'vendors', buyers:'buyers', company:'company_details',
-  machines:'machines', products:'products',
+  machines:'machines', products:'products', ops:'ops_manuals', planning:'planning_records', costing:'cost_records', tasks:'task_records', maintenance:'maintenance_logs', workforce:'workforce_records',
   users:'profiles'
 };
 
@@ -41,21 +42,21 @@ const ROLES = {
   viewer:     {label:'Read-Only',        color:'var(--mu)',bg:'rgba(74,85,104,.12)'}
 };
 const NAV_ACCESS = {
-  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','reports','audit','users'],
-  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','reports'],
-  production: ['dashboard','production','machines','quality','fg'],
-  storekeeper:['dashboard','inventory','fg','purchase','vendors'],
-  qc:         ['dashboard','quality'],
-  dispatch:   ['dashboard','quotes','sales','dispatch','invoices','ibill','buyers','fg'],
+  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','reports','audit','users'],
+  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','reports'],
+  production: ['dashboard','production','machines','quality','fg','ops','planning','tasks','maintenance'],
+  storekeeper:['dashboard','inventory','fg','purchase','vendors','tasks','maintenance'],
+  qc:         ['dashboard','quality','ops','workforce'],
+  dispatch:   ['dashboard','quotes','sales','dispatch','invoices','ibill','buyers','fg','tasks'],
   viewer:     ['dashboard','reports']
 };
 const CAN_EDIT = {
-  admin:      ['production','machines','quality','inventory','fg','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','users','audit'],
-  manager:    ['production','machines','quality','inventory','fg','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products'],
-  production: ['production','machines','quality','fg'],
-  storekeeper:['inventory','fg','purchase','vendors'],
-  qc:         ['quality'],
-  dispatch:   ['quotes','dispatch','invoices','ibill','buyers','fg'],
+  admin:      ['production','machines','quality','inventory','fg','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','users','audit'],
+  manager:    ['production','machines','quality','inventory','fg','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce'],
+  production: ['production','machines','quality','fg','planning','tasks','maintenance'],
+  storekeeper:['inventory','fg','purchase','vendors','tasks','maintenance'],
+  qc:         ['quality','ops','workforce'],
+  dispatch:   ['quotes','dispatch','invoices','ibill','buyers','fg','tasks'],
   viewer:     []
 };
 const STATUSES = {
@@ -93,6 +94,13 @@ const NAVDEF = [
   {id:'fg',          ic:'&#9632;',  lb:'Finished Goods',    bfg:1},
   {s:'Master Data'},
   {id:'products',    ic:'&#9965;',  lb:'Product Master'},
+  {s:'Control Tower'},
+  {id:'ops',         ic:'&#128196;', lb:'Operations Manuals'},
+  {id:'planning',    ic:'&#128197;', lb:'Planning Control'},
+  {id:'costing',     ic:'&#128181;', lb:'Cost Control'},
+  {id:'tasks',       ic:'&#128221;', lb:'Task Center'},
+  {id:'maintenance', ic:'&#128736;', lb:'Maintenance Control'},
+  {id:'workforce',   ic:'&#127891;', lb:'Workforce Matrix'},
   {s:'Reports'},
   {id:'reports',     ic:'&#9650;',  lb:'Analytics'},
   {s:'Admin'},
@@ -949,7 +957,7 @@ window.goTab = id => {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const tab = document.getElementById('tab-' + id); if (tab) tab.classList.add('on');
   const nav = document.getElementById('nav-' + id); if (nav) nav.classList.add('on');
-  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',quotes:'Quotations',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',buyers:'Buyer Master',company:'Our Company',products:'Product Master',reports:'Analytics',audit:'Audit Log',users:'User Management'};
+  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',quotes:'Quotations',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',buyers:'Buyer Master',company:'Our Company',products:'Product Master',ops:'Operations Manuals',planning:'Planning Control',costing:'Cost Control',tasks:'Task Center',maintenance:'Maintenance Control',workforce:'Workforce Matrix',reports:'Analytics',audit:'Audit Log',users:'User Management'};
   document.getElementById('hmod').textContent = '// ' + (L[id] || id);
   renderMod(id);
 };
@@ -959,6 +967,7 @@ function renderMod(id) {
     dashboard:renderDash, production:renderWO, machines:renderMach, quality:renderQC,
     inventory:renderInv,  purchase:renderPO,   quotes:renderQuotes, sales:renderSO,      dispatch:renderDC,
     invoices:renderInv2,  ibill:renderIB,      vendors:renderVnd,   buyers:renderBuyers, company:renderCompany, products:renderProducts,
+    ops:renderOps, planning:renderPlanning, costing:renderCosting, tasks:renderTasks, maintenance:renderMaintenance, workforce:renderWorkforce,
     reports:renderRep,    users:renderUsers,   fg:renderFG,
     audit:renderAudit
   };
@@ -2085,6 +2094,250 @@ window.editProd = id => {
 };
 
 // ---
+// CONTROL TOWER MODULES
+// ---
+const priorityPill = p => pill(p === 'High' ? 'Delayed' : p === 'Medium' ? 'Pending' : 'On Track');
+
+function renderOps() {
+  const ed = canEdit('ops');
+  const del = canDelete();
+  const roEl = document.getElementById('ops-ro'); if (roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('ops-fc'); if (fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const docs = DB.ops_manuals || [];
+  const active = docs.filter(d => (d.status || 'Active') === 'Active').length;
+  const due = docs.filter(d => d.review_date && new Date(d.review_date) <= new Date(Date.now() + 30*24*60*60*1000)).length;
+  const opsKpi = document.getElementById('ops-kpi');
+  if (opsKpi) opsKpi.innerHTML =
+    `<div class="kc b"><div class="kc-stripe"></div><div class="kl">Controlled Docs</div><div class="kv">${docs.length}</div><div class="ks">SOPs, safety, QC, training</div></div>` +
+    `<div class="kc g"><div class="kc-stripe"></div><div class="kl">Active Documents</div><div class="kv" style="color:var(--gn)">${active}</div><div class="ks">currently in force</div></div>` +
+    `<div class="kc o"><div class="kc-stripe"></div><div class="kl">Review Due</div><div class="kv" style="color:var(--ac)">${due}</div><div class="ks">within next 30 days</div></div>` +
+    `<div class="kc p"><div class="kc-stripe"></div><div class="kl">Training Docs</div><div class="kv" style="color:var(--pu)">${docs.filter(d => String(d.doc_type||'').includes('Training')).length}</div><div class="ks">new worker instructions</div></div>`;
+  const srch = (V('ops-srch')||'').toLowerCase(), flt = V('ops-flt');
+  const tbl = document.getElementById('ops-tbl'); if (!tbl) return;
+  tbl.innerHTML = docs
+    .filter(d => (!flt || d.doc_type === flt) && (!srch || `${d.doc_type} ${d.title} ${d.doc_no} ${d.owner}`.toLowerCase().includes(srch)))
+    .map(d => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editOps('${d.id}')">Edit</button>${del ? `<button class="btn bD sm" onclick="delRec('ops_manuals','${d.id}')">Del</button>` : ''}` : '';
+      return `<tr><td>${esc(d.doc_type||'--')}</td><td>${esc(d.title||'--')}</td><td class="mn">${esc(d.doc_no||'--')}</td><td>${esc(d.owner||'--')}</td><td class="mn">${fmtD(d.review_date)}</td><td>${pill(d.status||'Active')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="7"><div class="empty"><div class="empty-ic">SOP</div><div class="empty-tt">No operations documents</div><div class="empty-st">Add SOPs, safety and inspection documents here.</div></div></td></tr>';
+}
+window.saveOps = async () => {
+  const eid = V('ops-eid'), title = V('ops-title');
+  if (!title) return toast('Document title required','e');
+  const data = { doc_type:V('ops-type'), doc_no:V('ops-docno'), title, department:V('ops-dept'), owner:V('ops-owner'), review_frequency:V('ops-frequency'), effective_date:V('ops-effective'), review_date:V('ops-review'), status:V('ops-status'), version:V('ops-version'), content:V('ops-content') };
+  if (eid) { if (await dbUpdate('ops_manuals', eid, data)) toast('Document updated'); }
+  else { if (await dbInsert('ops_manuals', data)) toast('Operations document added'); }
+  clrForm('ops');
+};
+window.editOps = id => {
+  const d = DB.ops_manuals.find(x=>x.id===id); if(!d) return;
+  SV('ops-eid',id); SV('ops-type',d.doc_type); SV('ops-docno',d.doc_no); SV('ops-title',d.title); SV('ops-dept',d.department); SV('ops-owner',d.owner); SV('ops-frequency',d.review_frequency); SV('ops-effective',d.effective_date); SV('ops-review',d.review_date); SV('ops-status',d.status); SV('ops-version',d.version); SV('ops-content',d.content);
+  document.getElementById('ops-ft').textContent = 'Edit Operations Document';
+  document.getElementById('ops-sb').textContent = 'Update Document';
+  document.getElementById('ops-fc').scrollIntoView({behavior:'smooth'});
+};
+
+function renderPlanning() {
+  const ed = canEdit('planning');
+  const del = canDelete();
+  const roEl = document.getElementById('plan-ro'); if (roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('plan-fc'); if (fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const plans = DB.planning_records || [];
+  const totalTarget = plans.reduce((a,p)=>a+parseFloat(p.target_output||0),0);
+  const totalActual = plans.reduce((a,p)=>a+parseFloat(p.actual_output||0),0);
+  const avgCap = plans.length ? (plans.reduce((a,p)=>a+parseFloat(p.capacity_pct||0),0)/plans.length).toFixed(1) : '--';
+  const deviations = plans.filter(p => (p.status||'') === 'Deviation').length;
+  const kpi = document.getElementById('plan-kpi');
+  if (kpi) kpi.innerHTML =
+    `<div class="kc o"><div class="kc-stripe"></div><div class="kl">Planning Records</div><div class="kv">${plans.length}</div><div class="ks">daily, weekly and annual plans</div></div>` +
+    `<div class="kc g"><div class="kc-stripe"></div><div class="kl">Target Output</div><div class="kv" style="color:var(--gn)">${totalTarget.toLocaleString()}</div><div class="ks">planned units</div></div>` +
+    `<div class="kc b"><div class="kc-stripe"></div><div class="kl">Actual Output</div><div class="kv" style="color:var(--bl)">${totalActual.toLocaleString()}</div><div class="ks">tracked execution</div></div>` +
+    `<div class="kc p"><div class="kc-stripe"></div><div class="kl">Avg Capacity</div><div class="kv" style="color:var(--pu)">${avgCap}${avgCap==='--'?'':'%'}</div><div class="ks">${deviations} deviations logged</div></div>`;
+  const srch = (V('plan-srch')||'').toLowerCase(), flt = V('plan-flt');
+  const tbl = document.getElementById('plan-tbl'); if (!tbl) return;
+  tbl.innerHTML = plans
+    .filter(p => (!flt || p.plan_type === flt) && (!srch || `${p.plan_type} ${p.title} ${p.equipment} ${p.owner}`.toLowerCase().includes(srch)))
+    .map(p => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editPlan('${p.id}')">Edit</button>${del ? `<button class="btn bD sm" onclick="delRec('planning_records','${p.id}')">Del</button>` : ''}` : '';
+      return `<tr><td>${esc(p.plan_type||'--')}</td><td>${esc(p.title||'--')}</td><td class="mn">${fmtD(p.start_date)} - ${fmtD(p.end_date)}</td><td class="mn">${parseFloat(p.target_output||0)} / ${parseFloat(p.actual_output||0)}</td><td class="mn">${p.capacity_pct||0}%</td><td>${pill(p.status||'Planned')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="7"><div class="empty"><div class="empty-ic">PL</div><div class="empty-tt">No planning records</div></div></td></tr>';
+}
+window.savePlan = async () => {
+  const eid = V('plan-eid'), title = V('plan-title');
+  if (!title) return toast('Planning title required','e');
+  const data = { plan_type:V('plan-type'), title, start_date:V('plan-start'), end_date:V('plan-end'), shift:V('plan-shift'), equipment:V('plan-equipment'), target_output:parseFloat(V('plan-target'))||0, actual_output:parseFloat(V('plan-actual'))||0, downtime_hours:parseFloat(V('plan-downtime'))||0, capacity_pct:parseFloat(V('plan-capacity'))||0, owner:V('plan-owner'), status:V('plan-status'), deviation_notes:V('plan-deviation'), notes:V('plan-notes') };
+  if (eid) { if (await dbUpdate('planning_records', eid, data)) toast('Planning record updated'); }
+  else { if (await dbInsert('planning_records', data)) toast('Planning record saved'); }
+  clrForm('plan');
+};
+window.editPlan = id => {
+  const p = DB.planning_records.find(x=>x.id===id); if(!p) return;
+  SV('plan-eid',id); SV('plan-type',p.plan_type); SV('plan-title',p.title); SV('plan-start',p.start_date); SV('plan-end',p.end_date); SV('plan-shift',p.shift); SV('plan-equipment',p.equipment); SV('plan-target',p.target_output); SV('plan-actual',p.actual_output); SV('plan-downtime',p.downtime_hours); SV('plan-capacity',p.capacity_pct); SV('plan-owner',p.owner); SV('plan-status',p.status); SV('plan-deviation',p.deviation_notes); SV('plan-notes',p.notes);
+  document.getElementById('plan-ft').textContent = 'Edit Planning Record';
+  document.getElementById('plan-sb').textContent = 'Update Plan';
+  document.getElementById('plan-fc').scrollIntoView({behavior:'smooth'});
+};
+
+function renderCosting() {
+  const ed = canEdit('costing');
+  const del = canDelete();
+  const roEl = document.getElementById('cost-ro'); if (roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('cost-fc'); if (fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const rows = DB.cost_records || [];
+  const total = rows.reduce((a,r)=>a+parseFloat(r.amount||0),0);
+  const benefit = rows.reduce((a,r)=>a+parseFloat(r.benefit_estimate||0),0);
+  const fixed = rows.filter(r => String(r.cost_type||'').includes('Fixed')).reduce((a,r)=>a+parseFloat(r.amount||0),0);
+  const variable = rows.filter(r => String(r.cost_type||'').includes('Variable')).reduce((a,r)=>a+parseFloat(r.amount||0),0);
+  const kpi = document.getElementById('cost-kpi');
+  if (kpi) kpi.innerHTML =
+    `<div class="kc b"><div class="kc-stripe"></div><div class="kl">Total Spend</div><div class="kv" style="color:var(--bl)">${fmtM(total)}</div><div class="ks">captured cost records</div></div>` +
+    `<div class="kc g"><div class="kc-stripe"></div><div class="kl">Benefit / Saving</div><div class="kv" style="color:var(--gn)">${fmtM(benefit)}</div><div class="ks">project return inputs</div></div>` +
+    `<div class="kc o"><div class="kc-stripe"></div><div class="kl">Fixed Cost</div><div class="kv" style="color:var(--ac)">${fmtM(fixed)}</div><div class="ks">static commitments</div></div>` +
+    `<div class="kc p"><div class="kc-stripe"></div><div class="kl">Variable Cost</div><div class="kv" style="color:var(--pu)">${fmtM(variable)}</div><div class="ks">usage-based costs</div></div>`;
+  const srch = (V('cost-srch')||'').toLowerCase(), flt = V('cost-flt');
+  const tbl = document.getElementById('cost-tbl'); if (!tbl) return;
+  tbl.innerHTML = rows
+    .filter(r => (!flt || r.cost_type === flt) && (!srch || `${r.cost_type} ${r.project} ${r.equipment} ${r.category} ${r.vendor}`.toLowerCase().includes(srch)))
+    .map(r => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editCost('${r.id}')">Edit</button>${del ? `<button class="btn bD sm" onclick="delRec('cost_records','${r.id}')">Del</button>` : ''}` : '';
+      return `<tr><td>${esc(r.cost_type||'--')}</td><td>${esc(r.project||'--')}</td><td>${esc(r.equipment||'--')}</td><td>${esc(r.category||'--')}</td><td class="mn">${fmtM(r.amount)}</td><td class="mn">${fmtM(r.benefit_estimate||0)}</td><td>${pill(r.status||'Planned')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">Rs</div><div class="empty-tt">No cost records</div></div></td></tr>';
+}
+window.saveCost = async () => {
+  const eid = V('cost-eid'), project = V('cost-project');
+  if (!project) return toast('Project / budget head required','e');
+  const data = { cost_type:V('cost-type'), project, equipment:V('cost-equipment'), category:V('cost-category'), vendor:V('cost-vendor'), amount:parseFloat(V('cost-amount'))||0, year:parseInt(V('cost-year'))||null, month:V('cost-month'), benefit_estimate:parseFloat(V('cost-benefit'))||0, status:V('cost-status'), notes:V('cost-notes') };
+  if (eid) { if (await dbUpdate('cost_records', eid, data)) toast('Cost record updated'); }
+  else { if (await dbInsert('cost_records', data)) toast('Cost record saved'); }
+  clrForm('cost');
+};
+window.editCost = id => {
+  const r = DB.cost_records.find(x=>x.id===id); if(!r) return;
+  SV('cost-eid',id); SV('cost-type',r.cost_type); SV('cost-project',r.project); SV('cost-equipment',r.equipment); SV('cost-category',r.category); SV('cost-vendor',r.vendor); SV('cost-amount',r.amount); SV('cost-year',r.year); SV('cost-month',r.month); SV('cost-benefit',r.benefit_estimate); SV('cost-status',r.status); SV('cost-notes',r.notes);
+  document.getElementById('cost-ft').textContent = 'Edit Cost Record';
+  document.getElementById('cost-sb').textContent = 'Update Cost';
+  document.getElementById('cost-fc').scrollIntoView({behavior:'smooth'});
+};
+
+function renderTasks() {
+  const ed = canEdit('tasks');
+  const del = canDelete();
+  const roEl = document.getElementById('task-ro'); if (roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('task-fc'); if (fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const tasks = DB.task_records || [];
+  const kpi = document.getElementById('task-kpi');
+  if (kpi) kpi.innerHTML =
+    `<div class="kc o"><div class="kc-stripe"></div><div class="kl">Open Tasks</div><div class="kv">${tasks.filter(t => (t.status||'') !== 'Completed').length}</div><div class="ks">active actions</div></div>` +
+    `<div class="kc b"><div class="kc-stripe"></div><div class="kl">High Priority</div><div class="kv" style="color:var(--bl)">${tasks.filter(t => t.priority === 'High').length}</div><div class="ks">needs close follow-up</div></div>` +
+    `<div class="kc g"><div class="kc-stripe"></div><div class="kl">Completed</div><div class="kv" style="color:var(--gn)">${tasks.filter(t => t.status === 'Completed').length}</div><div class="ks">done items</div></div>` +
+    `<div class="kc p"><div class="kc-stripe"></div><div class="kl">Kanban Doing</div><div class="kv" style="color:var(--pu)">${tasks.filter(t => t.board === 'Doing').length}</div><div class="ks">work in progress</div></div>`;
+  const boardWrap = document.getElementById('task-board-wrap');
+  if (boardWrap) {
+    boardWrap.innerHTML = ['To Do','Doing','Done'].map(board => {
+      const items = tasks.filter(t => (t.board||'To Do') === board).slice(0,4).map(t => `<div class="mc"><div class="mcn">${esc(t.title||'--')}</div><div class="mci">${esc(t.owner||'--')} · ${fmtD(t.due_date)}</div><div class="mca"><span>${priorityPill(t.priority||'Medium')}</span></div></div>`).join('') || '<div class="empty"><div class="empty-st">No tasks</div></div>';
+      return `<div class="card"><div class="ch"><div class="ct">${board}</div></div><div style="padding:14px">${items}</div></div>`;
+    }).join('');
+  }
+  const srch = (V('task-srch')||'').toLowerCase(), flt = V('task-flt');
+  const tbl = document.getElementById('task-tbl'); if (!tbl) return;
+  tbl.innerHTML = tasks
+    .filter(t => (!flt || t.priority === flt) && (!srch || `${t.title} ${t.owner} ${t.assigned_to} ${t.task_type}`.toLowerCase().includes(srch)))
+    .map(t => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editTask('${t.id}')">Edit</button>${del ? `<button class="btn bD sm" onclick="delRec('task_records','${t.id}')">Del</button>` : ''}` : '';
+      return `<tr><td>${esc(t.title||'--')}</td><td>${esc(t.owner||'--')}</td><td>${esc(t.assigned_to||'--')}</td><td class="mn">${fmtD(t.due_date)}</td><td>${priorityPill(t.priority||'Medium')}</td><td>${esc(t.board||'To Do')}</td><td>${pill(t.status||'Open')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">TK</div><div class="empty-tt">No tasks logged</div></div></td></tr>';
+}
+window.saveTask = async () => {
+  const eid = V('task-eid'), title = V('task-title');
+  if (!title) return toast('Task title required','e');
+  const data = { title, task_type:V('task-type'), owner:V('task-owner'), assigned_to:V('task-assigned'), accountable:V('task-accountable'), consulted:V('task-consulted'), informed:V('task-informed'), priority:V('task-priority'), start_date:V('task-start'), due_date:V('task-due'), board:V('task-board'), status:V('task-status'), notes:V('task-notes') };
+  if (eid) { if (await dbUpdate('task_records', eid, data)) toast('Task updated'); }
+  else { if (await dbInsert('task_records', data)) toast('Task saved'); }
+  clrForm('task');
+};
+window.editTask = id => {
+  const t = DB.task_records.find(x=>x.id===id); if(!t) return;
+  SV('task-eid',id); SV('task-title',t.title); SV('task-type',t.task_type); SV('task-owner',t.owner); SV('task-assigned',t.assigned_to); SV('task-accountable',t.accountable); SV('task-consulted',t.consulted); SV('task-informed',t.informed); SV('task-priority',t.priority); SV('task-start',t.start_date); SV('task-due',t.due_date); SV('task-board',t.board); SV('task-status',t.status); SV('task-notes',t.notes);
+  document.getElementById('task-ft').textContent = 'Edit Task';
+  document.getElementById('task-sb').textContent = 'Update Task';
+  document.getElementById('task-fc').scrollIntoView({behavior:'smooth'});
+};
+
+function renderMaintenance() {
+  const ed = canEdit('maintenance');
+  const del = canDelete();
+  const roEl = document.getElementById('maint-ro'); if (roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('maint-fc'); if (fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const rows = DB.maintenance_logs || [];
+  const kpi = document.getElementById('maint-kpi');
+  if (kpi) kpi.innerHTML =
+    `<div class="kc b"><div class="kc-stripe"></div><div class="kl">Maintenance Logs</div><div class="kv">${rows.length}</div><div class="ks">tracked service records</div></div>` +
+    `<div class="kc o"><div class="kc-stripe"></div><div class="kl">Open Cases</div><div class="kv" style="color:var(--ac)">${rows.filter(r => ['Open','Scheduled','In Progress'].includes(r.status)).length}</div><div class="ks">pending closure</div></div>` +
+    `<div class="kc g"><div class="kc-stripe"></div><div class="kl">Closed</div><div class="kv" style="color:var(--gn)">${rows.filter(r => r.status === 'Closed').length}</div><div class="ks">completed maintenance</div></div>` +
+    `<div class="kc p"><div class="kc-stripe"></div><div class="kl">Critical Condition</div><div class="kv" style="color:var(--pu)">${rows.filter(r => r.condition_status === 'Critical').length}</div><div class="ks">needs urgent action</div></div>`;
+  const srch = (V('maint-srch')||'').toLowerCase(), flt = V('maint-flt');
+  const tbl = document.getElementById('maint-tbl'); if (!tbl) return;
+  tbl.innerHTML = rows
+    .filter(r => (!flt || r.status === flt) && (!srch || `${r.report_id} ${r.asset_name} ${r.vendor} ${r.technician}`.toLowerCase().includes(srch)))
+    .map(r => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editMaint('${r.id}')">Edit</button>${del ? `<button class="btn bD sm" onclick="delRec('maintenance_logs','${r.id}')">Del</button>` : ''}` : '';
+      return `<tr><td class="mn">${esc(r.report_id||'--')}</td><td>${esc(r.asset_name||'--')}</td><td>${esc(r.maintenance_type||'--')}</td><td class="mn">${fmtD(r.schedule_date)}</td><td>${pill(r.condition_status||'Good')}</td><td>${pill(r.status||'Open')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="7"><div class="empty"><div class="empty-ic">MT</div><div class="empty-tt">No maintenance logs</div></div></td></tr>';
+}
+window.saveMaint = async () => {
+  const eid = V('maint-eid'), asset = V('maint-asset');
+  if (!asset) return toast('Asset / equipment required','e');
+  const data = { report_id:V('maint-report'), asset_name:asset, serial_no:V('maint-serial'), vendor:V('maint-vendor'), maintenance_type:V('maint-type'), technician:V('maint-tech'), schedule_date:V('maint-date'), follow_up_date:V('maint-follow'), work_order_ref:V('maint-wo'), condition_status:V('maint-condition'), status:V('maint-status'), notes:V('maint-notes') };
+  if (eid) { if (await dbUpdate('maintenance_logs', eid, data)) toast('Maintenance log updated'); }
+  else { if (await dbInsert('maintenance_logs', data)) toast('Maintenance log saved'); }
+  clrForm('maint');
+};
+window.editMaint = id => {
+  const r = DB.maintenance_logs.find(x=>x.id===id); if(!r) return;
+  SV('maint-eid',id); SV('maint-report',r.report_id); SV('maint-asset',r.asset_name); SV('maint-serial',r.serial_no); SV('maint-vendor',r.vendor); SV('maint-type',r.maintenance_type); SV('maint-tech',r.technician); SV('maint-date',r.schedule_date); SV('maint-follow',r.follow_up_date); SV('maint-wo',r.work_order_ref); SV('maint-condition',r.condition_status); SV('maint-status',r.status); SV('maint-notes',r.notes);
+  document.getElementById('maint-ft').textContent = 'Edit Maintenance Log';
+  document.getElementById('maint-sb').textContent = 'Update Maintenance';
+  document.getElementById('maint-fc').scrollIntoView({behavior:'smooth'});
+};
+
+function renderWorkforce() {
+  const ed = canEdit('workforce');
+  const del = canDelete();
+  const roEl = document.getElementById('workforce-ro'); if (roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('workforce-fc'); if (fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const rows = DB.workforce_records || [];
+  const kpi = document.getElementById('workforce-kpi');
+  if (kpi) kpi.innerHTML =
+    `<div class="kc b"><div class="kc-stripe"></div><div class="kl">Workforce Records</div><div class="kv">${rows.length}</div><div class="ks">skills and training rows</div></div>` +
+    `<div class="kc g"><div class="kc-stripe"></div><div class="kl">Valid Certifications</div><div class="kv" style="color:var(--gn)">${rows.filter(r => r.certification_status === 'Valid').length}</div><div class="ks">current compliance</div></div>` +
+    `<div class="kc o"><div class="kc-stripe"></div><div class="kl">Training Pending</div><div class="kv" style="color:var(--ac)">${rows.filter(r => r.certification_status === 'Pending').length}</div><div class="ks">needs follow-up</div></div>` +
+    `<div class="kc p"><div class="kc-stripe"></div><div class="kl">Experts</div><div class="kv" style="color:var(--pu)">${rows.filter(r => r.competency_level === 'Expert').length}</div><div class="ks">highest competency</div></div>`;
+  const srch = (V('workforce-srch')||'').toLowerCase(), flt = V('workforce-flt');
+  const tbl = document.getElementById('workforce-tbl'); if (!tbl) return;
+  tbl.innerHTML = rows
+    .filter(r => (!flt || r.certification_status === flt) && (!srch || `${r.employee_name} ${r.employee_code} ${r.role} ${r.skill_area} ${r.training_name}`.toLowerCase().includes(srch)))
+    .map(r => {
+      const acts = ed ? `<button class="btn bO sm" onclick="editWorkforce('${r.id}')">Edit</button>${del ? `<button class="btn bD sm" onclick="delRec('workforce_records','${r.id}')">Del</button>` : ''}` : '';
+      return `<tr><td style="font-weight:600">${esc(r.employee_name||'--')}</td><td>${esc(r.role||'--')}</td><td>${esc(r.skill_area||'--')}</td><td>${esc(r.training_name||'--')}</td><td>${esc(r.competency_level||'--')}</td><td>${pill(r.certification_status||'Pending')}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="7"><div class="empty"><div class="empty-ic">WF</div><div class="empty-tt">No workforce records</div></div></td></tr>';
+}
+window.saveWorkforce = async () => {
+  const eid = V('workforce-eid'), name = V('workforce-name');
+  if (!name) return toast('Employee name required','e');
+  const data = { employee_name:name, employee_code:V('workforce-code'), role:V('workforce-role'), skill_area:V('workforce-skill'), training_name:V('workforce-training'), competency_level:V('workforce-level'), last_training_date:V('workforce-last'), next_training_date:V('workforce-next'), trainer:V('workforce-trainer'), certification_status:V('workforce-cert'), status:V('workforce-status'), notes:V('workforce-notes') };
+  if (eid) { if (await dbUpdate('workforce_records', eid, data)) toast('Workforce record updated'); }
+  else { if (await dbInsert('workforce_records', data)) toast('Workforce record saved'); }
+  clrForm('workforce');
+};
+window.editWorkforce = id => {
+  const r = DB.workforce_records.find(x=>x.id===id); if(!r) return;
+  SV('workforce-eid',id); SV('workforce-name',r.employee_name); SV('workforce-code',r.employee_code); SV('workforce-role',r.role); SV('workforce-skill',r.skill_area); SV('workforce-training',r.training_name); SV('workforce-level',r.competency_level); SV('workforce-last',r.last_training_date); SV('workforce-next',r.next_training_date); SV('workforce-trainer',r.trainer); SV('workforce-cert',r.certification_status); SV('workforce-status',r.status); SV('workforce-notes',r.notes);
+  document.getElementById('workforce-ft').textContent = 'Edit Workforce Record';
+  document.getElementById('workforce-sb').textContent = 'Update Workforce';
+  document.getElementById('workforce-fc').scrollIntoView({behavior:'smooth'});
+};
+
+// ---
 // ANALYTICS
 // ---
 function renderRep() {
@@ -2559,10 +2812,16 @@ const FORM_FIELDS = {
   buy:  ['buy-eid','buy-name','buy-code','buy-contact','buy-phone','buy-email','buy-gst','buy-terms','buy-address','buy-notes'],
   cmp:  ['cmp-eid','cmp-name','cmp-short','cmp-gst','cmp-pan','cmp-msme','cmp-contact','cmp-phone','cmp-email','cmp-state','cmp-esi','cmp-epfo','cmp-cin','cmp-iec','cmp-bank','cmp-bank-name','cmp-bank-ac','cmp-ifsc','cmp-branch','cmp-upi','cmp-other','cmp-address','cmp-notes'],
   vnd:  ['vnd-eid','vnd-name','vnd-code','vnd-contact','vnd-phone','vnd-email','vnd-gst','vnd-address','vnd-materials'],
-  prod: ['prod-eid','prod-name','prod-code','prod-desc','prod-price','prod-hsn','prod-notes']
+  prod: ['prod-eid','prod-name','prod-code','prod-desc','prod-price','prod-hsn','prod-notes'],
+  ops: ['ops-eid','ops-docno','ops-title','ops-dept','ops-owner','ops-effective','ops-review','ops-version','ops-content'],
+  plan:['plan-eid','plan-title','plan-start','plan-end','plan-equipment','plan-target','plan-actual','plan-downtime','plan-capacity','plan-owner','plan-deviation','plan-notes'],
+  cost:['cost-eid','cost-project','cost-equipment','cost-category','cost-vendor','cost-amount','cost-year','cost-benefit','cost-notes'],
+  task:['task-eid','task-title','task-type','task-owner','task-assigned','task-accountable','task-consulted','task-informed','task-start','task-due','task-notes'],
+  maint:['maint-eid','maint-report','maint-asset','maint-serial','maint-vendor','maint-tech','maint-date','maint-follow','maint-wo','maint-notes'],
+  workforce:['workforce-eid','workforce-name','workforce-code','workforce-role','workforce-skill','workforce-training','workforce-last','workforce-next','workforce-trainer','workforce-notes']
 };
-const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', qt:'Create Quotation', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', ib:'Add Inward Bill', buy:'Add Buyer', cmp:'Add Company Details', vnd:'Add Vendor', prod:'Add New Product' };
-const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', qt:'Save Quotation', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', ib:'Save Inward Bill', buy:'Save Buyer', cmp:'Save Company', vnd:'Save Vendor', prod:'Add Product' };
+const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', qt:'Create Quotation', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', ib:'Add Inward Bill', buy:'Add Buyer', cmp:'Add Company Details', vnd:'Add Vendor', prod:'Add New Product', ops:'Create Operations Document', plan:'Create Planning Record', cost:'Create Cost Record', task:'Create Task', maint:'Create Maintenance Log', workforce:'Create Workforce Record' };
+const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', qt:'Save Quotation', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', ib:'Save Inward Bill', buy:'Save Buyer', cmp:'Save Company', vnd:'Save Vendor', prod:'Add Product', ops:'Save Document', plan:'Save Plan', cost:'Save Cost', task:'Save Task', maint:'Save Maintenance Log', workforce:'Save Workforce Record' };
 
 window.clrForm = f => {
   (FORM_FIELDS[f]||[]).forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
@@ -2583,4 +2842,10 @@ window.clrForm = f => {
   if (f==='ib') { SV('ib-status','Pending'); SV('ib-gstpct','18'); SV('ib-total',''); }
   if (f==='buy') { SV('buy-status','Active'); SV('buy-terms','Net 30'); }
   if (f==='cmp') { SV('cmp-status','Active'); }
+  if (f==='ops') { SV('ops-type','Production Workflow SOP'); SV('ops-frequency','Monthly'); SV('ops-status','Active'); }
+  if (f==='plan') { SV('plan-type','Daily Planner'); SV('plan-shift','General'); SV('plan-status','Planned'); }
+  if (f==='cost') { SV('cost-type','Capital Cost'); SV('cost-status','Planned'); }
+  if (f==='task') { SV('task-priority','High'); SV('task-board','To Do'); SV('task-status','Open'); }
+  if (f==='maint') { SV('maint-type','Preventive'); SV('maint-condition','Good'); SV('maint-status','Open'); }
+  if (f==='workforce') { SV('workforce-level','Beginner'); SV('workforce-cert','Pending'); SV('workforce-status','Active'); }
 };
