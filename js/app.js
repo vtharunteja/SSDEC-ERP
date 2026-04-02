@@ -1280,29 +1280,29 @@ function renderDash() {
     `<button type="button" class="kc b dash-link" onclick="dashOpenTab('inventory','Review low stock items and reorder levels')"><div class="kc-stripe"></div><div class="kl">Low Stock Items</div><div class="kv" style="color:var(--bl)">${li}</div><div class="ks">below reorder level</div></button>` +
     `<button type="button" class="kc p dash-link" onclick="dashOpenTab('quality','Opening recent QC records')"><div class="kc-stripe"></div><div class="kl">QC Pass Rate</div><div class="kv" style="color:var(--pu)">${qcT>0?((qcP/qcT)*100).toFixed(1)+'%':'--'}</div><div class="ks">IEC 61952 / IS 14772</div></button>`;
   let alerts = '';
-  DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<button type="button" class="al ald dash-alert" onclick="dashOpenInv(${jsq(i.id)})"><span class="al-i">!!</span><strong>CRITICAL:</strong> ${i.name}  only ${i.stock} ${i.unit} remaining. Raise PO now.</button>`);
-  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<button type="button" class="al alw dash-alert" onclick="dashOpenInv(${jsq(i.id)})"><span class="al-i">!</span><strong>Low stock:</strong> ${i.name} at ${i.stock}/${i.reorder} ${i.unit}.</button>`);
-  DB.work_orders.filter(w=>w.status==='Delayed').forEach(w => alerts+=`<button type="button" class="al ali dash-alert" onclick="dashOpenWO(${jsq(w.id)})"><span class="al-i">SO</span>Work Order <strong>${w.wono}</strong> (${w.product}) is delayed.</button>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<button type="button" class="al ald dash-alert" onclick='dashOpenInv(${jsq(i.id)})'><span class="al-i">!!</span><strong>CRITICAL:</strong> ${i.name}  only ${i.stock} ${i.unit} remaining. Raise PO now.</button>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<button type="button" class="al alw dash-alert" onclick='dashOpenInv(${jsq(i.id)})'><span class="al-i">!</span><strong>Low stock:</strong> ${i.name} at ${i.stock}/${i.reorder} ${i.unit}.</button>`);
+  DB.work_orders.filter(w=>w.status==='Delayed').forEach(w => alerts+=`<button type="button" class="al ali dash-alert" onclick='dashOpenWO(${jsq(w.id)})'><span class="al-i">SO</span>Work Order <strong>${w.wono}</strong> (${w.product}) is delayed.</button>`);
   const aEl = document.getElementById('d-alerts'); if(aEl) aEl.innerHTML = alerts;
   const woEl = document.getElementById('d-wo');
   if(woEl) woEl.innerHTML = DB.work_orders.filter(w=>w.status!=='Completed').slice(0,4).map(w => {
     const pct = Math.round((parseFloat(w.produced||0)/Math.max(parseFloat(w.qty||1),1))*100);
     const col = pct>70?'var(--gn)':pct>40?'var(--ac)':'var(--rd)';
-    return `<tr class="dash-click-row" onclick="dashOpenWO(${jsq(w.id)})"><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${w.product}</td><td><div style="display:flex;align-items:center;gap:8px"><div class="pbar" style="width:80px"><div class="pfill" style="width:${pct}%;background:${col}"></div></div><span class="mn" style="font-size:10px;color:var(--t2)">${pct}%</span></div></td><td>${pill(w.status)}</td></tr>`;
+    return `<tr class="dash-click-row" onclick='dashOpenWO(${jsq(w.id)})'><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${w.product}</td><td><div style="display:flex;align-items:center;gap:8px"><div class="pbar" style="width:80px"><div class="pfill" style="width:${pct}%;background:${col}"></div></div><span class="mn" style="font-size:10px;color:var(--t2)">${pct}%</span></div></td><td>${pill(w.status)}</td></tr>`;
   }).join('') || '<tr><td colspan="4"><div class="empty" style="padding:20px"><div class="empty-tt">No active work orders</div></div></td></tr>';
   const invEl = document.getElementById('d-inv');
   if(invEl) invEl.innerHTML = DB.inventory.slice(0,6).map(i => {
     const pct = Math.min(100,Math.round((parseFloat(i.stock)/Math.max(parseFloat(i.reorder)*1.5,1))*100));
     const col = parseFloat(i.stock)<=parseFloat(i.min)?'var(--rd)':parseFloat(i.stock)<=parseFloat(i.reorder)?'var(--ac)':'var(--gn)';
-    return `<button type="button" class="ir dash-list-btn" onclick="dashOpenInv(${jsq(i.id)})"><span style="flex:1;font-size:12px;text-align:left">${i.name}</span><div class="pbar" style="width:80px;flex-shrink:0"><div class="pfill" style="width:${pct}%;background:${col}"></div></div><span class="mn" style="font-size:11px;color:${col};flex:0 0 60px;text-align:right">${i.stock} ${i.unit}</span></button>`;
+    return `<button type="button" class="ir dash-list-btn" onclick='dashOpenInv(${jsq(i.id)})'><span class="dash-item-name" style="flex:1;font-size:12px;text-align:left">${i.name}</span><div class="pbar" style="width:80px;flex-shrink:0"><div class="pfill" style="width:${pct}%;background:${col}"></div></div><span class="mn dash-item-qty" style="font-size:11px;color:${col};flex:0 0 60px;text-align:right">${i.stock} ${i.unit}</span></button>`;
   }).join('') || '<div class="empty" style="padding:20px"><div class="empty-tt">No inventory</div></div>';
   const qcEl = document.getElementById('d-qc');
   if(qcEl) qcEl.innerHTML = DB.qc_records.slice(0,4).map(q => {
     const pct = parseFloat(q.sample)>0?((parseFloat(q.pass||0)/parseFloat(q.sample))*100).toFixed(0):'0';
-    return `<tr class="dash-click-row" onclick="dashOpenQC(${jsq(q.id)})"><td class="mn" style="color:var(--ac)">${q.batchid||q.id.slice(-8)}</td><td>${q.product}</td><td class="mn">${pct}%</td><td>${pill(pct>=95?'Passed':pct>=80?'Conditional':'Failed')}</td></tr>`;
+    return `<tr class="dash-click-row" onclick='dashOpenQC(${jsq(q.id)})'><td class="mn" style="color:var(--ac)">${q.batchid||q.id.slice(-8)}</td><td>${q.product}</td><td class="mn">${pct}%</td><td>${pill(pct>=95?'Passed':pct>=80?'Conditional':'Failed')}</td></tr>`;
   }).join('') || '<tr><td colspan="4"><div class="empty" style="padding:20px"><div class="empty-tt">No QC records</div></div></td></tr>';
   const dcEl = document.getElementById('d-dc');
-  if(dcEl) dcEl.innerHTML = DB.dispatches.slice(0,4).map(d => `<tr class="dash-click-row" onclick="dashOpenDC(${jsq(d.id)})"><td class="mn" style="color:var(--ac)">${d.dcno||d.id.slice(-8)}</td><td>${d.customer}</td><td>${d.qty} pcs</td><td>${pill(d.status)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty" style="padding:20px"><div class="empty-tt">No dispatches</div></div></td></tr>';
+  if(dcEl) dcEl.innerHTML = DB.dispatches.slice(0,4).map(d => `<tr class="dash-click-row" onclick='dashOpenDC(${jsq(d.id)})'><td class="mn" style="color:var(--ac)">${d.dcno||d.id.slice(-8)}</td><td>${d.customer}</td><td>${d.qty} pcs</td><td>${pill(d.status)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty" style="padding:20px"><div class="empty-tt">No dispatches</div></div></td></tr>';
 }
 
 // ---
@@ -3170,7 +3170,7 @@ function approvalBadge(recordId,module,ref,canRequest=true){
   const qRef = jsq(ref);
   if(!appr){
     if(!canRequest) return '';
-    return `<button type="button" class="btn bO sm" onclick="event.stopPropagation();requestApprovalPreview(${qModule},${qRecordId},${qRef})">Request Approval</button>`;
+    return `<button type="button" class="btn bO sm" onclick='event.stopPropagation();requestApprovalPreview(${qModule},${qRecordId},${qRef})'>Request Approval</button>`;
   }
   const status = appr.status || 'Pending';
   const reqBy = esc(appr.requested_name || appr.requester_name || appr.created_by_name || 'Unknown');
@@ -3178,11 +3178,11 @@ function approvalBadge(recordId,module,ref,canRequest=true){
   const who   = esc(appr.approved_name || appr.approver_name || appr.reason || '');
   const canApprove=CU?.role==='admin'||CU?.role==='manager';
   const actions = status==='Pending' && canApprove
-    ? `<div class="apb-a"><button type="button" class="btn bG sm" onclick="event.stopPropagation();processApproval(${jsq(appr.id)},'Approved')">Approve</button><button type="button" class="btn bD sm" onclick="event.stopPropagation();processApproval(${jsq(appr.id)},'Rejected')">Reject</button></div>`
+    ? `<div class="apb-a"><button type="button" class="btn bG sm" onclick='event.stopPropagation();processApproval(${jsq(appr.id)},"Approved")'>Approve</button><button type="button" class="btn bD sm" onclick='event.stopPropagation();processApproval(${jsq(appr.id)},"Rejected")'>Reject</button></div>`
     : '';
   if(status==='Pending'){
     return `<div class="apb pending">
-      <div class="apb-h"><span class="apb-s">Pending</span><button type="button" class="btn bO sm" onclick="event.stopPropagation();viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
+      <div class="apb-h"><span class="apb-s">Pending</span><button type="button" class="btn bO sm" onclick='event.stopPropagation();viewApprovalFlow(${qRecordId},${qModule},${qRef})'>Flow</button></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
       <div class="apb-w">&#x23F3; Admin / Manager</div>
@@ -3191,14 +3191,14 @@ function approvalBadge(recordId,module,ref,canRequest=true){
   }
   if(status==='Approved'){
     return `<div class="apb approved">
-      <div class="apb-h"><span class="apb-s">Approved</span><button type="button" class="btn bO sm" onclick="event.stopPropagation();viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
+      <div class="apb-h"><span class="apb-s">Approved</span><button type="button" class="btn bO sm" onclick='event.stopPropagation();viewApprovalFlow(${qRecordId},${qModule},${qRef})'>Flow</button></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
       <div class="apb-w">&#10003; By ${who || 'Manager'}</div>
     </div>`;
   }
   return `<div class="apb rejected">
-    <div class="apb-h"><span class="apb-s">Rejected</span><button type="button" class="btn bO sm" onclick="event.stopPropagation();viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
+    <div class="apb-h"><span class="apb-s">Rejected</span><button type="button" class="btn bO sm" onclick='event.stopPropagation();viewApprovalFlow(${qRecordId},${qModule},${qRef})'>Flow</button></div>
     <div class="apb-p"><b>${reqBy}</b></div>
     <div class="apb-p">${reqAt}</div>
     <div class="apb-w">&#10007; ${who || 'Rejected'}</div>

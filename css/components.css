@@ -124,6 +124,12 @@
   color: var(--tx);
 }
 
+.dash-card .ct,
+#tab-dashboard .ct,
+#tab-dashboard .card .ct {
+  color: color-mix(in srgb, var(--tx) 96%, white 4%);
+}
+
 .ch-r {
   display: flex;
   align-items: center;
@@ -1141,6 +1147,15 @@ select option {
   text-align: left;
   cursor: pointer;
   background: transparent;
+}
+
+.dash-item-name {
+  color: color-mix(in srgb, var(--tx) 94%, white 6%);
+  font-weight: 600;
+}
+
+.dash-item-qty {
+  font-weight: 700;
 }
 
 .dash-list-btn:hover,
