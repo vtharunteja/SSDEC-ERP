@@ -654,13 +654,20 @@ select option {
   display: flex;
 }
 
-.modal {
-  display: block;
-  position: relative;
+.mo > .modal {
+  display: block !important;
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  left: auto !important;
+  z-index: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
   margin: 0;
   width: 100%;
   max-width: 580px;
   max-height: 92vh;
+  overflow-x: visible !important;
   overflow-y: auto;
   border-radius: 28px 28px 0 0;
   border: 1px solid var(--br);
@@ -669,7 +676,7 @@ select option {
   animation: fadeUp .22s ease;
 }
 
-.modal::before {
+.mo > .modal::before {
   content: "";
   display: block;
   width: 40px;
@@ -679,7 +686,7 @@ select option {
   background: var(--br);
 }
 
-.sm-mo {
+.mo > .sm-mo {
   max-width: 460px;
 }
 
