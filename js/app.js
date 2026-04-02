@@ -120,6 +120,7 @@ const canDelete = () => ['admin','manager'].includes(CU?.role||'');
 const fmtD = d => { if(!d) return '--'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return d; } };
 const fmtM = n => 'Rs ' + (parseFloat(n)||0).toLocaleString('en-IN',{maximumFractionDigits:0});
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const jsq = v => JSON.stringify(String(v ?? ''));
 const jParse = (v, fb) => { try { return v ? JSON.parse(v) : fb; } catch(e) { return fb; } };
 function applyTheme(theme, persist = true) {
   const next = theme === 'light' ? 'light' : 'dark';
@@ -2961,9 +2962,12 @@ window.saveApprovalRequest = async () => {
 
 function approvalBadge(recordId,module,ref,canRequest=true){
   const appr=getApprovalStatus(recordId);
+  const qRecordId = jsq(recordId);
+  const qModule = jsq(module);
+  const qRef = jsq(ref);
   if(!appr){
     if(!canRequest) return '';
-    return `<button class="btn bO sm" onclick="requestApprovalPreview('${module}','${recordId}','${ref}')">Request Approval</button>`;
+    return `<button class="btn bO sm" onclick="requestApprovalPreview(${qModule},${qRecordId},${qRef})">Request Approval</button>`;
   }
   const status = appr.status || 'Pending';
   const reqBy = esc(appr.requested_name || appr.requester_name || appr.created_by_name || 'Unknown');
@@ -2971,11 +2975,11 @@ function approvalBadge(recordId,module,ref,canRequest=true){
   const who   = esc(appr.approved_name || appr.approver_name || appr.reason || '');
   const canApprove=CU?.role==='admin'||CU?.role==='manager';
   const actions = status==='Pending' && canApprove
-    ? `<div class="apb-a"><button class="btn bG sm" onclick="processApproval('${appr.id}','Approved')">Approve</button><button class="btn bD sm" onclick="processApproval('${appr.id}','Rejected')">Reject</button></div>`
+    ? `<div class="apb-a"><button class="btn bG sm" onclick="processApproval(${jsq(appr.id)},'Approved')">Approve</button><button class="btn bD sm" onclick="processApproval(${jsq(appr.id)},'Rejected')">Reject</button></div>`
     : '';
   if(status==='Pending'){
     return `<div class="apb pending">
-      <div class="apb-h"><span class="apb-s">Pending</span><button class="btn bO sm" onclick="viewApprovalFlow('${recordId}','${module}','${ref}')">Flow</button></div>
+      <div class="apb-h"><span class="apb-s">Pending</span><button class="btn bO sm" onclick="viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
       <div class="apb-w">&#x23F3; Admin / Manager</div>
@@ -2984,14 +2988,14 @@ function approvalBadge(recordId,module,ref,canRequest=true){
   }
   if(status==='Approved'){
     return `<div class="apb approved">
-      <div class="apb-h"><span class="apb-s">Approved</span><button class="btn bO sm" onclick="viewApprovalFlow('${recordId}','${module}','${ref}')">Flow</button></div>
+      <div class="apb-h"><span class="apb-s">Approved</span><button class="btn bO sm" onclick="viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
       <div class="apb-w">&#10003; By ${who || 'Manager'}</div>
     </div>`;
   }
   return `<div class="apb rejected">
-    <div class="apb-h"><span class="apb-s">Rejected</span><button class="btn bO sm" onclick="viewApprovalFlow('${recordId}','${module}','${ref}')">Flow</button></div>
+    <div class="apb-h"><span class="apb-s">Rejected</span><button class="btn bO sm" onclick="viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
     <div class="apb-p"><b>${reqBy}</b></div>
     <div class="apb-p">${reqAt}</div>
     <div class="apb-w">&#10007; ${who || 'Rejected'}</div>
