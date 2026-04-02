@@ -301,6 +301,41 @@
           </div></div>
           <div class="tbl-wrap"><table><thead><tr><th>PO No.</th><th>Material</th><th>Supplier</th><th>Qty</th><th>Value (Rs)</th><th>Required By</th><th>Status</th><th>Actions</th></tr></thead><tbody id="po-tbl"></tbody></table></div>
         </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Procurement Timeline</div></div>
+          <div id="po-track-list"></div>
+        </div>
+      </div>
+
+      <!-- GRN -->
+      <div class="tc" id="tab-grn">
+        <div class="ph"><div><div class="pt">GRN</div><div class="pst">// goods receipt note against purchase orders</div></div></div>
+        <div id="grn-ro"></div>
+        <div class="card" id="grn-fc">
+          <div class="ch"><div class="ct" id="grn-ft">Create GRN</div></div>
+          <div class="fg">
+            <input type="hidden" id="grn-eid"/>
+            <div class="fr"><label>PO Ref</label><select id="grn-po" onchange="autofillGRNPO()"><option value="">-- Select PO --</option></select></div>
+            <div class="fr"><label>Vendor</label><input type="text" id="grn-vendor"/></div>
+            <div class="fr"><label>Material / Service</label><input type="text" id="grn-material"/></div>
+            <div class="fr"><label>PO Qty</label><input type="number" id="grn-poqty" min="0"/></div>
+            <div class="fr"><label>Received Qty</label><input type="number" id="grn-recqty" min="0"/></div>
+            <div class="fr"><label>Accepted Qty</label><input type="number" id="grn-accqty" min="0"/></div>
+            <div class="fr"><label>Rejected Qty</label><input type="number" id="grn-rejqty" min="0"/></div>
+            <div class="fr"><label>GRN Date</label><input type="date" id="grn-date"/></div>
+            <div class="fr"><label>Inward Bill Ref</label><input type="text" id="grn-ibill" placeholder="Optional inward bill no"/></div>
+            <div class="fr"><label>Vendor DC Ref</label><input type="text" id="grn-dc" placeholder="Supplier challan / DC"/></div>
+            <div class="fr"><label>Vehicle</label><input type="text" id="grn-veh"/></div>
+            <div class="fr"><label>Inspector / Receiver</label><input type="text" id="grn-insp"/></div>
+            <div class="fr"><label>Status</label><select id="grn-status"><option>Received</option><option>Accepted</option><option>Partial</option><option>Rejected</option></select></div>
+            <div class="fr full"><label>Notes</label><textarea id="grn-notes" rows="2"></textarea></div>
+          </div>
+          <div class="ff"><button class="btn bO" onclick="clrForm('grn')">Clear</button><button class="btn bP" id="grn-sb" onclick="saveGRN()">Save GRN</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">GRN Register</div><div class="ch-r"><input type="text" id="grn-srch" placeholder="Search..." oninput="renderGRN()"/></div></div>
+          <div class="tbl-wrap"><table><thead><tr><th>GRN No.</th><th>PO</th><th>Vendor</th><th>Material</th><th>PO Qty</th><th>Received</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody id="grn-tbl"></tbody></table></div>
+        </div>
       </div>
 
       <!-- SALES ORDERS -->

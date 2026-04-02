@@ -1080,6 +1080,60 @@ select option {
   border-bottom: none;
 }
 
+.po-track {
+  display: grid;
+  gap: 10px;
+}
+
+.po-step {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.po-step-dot {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--br);
+  font-size: 11px;
+}
+
+.po-step.done .po-step-dot {
+  background: color-mix(in srgb, var(--gn) 14%, transparent);
+  color: var(--gn);
+  border-color: color-mix(in srgb, var(--gn) 30%, transparent);
+}
+
+.po-step.current .po-step-dot {
+  background: color-mix(in srgb, var(--ac) 14%, transparent);
+  color: var(--ac);
+  border-color: color-mix(in srgb, var(--ac) 30%, transparent);
+}
+
+.po-step.wait .po-step-dot {
+  color: var(--mu);
+  background: color-mix(in srgb, var(--mu) 10%, transparent);
+}
+
+.po-step-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--mu);
+}
+
+.po-step-date {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--tx);
+}
+
 .dash-list-btn {
   width: 100%;
   border: 0;

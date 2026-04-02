@@ -16,7 +16,7 @@ const THEME_META_COLOR = { dark:'#0D1117', light:'#F4F7FB' };
 const DB = {
   profiles:[], products:[], machines:[], inventory:[],
   work_orders:[], qc_records:[], purchase_orders:[],
-  vendors:[], buyers:[], company_details:[], quotations:[], sales_orders:[], dispatches:[], invoices:[], inward_bills:[],
+  vendors:[], buyers:[], company_details:[], quotations:[], sales_orders:[], dispatches:[], invoices:[], inward_bills:[], grns:[],
   audit_logs:[], approvals:[], finished_goods:[], qc_certificates:[],
   ops_manuals:[], planning_records:[], cost_records:[], task_records:[], maintenance_logs:[], workforce_records:[]
 };
@@ -25,6 +25,7 @@ const DB = {
 const TBL = {
   production:'work_orders', quality:'qc_records',
   inventory:'inventory', purchase:'purchase_orders',
+  grn:'grns',
   quotes:'quotations', sales:'sales_orders', dispatch:'dispatches',
   invoices:'invoices', ibill:'inward_bills', vendors:'vendors', buyers:'buyers', company:'company_details',
   machines:'machines', products:'products', ops:'ops_manuals', planning:'planning_records', costing:'cost_records', tasks:'task_records', maintenance:'maintenance_logs', workforce:'workforce_records',
@@ -42,19 +43,19 @@ const ROLES = {
   viewer:     {label:'Read-Only',        color:'var(--mu)',bg:'rgba(74,85,104,.12)'}
 };
 const NAV_ACCESS = {
-  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','backup','reports','audit','users'],
-  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','backup','reports'],
+  admin:      ['dashboard','production','machines','quality','fg','inventory','purchase','grn','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','backup','reports','audit','users'],
+  manager:    ['dashboard','production','machines','quality','fg','inventory','purchase','grn','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','backup','reports'],
   production: ['dashboard','production','machines','quality','fg','ops','planning','tasks','maintenance'],
-  storekeeper:['dashboard','inventory','fg','purchase','vendors','tasks','maintenance'],
+  storekeeper:['dashboard','inventory','fg','purchase','grn','vendors','tasks','maintenance'],
   qc:         ['dashboard','quality','ops','workforce'],
   dispatch:   ['dashboard','quotes','sales','dispatch','invoices','ibill','buyers','fg','tasks'],
   viewer:     ['dashboard','reports']
 };
 const CAN_EDIT = {
-  admin:      ['production','machines','quality','inventory','fg','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','users','audit'],
-  manager:    ['production','machines','quality','inventory','fg','purchase','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce'],
+  admin:      ['production','machines','quality','inventory','fg','purchase','grn','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce','users','audit'],
+  manager:    ['production','machines','quality','inventory','fg','purchase','grn','quotes','sales','dispatch','invoices','ibill','vendors','buyers','company','products','ops','planning','costing','tasks','maintenance','workforce'],
   production: ['production','machines','quality','fg','planning','tasks','maintenance'],
-  storekeeper:['inventory','fg','purchase','vendors','tasks','maintenance'],
+  storekeeper:['inventory','fg','purchase','grn','vendors','tasks','maintenance'],
   qc:         ['quality','ops','workforce'],
   dispatch:   ['quotes','dispatch','invoices','ibill','buyers','fg','tasks'],
   viewer:     []
@@ -63,6 +64,7 @@ const STATUSES = {
   work_orders:    ['Pending Approval','Queued','In Progress','On Track','Delayed','Completed'],
   finished_goods: ['Available','Reserved','Dispatched'],
   purchase_orders:['Pending Approval','Raised','In Transit','Delivered','Cancelled'],
+  grns:           ['Draft','Received','Accepted','Partial','Rejected'],
   quotations:     ['Draft','Submitted','Follow-up Due','Under Review','Won','Lost','Cancelled'],
   sales_orders:   ['Pending','In Production','Ready','Dispatched','Delivered'],
   dispatches:     ['In Transit','Delivered'],
@@ -80,6 +82,7 @@ const NAVDEF = [
   {s:'Materials'},
   {id:'inventory',   ic:'&#9723;',  lb:'Inventory',      binv:1},
   {id:'purchase',    ic:'&#9782;',  lb:'Purchase Orders'},
+  {id:'grn',         ic:'&#128230;',lb:'GRN'},
   {s:'Commercial'},
   {id:'quotes',      ic:'&#9998;',  lb:'Quotations'},
   {id:'sales',       ic:'&#9741;',  lb:'Sales Orders'},
@@ -1158,7 +1161,7 @@ window.goTab = id => {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const tab = document.getElementById('tab-' + id); if (tab) tab.classList.add('on');
   const nav = document.getElementById('nav-' + id); if (nav) nav.classList.add('on');
-  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',quotes:'Quotations',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',buyers:'Buyer Master',company:'Our Company',products:'Product Master',ops:'Operations Manuals',planning:'Planning Control',costing:'Cost Control',tasks:'Task Center',maintenance:'Maintenance Control',workforce:'Workforce Matrix',backup:'Backup & Restore',reports:'Analytics',audit:'Audit Log',users:'User Management'};
+  const L = {dashboard:'Dashboard',production:'Work Orders',machines:'Machines',quality:'Quality Control',inventory:'Inventory',fg:'Finished Goods',purchase:'Purchase Orders',grn:'GRN',quotes:'Quotations',sales:'Sales Orders',dispatch:'Dispatch',invoices:'Invoices',ibill:'Inward Bills',vendors:'Vendors',buyers:'Buyer Master',company:'Our Company',products:'Product Master',ops:'Operations Manuals',planning:'Planning Control',costing:'Cost Control',tasks:'Task Center',maintenance:'Maintenance Control',workforce:'Workforce Matrix',backup:'Backup & Restore',reports:'Analytics',audit:'Audit Log',users:'User Management'};
   document.getElementById('hmod').textContent = '// ' + (L[id] || id);
   renderMod(id);
 };
@@ -1166,7 +1169,7 @@ window.goTab = id => {
 function renderMod(id) {
   const fns = {
     dashboard:renderDash, production:renderWO, machines:renderMach, quality:renderQC,
-    inventory:renderInv,  purchase:renderPO,   quotes:renderQuotes, sales:renderSO,      dispatch:renderDC,
+    inventory:renderInv,  purchase:renderPO,   grn:renderGRN, quotes:renderQuotes, sales:renderSO,      dispatch:renderDC,
     invoices:renderInv2,  ibill:renderIB,      vendors:renderVnd,   buyers:renderBuyers, company:renderCompany, products:renderProducts,
     ops:renderOps, planning:renderPlanning, costing:renderCosting, tasks:renderTasks, maintenance:renderMaintenance, workforce:renderWorkforce, backup:renderBackup,
     reports:renderRep,    users:renderUsers,   fg:renderFG,
@@ -1516,15 +1519,29 @@ function renderPO() {
   const del = canDelete();
   const roEl = document.getElementById('po-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
   const fcEl = document.getElementById('po-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const grnPoSel = document.getElementById('grn-po');
+  if (grnPoSel) {
+    const cur = grnPoSel.value;
+    grnPoSel.innerHTML = '<option value="">-- Select PO --</option>' + DB.purchase_orders.map(p => `<option value="${esc(p.pono || '')}">${esc(p.pono || '')}  ${esc(p.material || '')}</option>`).join('');
+    if (cur) grnPoSel.value = cur;
+  }
   const flt  = V('po-flt');
   const tbl  = document.getElementById('po-tbl'); if(!tbl) return;
   tbl.innerHTML = DB.purchase_orders
     .filter(p => !flt || p.status===flt)
     .map(p => {
       const apprBadge2 = approvalBadge(p.id,'purchase_orders',p.pono||p.id,ed);
-      const acts = `<button class="btn bG sm" onclick="printPO('${p.id}')">Print</button>` + (ed ? `<button class="btn bO sm" onclick="editPO('${p.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('purchase_orders','${p.id}','po')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('purchase_orders','${p.id}')">Del</button>`:''}` : '');
+      const acts = `<button class="btn bG sm" onclick="printPO('${p.id}')">Print</button><button class="btn bO sm" onclick="openPOTracker('${p.id}')">Tracker</button>` + (ed ? `<button class="btn bG sm" onclick="startGRNFromPO('${p.id}')">GRN</button><button class="btn bO sm" onclick="editPO('${p.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('purchase_orders','${p.id}','po')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('purchase_orders','${p.id}')">Del</button>`:''}` : '');
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${p.pono||p.id.slice(-8)}</td><td>${p.material}</td><td>${p.supplier}</td><td class="mn">${p.qty}</td><td class="mn">${fmtM(parseFloat(p.qty||0)*parseFloat(p.price||0))}</td><td>${fmtD(p.date)}</td><td>${pill(p.status)}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${apprBadge2}${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="8"><div class="empty"><div class="empty-ic">PO</div><div class="empty-tt">No Purchase Orders</div></div></td></tr>';
+  const trackEl = document.getElementById('po-track-list');
+  if (trackEl) {
+    trackEl.innerHTML = DB.purchase_orders.slice(0,6).map(po => `
+      <div class="ibox blue">
+        <div class="ibox-t">${esc(po.pono || '--')}  ${esc(po.material || '--')}</div>
+        ${poTimelineHTML(po)}
+      </div>`).join('') || '<div class="empty"><div class="empty-tt">No procurement timelines</div></div>';
+  }
 }
 window.savePO = async () => {
   const eid = V('po-eid'), mat = V('po-mat'), qty = parseFloat(V('po-qty')), price = parseFloat(V('po-price'));
@@ -1546,6 +1563,55 @@ window.editPO = id => {
   SV('po-price',p.price); SV('po-date',p.date); SV('po-addr',p.addr); SV('po-notes',p.notes);
   document.getElementById('po-ft').textContent = 'Edit '+(p.pono||'PO');
   document.getElementById('po-fc').scrollIntoView({behavior:'smooth'});
+};
+function poTimelineData(po) {
+  const inward = DB.inward_bills.find(b => (b.po_ref || '') === (po.pono || ''));
+  const grns = DB.grns.filter(g => (g.po_ref || '') === (po.pono || ''));
+  const latestGRN = grns.slice().sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')))[0];
+  return {
+    poDate: po.created_at || po.date,
+    inwardDate: inward?.date || '',
+    grnDate: latestGRN?.date || '',
+    inward,
+    grn: latestGRN,
+    finalStatus: latestGRN?.status || inward?.status || po.status || 'Raised'
+  };
+}
+function poTimelineHTML(po) {
+  const t = poTimelineData(po);
+  const steps = [
+    { label:'PO', date:t.poDate, state:'done' },
+    { label:'Inward', date:t.inwardDate, state:t.inwardDate ? 'done' : (po.status === 'In Transit' || po.status === 'Delivered' ? 'current' : 'wait') },
+    { label:'GRN', date:t.grnDate, state:t.grnDate ? 'done' : (t.inwardDate ? 'current' : 'wait') },
+    { label:'Status', date:t.finalStatus, state:(t.grnDate || t.inwardDate || po.status) ? 'current' : 'wait' }
+  ];
+  return `<div class="po-track">${steps.map(step => `
+    <div class="po-step ${step.state}">
+      <div class="po-step-dot">${step.state === 'done' ? '&#10003;' : step.state === 'current' ? '&#9679;' : '&#9675;'}</div>
+      <div class="po-step-body">
+        <div class="po-step-label">${step.label}</div>
+        <div class="po-step-date">${esc(step.date ? (step.label === 'Status' ? String(step.date) : fmtD(step.date)) : 'Pending')}</div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+window.openPOTracker = id => {
+  const po = DB.purchase_orders.find(x => x.id === id); if (!po) return;
+  const info = poTimelineData(po);
+  const html = `<div class="ibox blue"><div class="ibox-t">Procurement Tracker</div>${poTimelineHTML(po)}</div>
+    <div class="ibox"><div class="ibox-t">Linked Records</div>
+      PO: <strong>${esc(po.pono || '--')}</strong><br>
+      Inward Bill: <strong>${esc(info.inward?.bill_no || 'Not linked')}</strong><br>
+      GRN: <strong>${esc(info.grn?.grn_no || 'Not raised')}</strong><br>
+      Current Status: <strong>${esc(info.finalStatus || '--')}</strong>
+    </div>`;
+  document.getElementById('upd-col').value = 'purchase_orders';
+  document.getElementById('upd-id').value = id;
+  document.getElementById('mo-upd-t').textContent = `Procurement Tracker  ${po.pono || ''}`;
+  document.getElementById('upd-info').innerHTML = html;
+  document.getElementById('upd-stat').innerHTML = (STATUSES.purchase_orders || []).map(s => `<option${po.status===s?' selected':''}>${s}</option>`).join('');
+  document.getElementById('upd-note').value = '';
+  document.getElementById('upd-prod-wrap').style.display = 'none';
+  openMo('mo-upd');
 };
 window.printPO = id => {
   const po = DB.purchase_orders.find(x => x.id === id); if (!po) return;
@@ -1649,6 +1715,106 @@ ${esc(po.notes || company.notes || '')}</div>
   win.document.close();
   win.focus();
   win.print();
+};
+
+// ---
+// GRN
+// ---
+window.autofillGRNPO = () => {
+  const po = DB.purchase_orders.find(p => (p.pono || '') === V('grn-po'));
+  if (!po) return;
+  SV('grn-vendor', po.supplier || '');
+  SV('grn-material', po.material || '');
+  SV('grn-poqty', po.qty || '');
+  if (!V('grn-recqty')) SV('grn-recqty', po.qty || '');
+};
+window.startGRNFromPO = id => {
+  const po = DB.purchase_orders.find(x => x.id === id); if (!po) return;
+  goTab('grn');
+  setTimeout(() => {
+    clrForm('grn');
+    SV('grn-po', po.pono || '');
+    window.autofillGRNPO();
+    document.getElementById('grn-fc')?.scrollIntoView({behavior:'smooth'});
+  }, 50);
+};
+function renderGRN() {
+  const ed = canEdit('grn');
+  const del = canDelete();
+  const roEl = document.getElementById('grn-ro'); if(roEl) roEl.innerHTML = ed ? '' : ron();
+  const fcEl = document.getElementById('grn-fc'); if(fcEl) fcEl.style.display = ed ? 'block' : 'none';
+  const poSel = document.getElementById('grn-po');
+  if (poSel) {
+    const cur = poSel.value;
+    poSel.innerHTML = '<option value="">-- Select PO --</option>' + DB.purchase_orders.map(p => `<option value="${esc(p.pono || '')}">${esc(p.pono || '')}  ${esc(p.material || '')}</option>`).join('');
+    if (cur) poSel.value = cur;
+  }
+  const tbl = document.getElementById('grn-tbl'); if(!tbl) return;
+  const srch = (V('grn-srch') || '').toLowerCase();
+  tbl.innerHTML = DB.grns
+    .filter(g => !srch || ((g.grn_no || '') + (g.po_ref || '') + (g.vendor || '') + (g.material || '')).toLowerCase().includes(srch))
+    .map(g => {
+      const acts = `<button class="btn bG sm" onclick="printGRN('${g.id}')">Print</button>` + (ed ? `<button class="btn bO sm" onclick="editGRN('${g.id}')">Edit</button>${del ? `<button class="btn bD sm" onclick="delRec('grns','${g.id}')">Del</button>` : ''}` : '');
+      return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${esc(g.grn_no || g.id.slice(-8))}</td><td class="mn">${esc(g.po_ref || '--')}</td><td>${esc(g.vendor || '--')}</td><td>${esc(g.material || '--')}</td><td class="mn">${g.po_qty || '--'}</td><td class="mn">${g.received_qty || '--'}</td><td>${fmtD(g.date)}</td><td>${pill(g.status || 'Received')}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${acts}</div></td></tr>`;
+    }).join('') || '<tr><td colspan="9"><div class="empty"><div class="empty-ic">GRN</div><div class="empty-tt">No GRN records</div></div></td></tr>';
+}
+window.saveGRN = async () => {
+  const eid = V('grn-eid');
+  const poRef = V('grn-po');
+  const vendor = V('grn-vendor');
+  const material = V('grn-material');
+  const poQty = parseFloat(V('grn-poqty'));
+  const receivedQty = parseFloat(V('grn-recqty'));
+  if (!poRef || !vendor || !material || !receivedQty) { toast('PO, vendor, material and received qty are required','e'); return; }
+  const data = {
+    po_ref: poRef,
+    vendor,
+    material,
+    po_qty: poQty || 0,
+    received_qty: receivedQty,
+    accepted_qty: parseFloat(V('grn-accqty')) || receivedQty,
+    rejected_qty: parseFloat(V('grn-rejqty')) || 0,
+    inward_bill_ref: V('grn-ibill'),
+    vehicle: V('grn-veh'),
+    dc_ref: V('grn-dc'),
+    date: V('grn-date'),
+    inspector: V('grn-insp'),
+    status: V('grn-status') || 'Received',
+    notes: V('grn-notes')
+  };
+  if (eid) {
+    if (await dbUpdate('grns', eid, data)) toast('GRN updated');
+  } else {
+    data.grn_no = 'GRN-' + new Date().getFullYear() + '-' + String(DB.grns.length + 1).padStart(3,'0');
+    if (await dbInsert('grns', data)) {
+      const po = DB.purchase_orders.find(p => (p.pono || '') === poRef);
+      if (po) await dbUpdate('purchase_orders', po.id, { status: receivedQty < (poQty || receivedQty) ? 'In Transit' : 'Delivered' });
+      toast(data.grn_no + ' created');
+    }
+  }
+  clrForm('grn');
+};
+window.editGRN = id => {
+  const g = DB.grns.find(x => x.id === id); if (!g) return;
+  SV('grn-eid', id); SV('grn-po', g.po_ref); SV('grn-vendor', g.vendor); SV('grn-material', g.material); SV('grn-poqty', g.po_qty); SV('grn-recqty', g.received_qty); SV('grn-accqty', g.accepted_qty); SV('grn-rejqty', g.rejected_qty); SV('grn-ibill', g.inward_bill_ref); SV('grn-veh', g.vehicle); SV('grn-dc', g.dc_ref); SV('grn-date', g.date); SV('grn-insp', g.inspector); SV('grn-status', g.status); SV('grn-notes', g.notes);
+  document.getElementById('grn-ft').textContent = 'Edit ' + (g.grn_no || 'GRN');
+  document.getElementById('grn-fc').scrollIntoView({behavior:'smooth'});
+};
+window.printGRN = id => {
+  const g = DB.grns.find(x => x.id === id); if (!g) return;
+  const company = getActiveCompany() || DB.company_details[0] || {};
+  const html = `<!DOCTYPE html><html><head><title>GRN ${esc(g.grn_no || '')}</title>
+  <style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:12px}.head{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #f97316;padding-bottom:16px;margin-bottom:16px}.brand{font-size:22px;font-weight:700;color:#f97316}.sub{font-size:11px;color:#666;margin-top:4px;line-height:1.5}.title{font-size:20px;font-weight:700;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:12px}.box h4{margin:0 0 8px 0;font-size:12px;text-transform:uppercase;color:#666;letter-spacing:1px}table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#f97316;color:#fff;padding:9px;font-size:11px;text-align:left}td{border-bottom:1px solid #e5e7eb;padding:9px;vertical-align:top}.sign-wrap{text-align:right;border-top:1px solid #d1d5db;padding-top:12px;margin-top:24px}.sign-space{height:56px}.sign-title{font-size:12px;font-weight:700;text-transform:uppercase}.sign-sub{font-size:11px;color:#666;margin-top:6px}</style></head><body>
+  <div class="head"><div><div class="brand">${esc(company.name || company.short_name || 'EIPD ERP')}</div><div class="sub">${esc(company.address || 'Company address not set')}</div></div><div style="text-align:right"><div class="title">Goods Receipt Note</div><div>GRN No: <strong>${esc(g.grn_no || '--')}</strong></div><div>Date: <strong>${esc(fmtD(g.date))}</strong></div><div>Status: <strong>${esc(g.status || '--')}</strong></div></div></div>
+  <div class="grid"><div class="box"><h4>Vendor / Supplier</h4><div><strong>${esc(g.vendor || '--')}</strong></div><div>PO Ref: ${esc(g.po_ref || '--')}</div><div>Inward Bill: ${esc(g.inward_bill_ref || '--')}</div><div>Vehicle: ${esc(g.vehicle || '--')}</div></div><div class="box"><h4>Receipt Details</h4><div>Material: ${esc(g.material || '--')}</div><div>PO Qty: ${esc(g.po_qty || '--')}</div><div>Received Qty: ${esc(g.received_qty || '--')}</div><div>Accepted Qty: ${esc(g.accepted_qty || '--')}</div><div>Rejected Qty: ${esc(g.rejected_qty || '--')}</div><div>Inspector: ${esc(g.inspector || '--')}</div></div></div>
+  <table><thead><tr><th>Material</th><th>PO Qty</th><th>Received</th><th>Accepted</th><th>Rejected</th><th>DC Ref</th></tr></thead><tbody><tr><td>${esc(g.material || '--')}</td><td>${esc(g.po_qty || '--')}</td><td>${esc(g.received_qty || '--')}</td><td>${esc(g.accepted_qty || '--')}</td><td>${esc(g.rejected_qty || '--')}</td><td>${esc(g.dc_ref || '--')}</td></tr></tbody></table>
+  <div style="margin-top:18px;white-space:pre-line;color:#555">${esc(g.notes || '')}</div>
+  <div class="sign-wrap"><div class="sign-space"></div><div class="sign-title">Authorised Signatory</div><div class="sign-sub">For ${esc(company.name || company.short_name || 'Company')}</div></div></body></html>`;
+  const win = window.open('', '_blank', 'width=980,height=780');
+  if (!win) return toast('Allow pop-ups and try again', 'e');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
 };
 
 // ---
@@ -1904,7 +2070,7 @@ function renderDC() {
   tbl.innerHTML = DB.dispatches
     .filter(d => !flt || d.status===flt)
     .map(d => {
-      const acts = ed ? `<button class="btn bO sm" onclick="editDC('${d.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('dispatches','${d.id}','dc')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('dispatches','${d.id}')">Del</button>`:''}` : '';
+      const acts = `<button class="btn bG sm" onclick="printDC('${d.id}')">Print</button>` + (ed ? `<button class="btn bO sm" onclick="editDC('${d.id}')">Edit</button><button class="btn bG sm" onclick="openUpd('dispatches','${d.id}','dc')">Status</button>${del?`<button class="btn bD sm" onclick="delRec('dispatches','${d.id}')">Del</button>`:''}` : '');
       return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${d.dcno||d.id.slice(-8)}</td><td class="mn">${d.soref||'--'}</td><td>${d.customer}</td><td>${d.product}</td><td class="mn">${d.qty}</td><td class="mn">${d.vehicle||'--'}</td><td>${fmtD(d.date)}</td><td class="mn">${d.lr||'--'}</td><td>${pill(d.status)}</td><td><div style="display:flex;gap:4px">${acts}</div></td></tr>`;
     }).join('') || '<tr><td colspan="10"><div class="empty"><div class="empty-ic">DC</div><div class="empty-tt">No Dispatches</div></div></td></tr>';
 }
@@ -1927,6 +2093,23 @@ window.editDC = id => {
   SV('dc-veh',d.vehicle); SV('dc-trans',d.transporter); SV('dc-lr',d.lr); SV('dc-notes',d.notes);
   document.getElementById('dc-ft').textContent = 'Edit '+(d.dcno||'Challan');
   document.getElementById('dc-fc').scrollIntoView({behavior:'smooth'});
+};
+window.printDC = id => {
+  const d = DB.dispatches.find(x => x.id === id); if (!d) return;
+  const company = getActiveCompany() || DB.company_details[0] || {};
+  const so = DB.sales_orders.find(s => (s.sono || '') === (d.soref || '')) || {};
+  const html = `<!DOCTYPE html><html><head><title>Delivery Challan ${esc(d.dcno || '')}</title>
+  <style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:12px}.head{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #f97316;padding-bottom:16px;margin-bottom:16px}.brand{font-size:22px;font-weight:700;color:#f97316}.sub{font-size:11px;color:#666;margin-top:4px;line-height:1.5}.title{font-size:20px;font-weight:700;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}.box{border:1px solid #e5e7eb;border-radius:8px;padding:12px}.box h4{margin:0 0 8px 0;font-size:12px;text-transform:uppercase;color:#666;letter-spacing:1px}table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#f97316;color:#fff;padding:9px;font-size:11px;text-align:left}td{border-bottom:1px solid #e5e7eb;padding:9px;vertical-align:top}.sign-wrap{text-align:right;border-top:1px solid #d1d5db;padding-top:12px;margin-top:24px}.sign-space{height:56px}.sign-title{font-size:12px;font-weight:700;text-transform:uppercase}.sign-sub{font-size:11px;color:#666;margin-top:6px}</style></head><body>
+  <div class="head"><div><div class="brand">${esc(company.name || company.short_name || 'EIPD ERP')}</div><div class="sub">${esc(company.address || 'Company address not set')}<br>GST: ${esc(company.gst || '--')}</div></div><div style="text-align:right"><div class="title">Delivery Challan</div><div>DC No: <strong>${esc(d.dcno || '--')}</strong></div><div>Date: <strong>${esc(fmtD(d.date))}</strong></div><div>Status: <strong>${esc(d.status || '--')}</strong></div></div></div>
+  <div class="grid"><div class="box"><h4>Customer</h4><div><strong>${esc(d.customer || '--')}</strong></div><div>Sales Order: ${esc(d.soref || '--')}</div><div style="white-space:pre-line">${esc(so.shipping_addr || so.addr || '--')}</div></div><div class="box"><h4>Transport Details</h4><div>Vehicle: ${esc(d.vehicle || '--')}</div><div>Transporter: ${esc(d.transporter || '--')}</div><div>LR / Docket: ${esc(d.lr || '--')}</div><div>Dispatch Date: ${esc(fmtD(d.date))}</div></div></div>
+  <table><thead><tr><th>Product</th><th>Quantity</th><th>SO Ref</th><th>Vehicle</th><th>LR</th></tr></thead><tbody><tr><td>${esc(d.product || '--')}</td><td>${esc(d.qty || '--')} pcs</td><td>${esc(d.soref || '--')}</td><td>${esc(d.vehicle || '--')}</td><td>${esc(d.lr || '--')}</td></tr></tbody></table>
+  <div style="margin-top:18px;white-space:pre-line;color:#555">${esc(d.notes || '')}</div>
+  <div class="sign-wrap"><div class="sign-space"></div><div class="sign-title">Authorised Signature</div><div class="sign-sub">For ${esc(company.name || company.short_name || 'Company')}</div></div></body></html>`;
+  const win = window.open('', '_blank', 'width=980,height=780');
+  if (!win) return toast('Allow pop-ups and try again', 'e');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
 };
 
 // ---
@@ -2588,12 +2771,12 @@ window.editWorkforce = id => {
 
 const BACKUP_GROUPS = {
   masters: ['profiles','products','inventory','vendors','buyers','company_details','machines'],
-  transactions: ['work_orders','qc_records','purchase_orders','quotations','sales_orders','dispatches','invoices','inward_bills','finished_goods','approvals','audit_logs','qc_certificates'],
+  transactions: ['work_orders','qc_records','purchase_orders','grns','quotations','sales_orders','dispatches','invoices','inward_bills','finished_goods','approvals','audit_logs','qc_certificates'],
   controls: ['ops_manuals','planning_records','cost_records','task_records','maintenance_logs','workforce_records']
 };
 const BACKUP_LABELS = {
   profiles:'User Profiles', products:'Products', inventory:'Inventory', vendors:'Vendors', buyers:'Buyers', company_details:'Company Details', machines:'Machines',
-  work_orders:'Work Orders', qc_records:'QC Records', purchase_orders:'Purchase Orders', quotations:'Quotations', sales_orders:'Sales Orders', dispatches:'Dispatches', invoices:'Invoices', inward_bills:'Inward Bills', finished_goods:'Finished Goods', approvals:'Approvals', audit_logs:'Audit Logs', qc_certificates:'QC Certificates',
+  work_orders:'Work Orders', qc_records:'QC Records', purchase_orders:'Purchase Orders', grns:'GRN', quotations:'Quotations', sales_orders:'Sales Orders', dispatches:'Dispatches', invoices:'Invoices', inward_bills:'Inward Bills', finished_goods:'Finished Goods', approvals:'Approvals', audit_logs:'Audit Logs', qc_certificates:'QC Certificates',
   ops_manuals:'Operations Manuals', planning_records:'Planning Records', cost_records:'Cost Records', task_records:'Task Records', maintenance_logs:'Maintenance Logs', workforce_records:'Workforce Records'
 };
 const ALL_BACKUP_TABLES = [...BACKUP_GROUPS.masters, ...BACKUP_GROUPS.transactions, ...BACKUP_GROUPS.controls];
@@ -3129,6 +3312,7 @@ const FORM_FIELDS = {
   qc:   ['qc-eid','qc-sample','qc-pass','qc-insp','qc-notes'],
   inv:  ['inv-eid','inv-name','inv-code','inv-stock','inv-reorder','inv-min','inv-cost','inv-sup'],
   po:   ['po-eid','po-qty','po-price','po-date','po-notes'],
+  grn:  ['grn-eid','grn-po','grn-vendor','grn-material','grn-poqty','grn-recqty','grn-accqty','grn-rejqty','grn-date','grn-ibill','grn-dc','grn-veh','grn-insp','grn-notes'],
   qt:   ['qt-eid','qt-no','qt-buyer','qt-party','qt-enquiry','qt-date','qt-valid','qt-subdate','qt-submode','qt-status','qt-follow','qt-owner','qt-subnotes','qt-follownotes','qt-notes'],
   so:   ['so-eid','so-buyer','so-cust','so-qty','so-price','so-date','so-dl','so-ref','so-addr','so-gst'],
   dc:   ['dc-eid','dc-qty','dc-date','dc-veh','dc-trans','dc-lr','dc-notes'],
@@ -3145,14 +3329,15 @@ const FORM_FIELDS = {
   maint:['maint-eid','maint-report','maint-asset','maint-serial','maint-vendor','maint-tech','maint-date','maint-follow','maint-wo','maint-notes'],
   workforce:['workforce-eid','workforce-name','workforce-code','workforce-role','workforce-skill','workforce-training','workforce-last','workforce-next','workforce-trainer','workforce-notes']
 };
-const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', qt:'Create Quotation', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', ib:'Add Inward Bill', buy:'Add Buyer', cmp:'Add Company Details', vnd:'Add Vendor', prod:'Add New Product', ops:'Create Operations Document', plan:'Create Planning Record', cost:'Create Cost Record', task:'Create Task', maint:'Create Maintenance Log', workforce:'Create Workforce Record' };
-const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', qt:'Save Quotation', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', ib:'Save Inward Bill', buy:'Save Buyer', cmp:'Save Company', vnd:'Save Vendor', prod:'Add Product', ops:'Save Document', plan:'Save Plan', cost:'Save Cost', task:'Save Task', maint:'Save Maintenance Log', workforce:'Save Workforce Record' };
+const FORM_TITLES = { wo:'New Work Order', fg:'Add Finished Goods', mach:'Add Equipment', qc:'New QC Entry', inv:'Add / Stock In Material', po:'Raise Purchase Order', grn:'Create GRN', qt:'Create Quotation', so:'New Sales Order', dc:'Generate Delivery Challan', inv2:'Create Invoice', ib:'Add Inward Bill', buy:'Add Buyer', cmp:'Add Company Details', vnd:'Add Vendor', prod:'Add New Product', ops:'Create Operations Document', plan:'Create Planning Record', cost:'Create Cost Record', task:'Create Task', maint:'Create Maintenance Log', workforce:'Create Workforce Record' };
+const FORM_BTNS   = { wo:'Create Work Order', fg:'Add to Finished Goods', mach:'Save Equipment', qc:'Submit QC', inv:'Save Material', po:'Raise PO', grn:'Save GRN', qt:'Save Quotation', so:'Create Sales Order', dc:'Generate Challan', inv2:'Create Invoice', ib:'Save Inward Bill', buy:'Save Buyer', cmp:'Save Company', vnd:'Save Vendor', prod:'Add Product', ops:'Save Document', plan:'Save Plan', cost:'Save Cost', task:'Save Task', maint:'Save Maintenance Log', workforce:'Save Workforce Record' };
 
 window.clrForm = f => {
   (FORM_FIELDS[f]||[]).forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
   const tEl = document.getElementById(f+'-ft'); if(tEl) tEl.textContent = FORM_TITLES[f]||'';
   const bEl = document.getElementById(f+'-sb'); if(bEl) bEl.textContent = FORM_BTNS[f]||'Save';
   if (f==='po') { const pa=document.getElementById('po-addr'); if(pa) pa.value='EIPD Plant, Unit 2'; }
+  if (f==='grn') { SV('grn-status','Received'); SV('grn-date', new Date().toISOString().slice(0,10)); }
   if (f==='qt') { QT_LINES = []; SV('qt-status','Draft'); SV('qt-submode','Email'); renderQuoteLines([]); }
   if (f==='qc') renderQCTestList();
   if (f==='wo') { SV('wo-type','In-house'); toggleWOServiceFields(); }

@@ -45,6 +45,32 @@ alter table inward_bills enable row level security;
 drop policy if exists "auth_all" on inward_bills;
 create policy "auth_all" on inward_bills for all using (auth.role() = 'authenticated');
 
+create table if not exists grns (
+  id uuid default gen_random_uuid() primary key,
+  grn_no text unique,
+  po_ref text,
+  vendor text,
+  material text,
+  po_qty numeric default 0,
+  received_qty numeric default 0,
+  accepted_qty numeric default 0,
+  rejected_qty numeric default 0,
+  inward_bill_ref text,
+  dc_ref text,
+  vehicle text,
+  inspector text,
+  notes text,
+  date date,
+  status text default 'Received',
+  created_by uuid references auth.users(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table grns enable row level security;
+drop policy if exists "auth_all" on grns;
+create policy "auth_all" on grns for all using (auth.role() = 'authenticated');
+
 create table if not exists buyers (
   id uuid default gen_random_uuid() primary key,
   name text not null,

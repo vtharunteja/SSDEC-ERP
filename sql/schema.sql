@@ -123,6 +123,28 @@ create table if not exists purchase_orders (
   updated_at  timestamptz default now()
 );
 
+create table if not exists grns (
+  id              uuid default gen_random_uuid() primary key,
+  grn_no          text unique,
+  po_ref          text,
+  vendor          text,
+  material        text,
+  po_qty          numeric default 0,
+  received_qty    numeric default 0,
+  accepted_qty    numeric default 0,
+  rejected_qty    numeric default 0,
+  inward_bill_ref text,
+  dc_ref          text,
+  vehicle         text,
+  inspector       text,
+  notes           text,
+  date            date,
+  status          text default 'Received',
+  created_by      uuid references auth.users(id),
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+
 -- ── VENDORS ─────────────────────────────────────────────
 create table if not exists vendors (
   id          uuid default gen_random_uuid() primary key,
@@ -318,6 +340,7 @@ alter table inventory      enable row level security;
 alter table work_orders    enable row level security;
 alter table qc_records     enable row level security;
 alter table purchase_orders enable row level security;
+alter table grns           enable row level security;
 alter table vendors        enable row level security;
 alter table buyers         enable row level security;
 alter table company_details enable row level security;
@@ -335,6 +358,7 @@ create policy "auth_all" on inventory       for all using (auth.role() = 'authen
 create policy "auth_all" on work_orders     for all using (auth.role() = 'authenticated');
 create policy "auth_all" on qc_records      for all using (auth.role() = 'authenticated');
 create policy "auth_all" on purchase_orders for all using (auth.role() = 'authenticated');
+create policy "auth_all" on grns            for all using (auth.role() = 'authenticated');
 create policy "auth_all" on vendors         for all using (auth.role() = 'authenticated');
 create policy "auth_all" on buyers          for all using (auth.role() = 'authenticated');
 create policy "auth_all" on company_details for all using (auth.role() = 'authenticated');
