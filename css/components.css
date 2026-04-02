@@ -655,6 +655,9 @@ select option {
 }
 
 .modal {
+  display: block;
+  position: relative;
+  margin: 0;
   width: 100%;
   max-width: 580px;
   max-height: 92vh;
