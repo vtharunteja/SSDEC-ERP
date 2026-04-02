@@ -617,19 +617,21 @@ function applyBranding() {
   const company = getActiveCompany();
   const name = company?.short_name || company?.name || 'EIPD ERP';
   const subtitle = company?.name && company?.short_name ? company.name : 'Polymer Insulator Manufacturing';
-  const icon = ini(name).slice(0,1) || 'E';
   const setText = (id, value) => {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
+  };
+  const setMeta = (selector, value) => {
+    const el = document.querySelector(selector);
+    if (el) el.setAttribute('content', value);
   };
   setText('brand-loader-name', name);
   setText('brand-loader-sub', `// ${subtitle.toUpperCase()}`);
   setText('brand-login-name', name);
   setText('brand-login-sub', subtitle);
   setText('brand-header-name', name);
-  setText('brand-login-icon', icon);
-  setText('brand-header-icon', icon);
   document.title = name;
+  setMeta('meta[name="apple-mobile-web-app-title"]', name);
 }
 
 function syncInvoiceShipping() {

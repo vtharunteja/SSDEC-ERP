@@ -6,5 +6,12 @@
   "background_color": "#07090F",
   "theme_color": "#0D1117",
   "description": "Polymer insulator manufacturing ERP for production, quality, inventory and commercial operations.",
-  "icons": []
+  "icons": [
+    {
+      "src": "./assets/ssdec-mark.svg",
+      "sizes": "256x256",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }
