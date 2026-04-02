@@ -2948,8 +2948,8 @@ function renderApprovalFlow(module, recordId, recordRef, appr=null, preview=fals
   document.getElementById('appr-note').value = appr?.notes || '';
   document.getElementById('appr-note').disabled = !preview;
   document.getElementById('appr-actions').innerHTML = preview
-    ? `<button class="btn bO" onclick="closeMo('mo-appr')">Close</button><button class="btn bP" onclick="saveApprovalRequest()">Confirm Request</button>`
-    : `<button class="btn bO" onclick="closeMo('mo-appr')">Close</button>`;
+    ? `<button type="button" class="btn bO" onclick="closeMo('mo-appr')">Close</button><button type="button" class="btn bP" onclick="saveApprovalRequest()">Confirm Request</button>`
+    : `<button type="button" class="btn bO" onclick="closeMo('mo-appr')">Close</button>`;
   openMo('mo-appr');
 }
 
@@ -2987,7 +2987,7 @@ function approvalBadge(recordId,module,ref,canRequest=true){
   const qRef = jsq(ref);
   if(!appr){
     if(!canRequest) return '';
-    return `<button class="btn bO sm" onclick="requestApprovalPreview(${qModule},${qRecordId},${qRef})">Request Approval</button>`;
+    return `<button type="button" class="btn bO sm" onclick="event.stopPropagation();requestApprovalPreview(${qModule},${qRecordId},${qRef})">Request Approval</button>`;
   }
   const status = appr.status || 'Pending';
   const reqBy = esc(appr.requested_name || appr.requester_name || appr.created_by_name || 'Unknown');
@@ -2995,11 +2995,11 @@ function approvalBadge(recordId,module,ref,canRequest=true){
   const who   = esc(appr.approved_name || appr.approver_name || appr.reason || '');
   const canApprove=CU?.role==='admin'||CU?.role==='manager';
   const actions = status==='Pending' && canApprove
-    ? `<div class="apb-a"><button class="btn bG sm" onclick="processApproval(${jsq(appr.id)},'Approved')">Approve</button><button class="btn bD sm" onclick="processApproval(${jsq(appr.id)},'Rejected')">Reject</button></div>`
+    ? `<div class="apb-a"><button type="button" class="btn bG sm" onclick="event.stopPropagation();processApproval(${jsq(appr.id)},'Approved')">Approve</button><button type="button" class="btn bD sm" onclick="event.stopPropagation();processApproval(${jsq(appr.id)},'Rejected')">Reject</button></div>`
     : '';
   if(status==='Pending'){
     return `<div class="apb pending">
-      <div class="apb-h"><span class="apb-s">Pending</span><button class="btn bO sm" onclick="viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
+      <div class="apb-h"><span class="apb-s">Pending</span><button type="button" class="btn bO sm" onclick="event.stopPropagation();viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
       <div class="apb-w">&#x23F3; Admin / Manager</div>
@@ -3008,14 +3008,14 @@ function approvalBadge(recordId,module,ref,canRequest=true){
   }
   if(status==='Approved'){
     return `<div class="apb approved">
-      <div class="apb-h"><span class="apb-s">Approved</span><button class="btn bO sm" onclick="viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
+      <div class="apb-h"><span class="apb-s">Approved</span><button type="button" class="btn bO sm" onclick="event.stopPropagation();viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
       <div class="apb-p"><b>${reqBy}</b></div>
       <div class="apb-p">${reqAt}</div>
       <div class="apb-w">&#10003; By ${who || 'Manager'}</div>
     </div>`;
   }
   return `<div class="apb rejected">
-    <div class="apb-h"><span class="apb-s">Rejected</span><button class="btn bO sm" onclick="viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
+    <div class="apb-h"><span class="apb-s">Rejected</span><button type="button" class="btn bO sm" onclick="event.stopPropagation();viewApprovalFlow(${qRecordId},${qModule},${qRef})">Flow</button></div>
     <div class="apb-p"><b>${reqBy}</b></div>
     <div class="apb-p">${reqAt}</div>
     <div class="apb-w">&#10007; ${who || 'Rejected'}</div>
