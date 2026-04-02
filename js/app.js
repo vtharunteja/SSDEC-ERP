@@ -1176,6 +1176,26 @@ function renderMod(id) {
 }
 
 window.refreshAll = () => { renderDash(); toast('Dashboard refreshed', 'i'); };
+window.dashOpenTab = (tab, msg='') => {
+  goTab(tab);
+  if (msg) toast(msg, 'i');
+};
+window.dashOpenWO = id => {
+  goTab('production');
+  if (id) setTimeout(() => editWO(id), 0);
+};
+window.dashOpenInv = id => {
+  goTab('inventory');
+  if (id) setTimeout(() => editInv(id), 0);
+};
+window.dashOpenQC = id => {
+  goTab('quality');
+  if (id) setTimeout(() => editQC(id), 0);
+};
+window.dashOpenDC = id => {
+  goTab('dispatch');
+  if (id) setTimeout(() => editDC(id), 0);
+};
 
 // --- MOBILE ---
 
@@ -1252,34 +1272,34 @@ function renderDash() {
   const tp  = DB.work_orders.reduce((a,w) => a + parseFloat(w.produced||0), 0);
   const kEl = document.getElementById('d-kpi'); if (!kEl) return;
   kEl.innerHTML =
-    `<div class="kc g"><div class="kc-stripe"></div><div class="kl">Total Produced</div><div class="kv" style="color:var(--gn)">${tp.toLocaleString()}</div><div class="ks">pcs across active WOs</div></div>` +
-    `<div class="kc o"><div class="kc-stripe"></div><div class="kl">Active Work Orders</div><div class="kv" style="color:var(--ac)">${aw}</div><div class="ks">${DB.work_orders.filter(w=>w.status==='Delayed').length} delayed</div></div>` +
-    `<div class="kc b"><div class="kc-stripe"></div><div class="kl">Low Stock Items</div><div class="kv" style="color:var(--bl)">${li}</div><div class="ks">below reorder level</div></div>` +
-    `<div class="kc p"><div class="kc-stripe"></div><div class="kl">QC Pass Rate</div><div class="kv" style="color:var(--pu)">${qcT>0?((qcP/qcT)*100).toFixed(1)+'%':'--'}</div><div class="ks">IEC 61952 / IS 14772</div></div>`;
+    `<button type="button" class="kc g dash-link" onclick="dashOpenTab('production','Review production performance and work order progress')"><div class="kc-stripe"></div><div class="kl">Total Produced</div><div class="kv" style="color:var(--gn)">${tp.toLocaleString()}</div><div class="ks">pcs across active WOs</div></button>` +
+    `<button type="button" class="kc o dash-link" onclick="dashOpenTab('production','Opening active work orders')"><div class="kc-stripe"></div><div class="kl">Active Work Orders</div><div class="kv" style="color:var(--ac)">${aw}</div><div class="ks">${DB.work_orders.filter(w=>w.status==='Delayed').length} delayed</div></button>` +
+    `<button type="button" class="kc b dash-link" onclick="dashOpenTab('inventory','Review low stock items and reorder levels')"><div class="kc-stripe"></div><div class="kl">Low Stock Items</div><div class="kv" style="color:var(--bl)">${li}</div><div class="ks">below reorder level</div></button>` +
+    `<button type="button" class="kc p dash-link" onclick="dashOpenTab('quality','Opening recent QC records')"><div class="kc-stripe"></div><div class="kl">QC Pass Rate</div><div class="kv" style="color:var(--pu)">${qcT>0?((qcP/qcT)*100).toFixed(1)+'%':'--'}</div><div class="ks">IEC 61952 / IS 14772</div></button>`;
   let alerts = '';
-  DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<div class="al ald"><span class="al-i">!!</span><strong>CRITICAL:</strong> ${i.name}  only ${i.stock} ${i.unit} remaining. Raise PO now.</div>`);
-  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<div class="al alw"><span class="al-i">!</span><strong>Low stock:</strong> ${i.name} at ${i.stock}/${i.reorder} ${i.unit}.</div>`);
-  DB.work_orders.filter(w=>w.status==='Delayed').forEach(w => alerts+=`<div class="al ali"><span class="al-i">SO</span>Work Order <strong>${w.wono}</strong> (${w.product}) is delayed.</div>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.min)).forEach(i => alerts+=`<button type="button" class="al ald dash-alert" onclick="dashOpenInv(${jsq(i.id)})"><span class="al-i">!!</span><strong>CRITICAL:</strong> ${i.name}  only ${i.stock} ${i.unit} remaining. Raise PO now.</button>`);
+  DB.inventory.filter(i=>parseFloat(i.stock)>parseFloat(i.min)&&parseFloat(i.stock)<=parseFloat(i.reorder)).forEach(i => alerts+=`<button type="button" class="al alw dash-alert" onclick="dashOpenInv(${jsq(i.id)})"><span class="al-i">!</span><strong>Low stock:</strong> ${i.name} at ${i.stock}/${i.reorder} ${i.unit}.</button>`);
+  DB.work_orders.filter(w=>w.status==='Delayed').forEach(w => alerts+=`<button type="button" class="al ali dash-alert" onclick="dashOpenWO(${jsq(w.id)})"><span class="al-i">SO</span>Work Order <strong>${w.wono}</strong> (${w.product}) is delayed.</button>`);
   const aEl = document.getElementById('d-alerts'); if(aEl) aEl.innerHTML = alerts;
   const woEl = document.getElementById('d-wo');
   if(woEl) woEl.innerHTML = DB.work_orders.filter(w=>w.status!=='Completed').slice(0,4).map(w => {
     const pct = Math.round((parseFloat(w.produced||0)/Math.max(parseFloat(w.qty||1),1))*100);
     const col = pct>70?'var(--gn)':pct>40?'var(--ac)':'var(--rd)';
-    return `<tr><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${w.product}</td><td><div style="display:flex;align-items:center;gap:8px"><div class="pbar" style="width:80px"><div class="pfill" style="width:${pct}%;background:${col}"></div></div><span class="mn" style="font-size:10px;color:var(--t2)">${pct}%</span></div></td><td>${pill(w.status)}</td></tr>`;
+    return `<tr class="dash-click-row" onclick="dashOpenWO(${jsq(w.id)})"><td class="mn" style="color:var(--ac);font-weight:600">${w.wono}</td><td>${w.product}</td><td><div style="display:flex;align-items:center;gap:8px"><div class="pbar" style="width:80px"><div class="pfill" style="width:${pct}%;background:${col}"></div></div><span class="mn" style="font-size:10px;color:var(--t2)">${pct}%</span></div></td><td>${pill(w.status)}</td></tr>`;
   }).join('') || '<tr><td colspan="4"><div class="empty" style="padding:20px"><div class="empty-tt">No active work orders</div></div></td></tr>';
   const invEl = document.getElementById('d-inv');
   if(invEl) invEl.innerHTML = DB.inventory.slice(0,6).map(i => {
     const pct = Math.min(100,Math.round((parseFloat(i.stock)/Math.max(parseFloat(i.reorder)*1.5,1))*100));
     const col = parseFloat(i.stock)<=parseFloat(i.min)?'var(--rd)':parseFloat(i.stock)<=parseFloat(i.reorder)?'var(--ac)':'var(--gn)';
-    return `<div class="ir"><span style="flex:1;font-size:12px">${i.name}</span><div class="pbar" style="width:80px;flex-shrink:0"><div class="pfill" style="width:${pct}%;background:${col}"></div></div><span class="mn" style="font-size:11px;color:${col};flex:0 0 60px;text-align:right">${i.stock} ${i.unit}</span></div>`;
+    return `<button type="button" class="ir dash-list-btn" onclick="dashOpenInv(${jsq(i.id)})"><span style="flex:1;font-size:12px;text-align:left">${i.name}</span><div class="pbar" style="width:80px;flex-shrink:0"><div class="pfill" style="width:${pct}%;background:${col}"></div></div><span class="mn" style="font-size:11px;color:${col};flex:0 0 60px;text-align:right">${i.stock} ${i.unit}</span></button>`;
   }).join('') || '<div class="empty" style="padding:20px"><div class="empty-tt">No inventory</div></div>';
   const qcEl = document.getElementById('d-qc');
   if(qcEl) qcEl.innerHTML = DB.qc_records.slice(0,4).map(q => {
     const pct = parseFloat(q.sample)>0?((parseFloat(q.pass||0)/parseFloat(q.sample))*100).toFixed(0):'0';
-    return `<tr><td class="mn" style="color:var(--ac)">${q.batchid||q.id.slice(-8)}</td><td>${q.product}</td><td class="mn">${pct}%</td><td>${pill(pct>=95?'Passed':pct>=80?'Conditional':'Failed')}</td></tr>`;
+    return `<tr class="dash-click-row" onclick="dashOpenQC(${jsq(q.id)})"><td class="mn" style="color:var(--ac)">${q.batchid||q.id.slice(-8)}</td><td>${q.product}</td><td class="mn">${pct}%</td><td>${pill(pct>=95?'Passed':pct>=80?'Conditional':'Failed')}</td></tr>`;
   }).join('') || '<tr><td colspan="4"><div class="empty" style="padding:20px"><div class="empty-tt">No QC records</div></div></td></tr>';
   const dcEl = document.getElementById('d-dc');
-  if(dcEl) dcEl.innerHTML = DB.dispatches.slice(0,4).map(d => `<tr><td class="mn" style="color:var(--ac)">${d.dcno||d.id.slice(-8)}</td><td>${d.customer}</td><td>${d.qty} pcs</td><td>${pill(d.status)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty" style="padding:20px"><div class="empty-tt">No dispatches</div></div></td></tr>';
+  if(dcEl) dcEl.innerHTML = DB.dispatches.slice(0,4).map(d => `<tr class="dash-click-row" onclick="dashOpenDC(${jsq(d.id)})"><td class="mn" style="color:var(--ac)">${d.dcno||d.id.slice(-8)}</td><td>${d.customer}</td><td>${d.qty} pcs</td><td>${pill(d.status)}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty" style="padding:20px"><div class="empty-tt">No dispatches</div></div></td></tr>';
 }
 
 // ---

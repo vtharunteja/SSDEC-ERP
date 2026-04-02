@@ -31,10 +31,26 @@
   transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 }
 
+.dash-link {
+  width: 100%;
+  padding: 18px 20px;
+  border: 1px solid var(--br);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .kc:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--ac) 20%, var(--br));
   box-shadow: var(--sh);
+}
+
+.dash-link:focus-visible,
+.dash-alert:focus-visible,
+.dash-list-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ac) 72%, white);
+  outline-offset: 2px;
 }
 
 .kc-stripe {
@@ -562,6 +578,17 @@ select option {
   gap: 10px;
 }
 
+.dash-alert {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dash-alert:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--sh);
+}
+
 .al-i {
   flex-shrink: 0;
   font-size: 14px;
@@ -1041,6 +1068,28 @@ select option {
 .ir:last-child,
 .ur:last-child {
   border-bottom: none;
+}
+
+.dash-list-btn {
+  width: 100%;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+}
+
+.dash-list-btn:hover,
+.dash-list-btn:focus-visible {
+  background: color-mix(in srgb, var(--sf-soft) 58%, transparent);
+}
+
+.dash-click-row {
+  cursor: pointer;
+}
+
+.dash-click-row:hover td {
+  background: var(--sf-soft);
 }
 
 .ur:hover {
