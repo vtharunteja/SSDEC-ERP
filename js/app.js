@@ -2820,6 +2820,172 @@ function dlFile(name, content, type) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+function formatCSVDate(v) {
+  if (!v) return '';
+  try { return new Date(v).toISOString().slice(0,10); } catch(e) { return String(v); }
+}
+
+function moduleExportRows(key) {
+  if (key === 'inventory') {
+    return (DB.inventory || []).map(i => ({
+      material: i.name || '',
+      code: i.code || '',
+      unit: i.unit || '',
+      stock: i.stock || 0,
+      reorder_level: i.reorder || 0,
+      minimum_level: i.min || 0,
+      unit_cost: i.cost || 0,
+      stock_value: (parseFloat(i.stock || 0) * parseFloat(i.cost || 0)).toFixed(2),
+      supplier: i.supplier || '',
+      status: parseFloat(i.stock)<=parseFloat(i.min) ? 'Critical' : parseFloat(i.stock)<=parseFloat(i.reorder) ? 'Low Stock' : 'Healthy'
+    }));
+  }
+  if (key === 'purchase') {
+    return (DB.purchase_orders || []).map(p => ({
+      po_no: p.pono || '',
+      date: formatCSVDate(p.date),
+      material: p.material || '',
+      supplier: p.supplier || '',
+      qty: p.qty || 0,
+      unit_price: p.price || 0,
+      total_value: ((parseFloat(p.qty || 0) * parseFloat(p.price || 0))).toFixed(2),
+      required_by: formatCSVDate(p.req_by),
+      status: p.status || '',
+      notes: p.notes || ''
+    }));
+  }
+  if (key === 'sales') {
+    return (DB.sales_orders || []).map(s => ({
+      so_no: s.sono || '',
+      date: formatCSVDate(s.date),
+      buyer: s.buyer || '',
+      customer: s.customer || '',
+      product: s.product || '',
+      qty: s.qty || 0,
+      unit_price: s.price || 0,
+      total_value: ((parseFloat(s.qty || 0) * parseFloat(s.price || 0))).toFixed(2),
+      gst_number: s.gst || '',
+      work_order: s.wo || '',
+      status: s.status || '',
+      deadline: formatCSVDate(s.deadline)
+    }));
+  }
+  if (key === 'quotes') {
+    return (DB.quotations || []).map(q => {
+      const items = jParse(q.items_json, []);
+      const base = items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.price || 0)), 0);
+      const tax = items.reduce((sum, item) => sum + ((parseFloat(item.qty || 0) * parseFloat(item.price || 0)) * (parseFloat(item.gst || 0) / 100)), 0);
+      return {
+        quotation_no: q.quoteno || '',
+        date: formatCSVDate(q.date),
+        buyer: q.buyer || '',
+        party: q.party || '',
+        quote_kind: q.quote_kind || '',
+        item_count: items.length || (q.product ? 1 : 0),
+        enquiry_ref: q.enquiry_ref || '',
+        submitted_on: formatCSVDate(q.submission_date),
+        followup_on: formatCSVDate(q.followup_date),
+        status: q.status || '',
+        base_amount: base.toFixed(2),
+        gst_amount: tax.toFixed(2),
+        quoted_total: (base + tax).toFixed(2)
+      };
+    });
+  }
+  if (key === 'invoices') {
+    return (DB.invoices || []).map(i => ({
+      invoice_no: i.invno || '',
+      date: formatCSVDate(i.date),
+      customer: i.party || '',
+      buyer: i.buyer || '',
+      sales_order: i.soref || '',
+      customer_gst: i.customer_gst || '',
+      base_amount: parseFloat(i.amt || 0).toFixed(2),
+      gst_percent: parseFloat(i.gst || 0).toFixed(2),
+      total_amount: parseFloat(i.total || 0).toFixed(2),
+      due_date: formatCSVDate(i.due),
+      payment_terms: i.terms || '',
+      status: i.status || ''
+    }));
+  }
+  return [];
+}
+
+window.exportModuleCSV = key => {
+  const rows = moduleExportRows(key);
+  if (!rows.length) return toast('No data available to export', 'i');
+  const stamp = new Date().toISOString().slice(0,10);
+  dlFile(`ssdec-${key}-register-${stamp}.csv`, toCSV(rows), 'text/csv;charset=utf-8');
+  toast(`Exported ${key} register`, 's');
+};
+
+function gstRows() {
+  const rows = [];
+  (DB.invoices || []).forEach(inv => {
+    const items = jParse(inv.items_json, []);
+    if (!items.length) {
+      const base = parseFloat(inv.amt || 0);
+      const gstPct = parseFloat(inv.gst || 0);
+      const tax = base * (gstPct / 100);
+      rows.push({
+        invoice_no: inv.invno || '',
+        invoice_date: formatCSVDate(inv.date),
+        customer: inv.party || '',
+        customer_gst: inv.customer_gst || '',
+        item_description: inv.party || '',
+        hsn: '',
+        taxable_value: base.toFixed(2),
+        gst_rate: gstPct.toFixed(2),
+        gst_amount: tax.toFixed(2),
+        total_invoice_value: parseFloat(inv.total || base + tax).toFixed(2),
+        place_of_supply: '',
+        status: inv.status || ''
+      });
+      return;
+    }
+    items.forEach(item => {
+      const base = parseFloat(item.qty || 0) * parseFloat(item.price || 0);
+      const rate = parseFloat(item.gst || 0);
+      const tax = base * (rate / 100);
+      rows.push({
+        invoice_no: inv.invno || '',
+        invoice_date: formatCSVDate(inv.date),
+        customer: inv.party || '',
+        customer_gst: inv.customer_gst || '',
+        item_description: item.description || item.product || '',
+        hsn: item.hsn || '',
+        taxable_value: base.toFixed(2),
+        gst_rate: rate.toFixed(2),
+        gst_amount: tax.toFixed(2),
+        total_invoice_value: (base + tax).toFixed(2),
+        place_of_supply: '',
+        status: inv.status || ''
+      });
+    });
+  });
+  return rows;
+}
+
+window.exportGSTReport = mode => {
+  const rows = gstRows();
+  if (!rows.length) return toast('No invoice data available for GST export', 'i');
+  const stamp = new Date().toISOString().slice(0,10);
+  if (mode === 'gstr1') {
+    dlFile(`ssdec-gstr1-outward-${stamp}.csv`, toCSV(rows), 'text/csv;charset=utf-8');
+    toast('Exported GSTR-1 ready CSV', 's');
+    return;
+  }
+  const summary = rows.reduce((acc, row) => {
+    acc.invoice_count += 1;
+    acc.taxable_value += parseFloat(row.taxable_value || 0);
+    acc.gst_amount += parseFloat(row.gst_amount || 0);
+    acc.invoice_value += parseFloat(row.total_invoice_value || 0);
+    return acc;
+  }, { exported_at: new Date().toISOString(), invoice_count: 0, taxable_value: 0, gst_amount: 0, invoice_value: 0, rows });
+  dlFile(`ssdec-gst-summary-${stamp}.json`, JSON.stringify(summary, null, 2), 'application/json');
+  toast('Exported GST summary', 's');
+};
 function renderBackup() {
   const totalRows = ALL_BACKUP_TABLES.reduce((sum, tbl) => sum + (DB[tbl]?.length || 0), 0);
   const kpi = document.getElementById('backup-kpi');

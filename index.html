@@ -271,10 +271,10 @@
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('inv')">Clear</button><button class="btn bP" id="inv-sb" onclick="saveInv()">Save Material</button></div>
         </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Stock Register</div><div class="ch-r"><input type="text" id="inv-srch" placeholder="Search..." oninput="renderInv()"/></div></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Code</th><th>Unit</th><th>Stock</th><th>Reorder</th><th>Min</th><th>Unit Cost</th><th>Stock Value</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv-tbl"></tbody></table></div>
-        </div>
+          <div class="card">
+            <div class="ch"><div class="ct">Stock Register</div><div class="ch-r"><button class="btn bO sm" onclick="exportModuleCSV('inventory')">Export CSV</button><input type="text" id="inv-srch" placeholder="Search..." oninput="renderInv()"/></div></div>
+            <div class="tbl-wrap"><table><thead><tr><th>Material</th><th>Code</th><th>Unit</th><th>Stock</th><th>Reorder</th><th>Min</th><th>Unit Cost</th><th>Stock Value</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv-tbl"></tbody></table></div>
+          </div>
       </div>
 
       <!-- PURCHASE ORDERS -->
@@ -295,10 +295,11 @@
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('po')">Clear</button><button class="btn bP" id="po-sb" onclick="savePO()">Raise PO</button></div>
         </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Purchase Register</div><div class="ch-r">
-            <select id="po-flt" onchange="renderPO()"><option value="">All Status</option><option>Pending Approval</option><option>Raised</option><option>In Transit</option><option>Delivered</option><option>Cancelled</option></select>
-          </div></div>
+          <div class="card">
+            <div class="ch"><div class="ct">Purchase Register</div><div class="ch-r">
+              <button class="btn bO sm" onclick="exportModuleCSV('purchase')">Export CSV</button>
+              <select id="po-flt" onchange="renderPO()"><option value="">All Status</option><option>Pending Approval</option><option>Raised</option><option>In Transit</option><option>Delivered</option><option>Cancelled</option></select>
+            </div></div>
           <div class="tbl-wrap"><table><thead><tr><th>PO No.</th><th>Material</th><th>Supplier</th><th>Qty</th><th>Value (Rs)</th><th>Required By</th><th>Status</th><th>Actions</th></tr></thead><tbody id="po-tbl"></tbody></table></div>
         </div>
         <div class="card">
@@ -360,11 +361,12 @@
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('so')">Clear</button><button class="btn bP" id="so-sb" onclick="saveSO()">Create Sales Order</button></div>
         </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Sales Register</div><div class="ch-r">
-            <input type="text" id="so-srch" placeholder="Search..." oninput="renderSO()"/>
-            <select id="so-flt" onchange="renderSO()"><option value="">All Status</option><option>Pending</option><option>In Production</option><option>Ready</option><option>Dispatched</option><option>Delivered</option></select>
-          </div></div>
+          <div class="card">
+            <div class="ch"><div class="ct">Sales Register</div><div class="ch-r">
+              <button class="btn bO sm" onclick="exportModuleCSV('sales')">Export CSV</button>
+              <input type="text" id="so-srch" placeholder="Search..." oninput="renderSO()"/>
+              <select id="so-flt" onchange="renderSO()"><option value="">All Status</option><option>Pending</option><option>In Production</option><option>Ready</option><option>Dispatched</option><option>Delivered</option></select>
+            </div></div>
           <div class="tbl-wrap"><table><thead><tr><th>SO No.</th><th>Customer</th><th>Product</th><th>Qty</th><th>Value</th><th>Deadline</th><th>WO</th><th>Status</th><th>Actions</th></tr></thead><tbody id="so-tbl"></tbody></table></div>
         </div>
       </div>
@@ -407,11 +409,12 @@
           </div>
           <div class="ff"><button class="btn bO" onclick="clrForm('qt')">Clear</button><button class="btn bP" id="qt-sb" onclick="saveQuote()">Save Quotation</button></div>
         </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Quotation Register</div><div class="ch-r">
-            <input type="text" id="qt-srch" placeholder="Search..." oninput="renderQuotes()"/>
-            <select id="qt-flt" onchange="renderQuotes()"><option value="">All Status</option><option>Draft</option><option>Submitted</option><option>Follow-up Due</option><option>Under Review</option><option>Won</option><option>Lost</option><option>Cancelled</option></select>
-          </div></div>
+          <div class="card">
+            <div class="ch"><div class="ct">Quotation Register</div><div class="ch-r">
+              <button class="btn bO sm" onclick="exportModuleCSV('quotes')">Export CSV</button>
+              <input type="text" id="qt-srch" placeholder="Search..." oninput="renderQuotes()"/>
+              <select id="qt-flt" onchange="renderQuotes()"><option value="">All Status</option><option>Draft</option><option>Submitted</option><option>Follow-up Due</option><option>Under Review</option><option>Won</option><option>Lost</option><option>Cancelled</option></select>
+            </div></div>
           <div class="tbl-wrap"><table><thead><tr><th>Quote No.</th><th>Customer</th><th>Product / Service</th><th>Value</th><th>Submitted</th><th>Follow-up</th><th>Status</th><th>Actions</th></tr></thead><tbody id="qt-tbl"></tbody></table></div>
         </div>
       </div>
@@ -508,11 +511,12 @@
           <div class="card"><div class="qbig"><div class="qnum" id="inv2-upd" style="color:var(--rd);font-size:22px">--</div><div class="qlbl">Unpaid / Overdue</div></div></div>
           <div class="card"><div class="qbig"><div class="qnum" id="inv2-pad" style="color:var(--gn);font-size:22px">--</div><div class="qlbl">Total Collected</div></div></div>
         </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Invoice Register</div><div class="ch-r">
-            <input type="text" id="inv2-srch" placeholder="Search..." oninput="renderInv2()"/>
-            <select id="inv2-flt" onchange="renderInv2()"><option value="">All Status</option><option>Unpaid</option><option>Partially Paid</option><option>Paid</option><option>Overdue</option></select>
-          </div></div>
+          <div class="card">
+            <div class="ch"><div class="ct">Invoice Register</div><div class="ch-r">
+              <button class="btn bO sm" onclick="exportModuleCSV('invoices')">Export CSV</button>
+              <input type="text" id="inv2-srch" placeholder="Search..." oninput="renderInv2()"/>
+              <select id="inv2-flt" onchange="renderInv2()"><option value="">All Status</option><option>Unpaid</option><option>Partially Paid</option><option>Paid</option><option>Overdue</option></select>
+            </div></div>
           <div class="tbl-wrap"><table><thead><tr><th>Invoice No.</th><th>Date</th><th>Customer</th><th>SO</th><th>Amount</th><th>GST%</th><th>Total</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inv2-tbl"></tbody></table></div>
         </div>
       </div>
@@ -886,8 +890,8 @@
       </div>
 
       <!-- ANALYTICS -->
-      <div class="tc" id="tab-reports">
-        <div class="ph"><div><div class="pt">Analytics</div><div class="pst">// live business intelligence</div></div><div class="ph-r"><button class="btn bO sm" onclick="refreshAll()">Refresh</button></div></div>
+        <div class="tc" id="tab-reports">
+          <div class="ph"><div><div class="pt">Analytics</div><div class="pst">// live business intelligence</div></div><div class="ph-r"><button class="btn bO sm" onclick="exportGSTReport('gstr1')">GSTR-1 CSV</button><button class="btn bO sm" onclick="exportGSTReport('summary')">GST Summary</button><button class="btn bO sm" onclick="refreshAll()">Refresh</button></div></div>
         <div class="g4" id="rep-kpi"></div>
         <div class="g2">
           <div class="card"><div class="ch"><div class="ct">Production by Variant</div></div><div style="padding:18px" id="rep-prod"></div></div>
