@@ -1139,24 +1139,40 @@ function buildSB() {
   const allowed = NAV_ACCESS[CU?.role||'viewer'] || [];
   const sb = document.getElementById('sb');
   sb.innerHTML = '';
+  let pendingSection = null;
   NAVDEF.forEach(n => {
-    if (n.s) { const d = document.createElement('div'); d.className='ns'; d.textContent=n.s; sb.appendChild(d); return; }
-    const ok = allowed.includes(n.id);
+    if (n.s) {
+      pendingSection = n.s;
+      return;
+    }
+    if (!allowed.includes(n.id)) return;
+    if (pendingSection) {
+      const sec = document.createElement('div');
+      sec.className = 'ns';
+      sec.textContent = pendingSection;
+      sb.appendChild(sec);
+      pendingSection = null;
+    }
     const d  = document.createElement('div');
-    d.className = 'ni' + (ok ? '' : ' locked');
+    d.className = 'ni';
     d.id = 'nav-' + n.id;
     let badge = '';
     if (n.bwo)   { const c=DB.work_orders.filter(w=>w.status!=='Completed').length; if(c) badge=`<span class="nbg">${c}</span>`; }
     if (n.binv)  { const c=DB.inventory.filter(i=>parseFloat(i.stock)<=parseFloat(i.reorder)).length; if(c) badge=`<span class="nbg r">${c}</span>`; }
     if (n.binv2) { const c=DB.invoices.filter(i=>i.status==='Unpaid'||i.status==='Overdue').length; if(c) badge=`<span class="nbg r">${c}</span>`; }
     if (n.bfg)   { const c=DB.approvals.filter(a=>a.status==='Pending').length; if(c) badge=`<span class="nbg r">${c}</span>`; }
-    d.innerHTML = `<span class="ni-ic">${n.ic}</span><span class="ni-lb">${n.lb}</span>${badge}${ok?'':`<span style="margin-left:auto;opacity:.25;font-size:12px">X</span>`}`;
-    if (ok) d.onclick = () => goTab(n.id);
+    d.innerHTML = `<span class="ni-ic">${n.ic}</span><span class="ni-lb">${n.lb}</span>${badge}`;
+    d.onclick = () => goTab(n.id);
     sb.appendChild(d);
   });
 }
 
 window.goTab = id => {
+  const allowed = NAV_ACCESS[CU?.role||'viewer'] || [];
+  if (id !== 'dashboard' && !allowed.includes(id)) {
+    toast('Access denied for your role', 'e');
+    return;
+  }
   document.querySelectorAll('.tc').forEach(t => t.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const tab = document.getElementById('tab-' + id); if (tab) tab.classList.add('on');
