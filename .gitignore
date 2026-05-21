@@ -1,9 +1,9 @@
-node_modules/
-android/.gradle/
-android/app/build/
-android/build/
-ios/App/build/
-ios/App/Pods/
+mobile/node_modules/
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+mobile/ios/App/build/
+mobile/ios/App/Pods/
 dist/
 .idea/
 .DS_Store

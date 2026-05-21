@@ -17,9 +17,10 @@ iOS:
 
 ## 2. Install project dependencies
 
-Run in the project root:
+Run in the `mobile` folder:
 
 ```powershell
+cd "C:\Users\keert\Desktop\quote for pin insulators\SSDEC-ERP-main\mobile"
 npm install
 ```
 
